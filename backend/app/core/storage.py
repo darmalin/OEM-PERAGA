@@ -28,15 +28,26 @@ def new_object_key(suffix: str = "") -> str:
 class S3Storage:
     def __init__(self) -> None:
         s = get_settings()
-        self._client: S3Client = boto3.client(
+        self._client = self._make_client(s.s3_endpoint_url)
+        # SigV4 signs the host, so links for browsers are signed with the public host.
+        self._signer = (
+            self._make_client(s.s3_public_endpoint_url)
+            if s.s3_public_endpoint_url
+            else self._client
+        )
+        self._ttl = s.presigned_url_ttl_seconds
+
+    @staticmethod
+    def _make_client(endpoint_url: str | None) -> "S3Client":
+        s = get_settings()
+        return boto3.client(
             "s3",
-            endpoint_url=s.s3_endpoint_url,
+            endpoint_url=endpoint_url,
             aws_access_key_id=s.s3_access_key.get_secret_value() or None,
             aws_secret_access_key=s.s3_secret_key.get_secret_value() or None,
             region_name=s.s3_region,
             config=Config(signature_version="s3v4", retries={"max_attempts": 3}),
         )
-        self._ttl = s.presigned_url_ttl_seconds
 
     def put(self, bucket: str, key: str, data: bytes, content_type: str) -> None:
         self._client.put_object(Bucket=bucket, Key=key, Body=data, ContentType=content_type)
@@ -48,7 +59,7 @@ class S3Storage:
         self._client.delete_object(Bucket=bucket, Key=key)
 
     def presigned_url(self, bucket: str, key: str, filename: str) -> str:
-        return self._client.generate_presigned_url(
+        return self._signer.generate_presigned_url(
             "get_object",
             Params={
                 "Bucket": bucket,
