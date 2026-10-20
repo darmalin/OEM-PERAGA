@@ -10,10 +10,10 @@ from app.core.db import get_sessionmaker
 from app.core.email import MemorySender
 from app.core.errors import NotFound
 from app.core.outbox import OutboxEvent
-from app.main import app
 from app.modules.identity.rules import BASELINE_ROLES, PERMISSIONS, ScopeType, password_problems
 from app.modules.identity.tasks import send_password_reset_email
 from tests.factories import PASSWORD, RoleGrant, actor, login_client, make_edition, make_user
+from tests.routes import api_routes
 
 # Routes reachable without a permission guard (BACKEND_RULES/security-permissions.md).
 PUBLIC_ROUTES = {
@@ -37,16 +37,14 @@ def _guarded(route: APIRoute) -> bool:
 
 def test_every_route_requires_a_permission() -> None:
     missing = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
-            continue
+    for path, route in api_routes():
         for method in route.methods:
-            if (method, route.path) in PUBLIC_ROUTES or route.path.startswith("/api/v1/public/"):
+            if (method, path) in PUBLIC_ROUTES or path.startswith("/api/v1/public/"):
                 continue
-            if route.path.startswith("/api/v1/gate/device/"):
+            if path.startswith("/api/v1/gate/device/"):
                 continue  # device-credential endpoints, checked in test_gate
             if not _guarded(route):
-                missing.append(f"{method} {route.path}")
+                missing.append(f"{method} {path}")
     assert missing == []
 
 
