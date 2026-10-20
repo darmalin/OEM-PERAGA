@@ -1,0 +1,57 @@
+# Dev overrides: hot reload, bind mounts, mailpit, exposed ports.
+x-backend-dev: &backend-dev
+  build:
+    context: ./backend
+    target: dev
+  # Run as the host user so files written to the bind mount stay owned by you.
+  user: "${EMS_UID:-1000}:${EMS_GID:-1000}"
+  volumes:
+    - ./backend:/app
+  environment:
+    EMS_ENVIRONMENT: dev
+    EMS_DATABASE_URL: postgresql+asyncpg://ems:ems@postgres:5432/ems
+    EMS_REDIS_URL: redis://redis:6379/0
+    EMS_CELERY_BROKER_URL: redis://redis:6379/1
+    EMS_S3_ENDPOINT_URL: http://storage:9000
+    EMS_S3_ACCESS_KEY: ems
+    EMS_S3_SECRET_KEY: ems-storage-secret
+    EMS_SMTP_HOST: mailpit
+    EMS_SMTP_PORT: "1025"
+    EMS_SESSION_COOKIE_SECURE: "false"
+    # Dev-only key. Generate a real one for any shared environment.
+    EMS_APP_ENCRYPTION_KEY: ${EMS_APP_ENCRYPTION_KEY:-ZGV2LW9ubHkta2V5LWRvLW5vdC11c2UtaW4tcHJvZCE=}
+
+services:
+  postgres:
+    ports:
+      - "${EMS_POSTGRES_PORT:-55432}:5432"
+
+  redis:
+    ports:
+      - "${EMS_REDIS_PORT:-56379}:6379"
+
+  storage:
+    ports:
+      - "${EMS_STORAGE_CONSOLE_PORT:-9001}:9001"
+
+  mailpit:
+    image: axllent/mailpit:v1.24
+    ports:
+      - "${EMS_MAILPIT_PORT:-8025}:8025"
+    restart: unless-stopped
+
+  migrate:
+    <<: *backend-dev
+    command: ["sh", "-c", "alembic upgrade head && python -m app.cli ensure-buckets"]
+
+  api:
+    <<: *backend-dev
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  worker:
+    <<: *backend-dev
+    command: ["celery", "-A", "app.worker", "worker", "-Q", "default,email,import,export,reports", "--loglevel", "INFO"]
+
+  beat:
+    <<: *backend-dev
+    command: ["celery", "-A", "app.worker", "beat", "--loglevel", "INFO", "--schedule", "/tmp/celerybeat-schedule"]
