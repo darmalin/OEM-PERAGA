@@ -2,12 +2,13 @@ import contextlib
 import uuid
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from pwdlib import PasswordHash
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core import outbox, ratelimit, sessions
+from app.core import audit, outbox, ratelimit, sessions
 from app.core.authorization import AuthContext, CurrentUser, Grant
 from app.core.config import get_settings
 from app.core.context import current_actor_id
@@ -21,6 +22,7 @@ from app.core.errors import (
     ValidationFailed,
     check_version,
 )
+from app.core.logging import mask_email
 from app.core.pagination import Page
 from app.modules.identity import repository as repo
 from app.modules.identity.models import (
@@ -47,6 +49,8 @@ from app.modules.identity.schemas import (
     UserOut,
     UserUpdateIn,
 )
+
+USER_AUDIT_FIELDS = ("email", "full_name", "is_active")
 
 _hasher = PasswordHash.recommended()
 # Verified against when the email is unknown, so timing does not reveal which emails exist.
@@ -135,10 +139,25 @@ async def login(
             await ratelimit.hit(
                 account_key, s.login_max_failures_per_account, s.login_window_seconds
             )
+        # The request rolls back, so the failure is committed on its own.
+        await audit.record_independent(
+            entity_type="user",
+            entity_id=user.id if user else None,
+            action="login_failed",
+            after={"email": mask_email(email), "ip": client_ip},
+        )
         raise NotAuthenticated("Invalid email or password.", code="INVALID_CREDENTIALS")
 
     await ratelimit.reset(account_key)
     await repo.touch_last_login(session, user.id, datetime.now(UTC))
+    await audit.record(
+        session,
+        entity_type="user",
+        entity_id=user.id,
+        action="login",
+        after={"ip": client_ip},
+        actor_id=user.id,
+    )
     # A fresh session ID on every login prevents session fixation.
     return user, await sessions.create(user.id)
 
@@ -188,6 +207,14 @@ async def confirm_password_reset(session: AsyncSession, token: str, new_password
     user.password_hash = hash_password(new_password)
     record.used_at = now
     await session.flush()
+    await audit.record(
+        session,
+        entity_type="user",
+        entity_id=user.id,
+        action="password_reset",
+        after={"password": "changed"},
+        actor_id=user.id,
+    )
     await sessions.destroy_all_for_user(user.id)
 
 
@@ -259,6 +286,13 @@ async def create_user(session: AsyncSession, data: UserCreateIn) -> UserDetailOu
             "Email already in use.", code="DUPLICATE_USER", fields={"email": "Already in use."}
         ) from e
     await session.refresh(user)
+    await audit.record(
+        session,
+        entity_type="user",
+        entity_id=user.id,
+        action="create",
+        after=audit.snapshot(user, USER_AUDIT_FIELDS),
+    )
     return await _user_detail(session, user)
 
 
@@ -272,6 +306,7 @@ async def update_user(
     check_version(user.version, data.version)
     if data.is_active is False and user.id == ctx.user.id:
         raise ValidationFailed(fields={"is_active": "You cannot deactivate yourself."})
+    before = audit.snapshot(user, USER_AUDIT_FIELDS)
     if data.full_name is not None:
         user.full_name = data.full_name.strip()
     if data.is_active is not None:
@@ -279,9 +314,21 @@ async def update_user(
     user.updated_by = ctx.user.id
     await session.flush()
     await session.refresh(user)
+    await audit.record(
+        session,
+        entity_type="user",
+        entity_id=user.id,
+        action="update",
+        before=before,
+        after=audit.snapshot(user, USER_AUDIT_FIELDS),
+    )
     if not user.is_active:
         await sessions.destroy_all_for_user(user.id)
     return await _user_detail(session, user)
+
+
+def _assignment_audit(a: UserRoleAssignment) -> dict[str, Any]:
+    return audit.snapshot(a, ("id", "role_id", "scope_type", "edition_id", "team_id"))
 
 
 def _check_can_grant(ctx: AuthContext, edition_id: uuid.UUID | None) -> None:
@@ -321,6 +368,14 @@ async def add_role_assignment(
     except IntegrityError as e:
         raise ValidationFailed(fields={"edition_id": "Unknown edition."}) from e
     await session.refresh(assignment)
+    await audit.record(
+        session,
+        entity_type="user",
+        entity_id=user.id,
+        action="role_assigned",
+        after={**_assignment_audit(assignment), "role_code": role.code},
+        edition_id=assignment.edition_id,
+    )
     return _assignment_out(assignment, role.code)
 
 
@@ -332,8 +387,17 @@ async def remove_role_assignment(
     if assignment is None:
         raise NotFound("Role assignment not found.")
     _check_can_grant(ctx, assignment.edition_id)
+    snap = _assignment_audit(assignment)
     await session.delete(assignment)
     await session.flush()
+    await audit.record(
+        session,
+        entity_type="user",
+        entity_id=user_id,
+        action="role_unassigned",
+        before=snap,
+        edition_id=snap["edition_id"],
+    )
 
 
 # --- roles ---------------------------------------------------------------------------------
@@ -378,6 +442,13 @@ async def create_role(session: AsyncSession, data: RoleCreateIn) -> RoleOut:
         session, role.id, await _permission_ids(session, data.permissions)
     )
     await session.refresh(role)
+    await audit.record(
+        session,
+        entity_type="role",
+        entity_id=role.id,
+        action="create",
+        after={"code": role.code, "name": role.name, "permissions": sorted(set(data.permissions))},
+    )
     return _role_out(role, sorted(set(data.permissions)))
 
 
@@ -390,7 +461,18 @@ async def set_role_permissions(
         raise NotFound("Role not found.")
     if role.code == "SUPER_ADMIN":
         raise ValidationFailed("SUPER_ADMIN permissions cannot be changed.", code="ROLE_LOCKED")
+    before = next(
+        (p for r, p in await repo.list_roles_with_permissions(session) if r.id == role.id), []
+    )
     await repo.replace_role_permissions(session, role.id, await _permission_ids(session, codes))
+    await audit.record(
+        session,
+        entity_type="role",
+        entity_id=role.id,
+        action="permissions_changed",
+        before={"permissions": before},
+        after={"permissions": sorted(set(codes))},
+    )
     return _role_out(role, sorted(set(codes)))
 
 
@@ -409,6 +491,9 @@ async def create_team(session: AsyncSession, name: str) -> TeamOut:
         await session.flush()
     except IntegrityError as e:
         raise Conflict("Team name already exists.", fields={"name": "Already exists."}) from e
+    await audit.record(
+        session, entity_type="team", entity_id=team.id, action="create", after={"name": team.name}
+    )
     return TeamOut(id=team.id, name=team.name, member_ids=[])
 
 
@@ -422,6 +507,13 @@ async def add_team_member(session: AsyncSession, team_id: uuid.UUID, user_id: uu
     if await repo.get_membership(session, team_id, user_id) is None:
         session.add(UserTeamMembership(team_id=team_id, user_id=user_id))
         await session.flush()
+        await audit.record(
+            session,
+            entity_type="team",
+            entity_id=team_id,
+            action="member_added",
+            after={"user_id": user_id},
+        )
     return TeamOut(
         id=team.id, name=team.name, member_ids=await repo.team_member_ids(session, team_id)
     )
@@ -433,6 +525,13 @@ async def remove_team_member(session: AsyncSession, team_id: uuid.UUID, user_id:
         raise NotFound("Membership not found.")
     await session.delete(membership)
     await session.flush()
+    await audit.record(
+        session,
+        entity_type="team",
+        entity_id=team_id,
+        action="member_removed",
+        before={"user_id": user_id},
+    )
 
 
 async def user_exists_active(session: AsyncSession, user_id: uuid.UUID) -> bool:
