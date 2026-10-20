@@ -1,7 +1,7 @@
 import smtplib
 from dataclasses import dataclass, field
 from email.message import EmailMessage
-from email.utils import make_msgid
+from email.utils import formataddr, make_msgid, parseaddr
 from typing import Protocol
 
 from app.core.config import get_settings
@@ -22,6 +22,9 @@ class OutgoingEmail:
     html: str
     text: str
     attachments: list[Attachment] = field(default_factory=list)
+    # Display name for the configured sender address (edition email settings).
+    from_name: str | None = None
+    reply_to: str | None = None
 
 
 class EmailSender(Protocol):
@@ -38,8 +41,14 @@ class SmtpSender:
     def send(self, email: OutgoingEmail) -> str:
         s = get_settings()
         msg = EmailMessage()
-        msg["From"] = s.email_from
+        msg["From"] = (
+            formataddr((email.from_name, parseaddr(s.email_from)[1]))
+            if email.from_name
+            else s.email_from
+        )
         msg["To"] = email.to
+        if email.reply_to:
+            msg["Reply-To"] = email.reply_to
         msg["Subject"] = email.subject
         message_id = make_msgid(domain="ems.local")
         msg["Message-ID"] = message_id

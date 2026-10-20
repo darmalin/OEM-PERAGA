@@ -17,6 +17,7 @@ from app.core.redis import get_redis
 from app.core.storage import MemoryStorage, set_storage
 from app.main import app
 from app.modules.identity.rules import BASELINE_ROLES
+from app.modules.registrations import templates as email_templates
 
 # Seeded by migrations; never truncated between tests.
 SEED_TABLES = {"alembic_version", "permissions", "roles", "role_permissions"}
@@ -57,6 +58,18 @@ async def _clean_state() -> AsyncIterator[None]:
                 ),
                 {"code": code, "perms": perms},
             )
+        # Restore the system QR email template seeded by migration 0009.
+        await conn.execute(
+            text(
+                "INSERT INTO email_templates (id, template_key, version, subject, body_text, "
+                "body_html) VALUES (gen_random_uuid(), 'QR_CONFIRMATION', 1, :s, :t, :h)"
+            ),
+            {
+                "s": email_templates.DEFAULT_SUBJECT,
+                "t": email_templates.DEFAULT_TEXT,
+                "h": email_templates.DEFAULT_HTML,
+            },
+        )
     await get_redis().flushdb()
     yield
 

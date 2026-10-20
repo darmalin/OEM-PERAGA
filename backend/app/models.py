@@ -16,6 +16,13 @@ from app.modules.identity.models import (
     UserTeamMembership,
 )
 from app.modules.importexport.models import ImportJob, ImportMappingPreset, ImportRowError
+from app.modules.registrations.models import (
+    EmailJob,
+    EmailLog,
+    EmailTemplate,
+    QrCredential,
+    VisitorRegistration,
+)
 from app.modules.telemarketing.models import (
     AssignmentJob,
     FollowupReminder,
@@ -39,6 +46,9 @@ __all__ = [
     "Edition",
     "EditionCounter",
     "EditionFieldOption",
+    "EmailJob",
+    "EmailLog",
+    "EmailTemplate",
     "Exhibition",
     "FollowupReminder",
     "IdempotencyKey",
@@ -49,6 +59,7 @@ __all__ = [
     "OutboxEvent",
     "PasswordResetToken",
     "Permission",
+    "QrCredential",
     "Role",
     "RolePermission",
     "RoundRobinCursor",
@@ -62,5 +73,6 @@ __all__ = [
     "VisitorFollowup",
     "VisitorFollowupChange",
     "VisitorLead",
+    "VisitorRegistration",
     "VisitorVerification",
 ]

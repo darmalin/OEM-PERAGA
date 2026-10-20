@@ -66,5 +66,6 @@ celery_app.conf.include = [
     "app.core.tasks",
     "app.modules.identity.tasks",
     "app.modules.importexport.tasks",
+    "app.modules.registrations.tasks",
     "app.modules.telemarketing.tasks",
 ]

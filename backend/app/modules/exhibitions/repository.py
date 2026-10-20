@@ -84,6 +84,10 @@ async def get_edition(session: AsyncSession, edition_id: uuid.UUID) -> Edition |
     return await session.get(Edition, edition_id)
 
 
+async def get_edition_by_code(session: AsyncSession, code: str) -> Edition | None:
+    return await session.scalar(select(Edition).where(Edition.code == code))
+
+
 async def exhibition_code(session: AsyncSession, exhibition_id: uuid.UUID) -> str | None:
     return await session.scalar(select(Exhibition.code).where(Exhibition.id == exhibition_id))
 

@@ -348,6 +348,11 @@ async def get_edition_by_id(session: AsyncSession, edition_id: uuid.UUID) -> Edi
     return await repo.get_edition(session, edition_id)
 
 
+async def get_edition_by_code(session: AsyncSession, code: str) -> Edition | None:
+    """Internal lookup by edition code (public registration URL)."""
+    return await repo.get_edition_by_code(session, code)
+
+
 async def next_registration_id(session: AsyncSession, edition_id: uuid.UUID) -> str:
     """Next Registration ID for the edition: prefix + 6-digit counter (spec 5.1)."""
     edition = await repo.get_edition(session, edition_id)
