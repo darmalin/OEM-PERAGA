@@ -11,6 +11,7 @@ Rules for the FastAPI backend. Stack in `TECH_STACK.md`. Every rule here is a re
 | [security-permissions.md](security-permissions.md) | Auth, sessions, permission + scope checks, audit, PII |
 | [jobs-integrations.md](jobs-integrations.md) | Celery, outbox, email, storage, Excel |
 | [testing.md](testing.md) | Test layers and what must be covered |
+| [known-gaps.md](known-gaps.md) | Open bugs, missing pieces, and decisions still on defaults. Read before starting work |
 
 ## The ten non-negotiables (spec §1.3, §18)
 
