@@ -117,6 +117,36 @@ async def list_leads(
     return (await session.execute(stmt)).all(), total
 
 
+async def scoped_lead_ids(
+    session: AsyncSession,
+    scope: Scope,
+    lead_ids: list[uuid.UUID] | None,
+    f: LeadFilters | None,
+    limit: int,
+) -> list[uuid.UUID]:
+    """IDs inside the scope, in creation order (deterministic for round robin)."""
+    stmt = apply_scope(select(VisitorLead.id), scope)
+    if lead_ids is not None:
+        stmt = stmt.where(VisitorLead.id.in_(lead_ids))
+    if f is not None:
+        stmt = stmt.where(filter_clause(f))
+    stmt = stmt.order_by(VisitorLead.created_at, VisitorLead.id).limit(limit)
+    return list((await session.scalars(stmt)).all())
+
+
+async def lock_leads(
+    session: AsyncSession, scope: Scope, lead_ids: list[uuid.UUID]
+) -> list[VisitorLead]:
+    """Row-lock leads in ID order (a fixed order avoids deadlocks between batches)."""
+    stmt = (
+        apply_scope(select(VisitorLead), scope)
+        .where(VisitorLead.id.in_(lead_ids))
+        .order_by(VisitorLead.id)
+        .with_for_update()
+    )
+    return list((await session.scalars(stmt)).all())
+
+
 async def edition_of(session: AsyncSession, lead_id: uuid.UUID) -> uuid.UUID | None:
     """Edition of a lead, used only to resolve the caller's scope before the real query."""
     return await session.scalar(select(VisitorLead.edition_id).where(VisitorLead.id == lead_id))

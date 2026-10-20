@@ -2,6 +2,7 @@
 
 from app.core.audit import AuditLog
 from app.core.db import Base
+from app.core.idempotency import IdempotencyKey
 from app.core.outbox import OutboxEvent
 from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition, Venue
 from app.modules.identity.models import (
@@ -15,6 +16,11 @@ from app.modules.identity.models import (
     UserTeamMembership,
 )
 from app.modules.importexport.models import ImportJob, ImportMappingPreset, ImportRowError
+from app.modules.telemarketing.models import (
+    AssignmentJob,
+    LeadAssignmentHistory,
+    RoundRobinCursor,
+)
 from app.modules.visitors.models import (
     EditionFieldOption,
     VisitorCustomFieldDefinition,
@@ -22,20 +28,24 @@ from app.modules.visitors.models import (
 )
 
 __all__ = [
+    "AssignmentJob",
     "AuditLog",
     "Base",
     "Edition",
     "EditionCounter",
     "EditionFieldOption",
     "Exhibition",
+    "IdempotencyKey",
     "ImportJob",
     "ImportMappingPreset",
     "ImportRowError",
+    "LeadAssignmentHistory",
     "OutboxEvent",
     "PasswordResetToken",
     "Permission",
     "Role",
     "RolePermission",
+    "RoundRobinCursor",
     "Team",
     "User",
     "UserRoleAssignment",

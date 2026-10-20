@@ -37,6 +37,7 @@ from app.modules.visitors.schemas import (
     FieldOptionOut,
     FieldOptionUpdateIn,
     LeadCreateIn,
+    LeadFilters,
     LeadListItem,
     LeadListParams,
     LeadOut,
@@ -125,6 +126,23 @@ async def get_lead_entity(
     if lead is None:
         raise NotFound("Visitor lead not found.")
     return lead
+
+
+async def scoped_lead_ids(
+    session: AsyncSession,
+    scope: Scope,
+    lead_ids: list[uuid.UUID] | None,
+    filters: LeadFilters | None,
+    limit: int,
+) -> list[uuid.UUID]:
+    """Lead IDs visible in the scope, by explicit IDs or by list filter."""
+    return await repo.scoped_lead_ids(session, scope, lead_ids, filters, limit)
+
+
+async def lock_leads(
+    session: AsyncSession, scope: Scope, lead_ids: list[uuid.UUID]
+) -> list[VisitorLead]:
+    return await repo.lock_leads(session, scope, lead_ids)
 
 
 async def lead_out(session: AsyncSession, lead: VisitorLead) -> LeadOut:

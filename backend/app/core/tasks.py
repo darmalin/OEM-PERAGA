@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import structlog
 
-from app.core import outbox
+from app.core import idempotency, outbox
 from app.core.db import task_session
 from app.worker import celery_app, run_async
 
@@ -20,6 +20,16 @@ async def dispatch_outbox_once(limit: int = 100) -> int:
         if events:
             logger.info("outbox_dispatched", count=len(events))
         return len(events)
+
+
+async def purge_idempotency_keys_once() -> int:
+    async with task_session() as session, session.begin():
+        return await idempotency.purge_expired(session)
+
+
+@celery_app.task(name="core.purge_idempotency_keys")
+def purge_idempotency_keys() -> int:
+    return run_async(purge_idempotency_keys_once())
 
 
 @celery_app.task(name="core.dispatch_outbox")

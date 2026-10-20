@@ -28,6 +28,7 @@ celery_app.conf.update(
     timezone="UTC",
     beat_schedule={
         "dispatch-outbox": {"task": "core.dispatch_outbox", "schedule": 5.0},
+        "purge-idempotency-keys": {"task": "core.purge_idempotency_keys", "schedule": 3600.0},
     },
 )
 
@@ -60,4 +61,5 @@ celery_app.conf.include = [
     "app.core.tasks",
     "app.modules.identity.tasks",
     "app.modules.importexport.tasks",
+    "app.modules.telemarketing.tasks",
 ]

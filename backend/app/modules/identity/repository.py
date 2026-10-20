@@ -89,6 +89,52 @@ async def user_team_ids(session: AsyncSession, user_id: uuid.UUID) -> list[uuid.
     return list(rows.all())
 
 
+async def users_with_permission(
+    session: AsyncSession,
+    edition_id: uuid.UUID,
+    permission: str,
+    team_ids: set[uuid.UUID] | None,
+) -> Sequence[User]:
+    """Active users holding the permission in the edition, optionally limited to teams."""
+    stmt = (
+        select(User)
+        .join(UserRoleAssignment, UserRoleAssignment.user_id == User.id)
+        .join(RolePermission, RolePermission.role_id == UserRoleAssignment.role_id)
+        .join(Permission, Permission.id == RolePermission.permission_id)
+        .where(
+            User.is_active.is_(True),
+            Permission.code == permission,
+            or_(
+                UserRoleAssignment.edition_id == edition_id,
+                UserRoleAssignment.edition_id.is_(None),
+            ),
+        )
+        .distinct()
+        .order_by(User.full_name, User.id)
+    )
+    if team_ids is not None:
+        stmt = stmt.where(
+            User.id.in_(
+                select(UserTeamMembership.user_id).where(UserTeamMembership.team_id.in_(team_ids))
+            )
+        )
+    return (await session.scalars(stmt)).all()
+
+
+async def team_ids_by_user(
+    session: AsyncSession, user_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[uuid.UUID]]:
+    rows = await session.execute(
+        select(UserTeamMembership.user_id, UserTeamMembership.team_id).where(
+            UserTeamMembership.user_id.in_(user_ids)
+        )
+    )
+    out: dict[uuid.UUID, list[uuid.UUID]] = {}
+    for user_id, team_id in rows.all():
+        out.setdefault(user_id, []).append(team_id)
+    return out
+
+
 async def get_role(session: AsyncSession, role_id: uuid.UUID) -> Role | None:
     return await session.get(Role, role_id)
 

@@ -538,6 +538,18 @@ async def remove_team_member(session: AsyncSession, team_id: uuid.UUID, user_id:
     )
 
 
+async def eligible_users(
+    session: AsyncSession,
+    edition_id: uuid.UUID,
+    permission: str,
+    team_ids: set[uuid.UUID] | None = None,
+) -> list[tuple[User, list[uuid.UUID]]]:
+    """Active users holding a permission in an edition, with their team IDs."""
+    users = await repo.users_with_permission(session, edition_id, permission, team_ids)
+    teams = await repo.team_ids_by_user(session, [u.id for u in users])
+    return [(u, teams.get(u.id, [])) for u in users]
+
+
 async def user_exists_active(session: AsyncSession, user_id: uuid.UUID) -> bool:
     user = await repo.get_user(session, user_id)
     return bool(user and user.is_active)
