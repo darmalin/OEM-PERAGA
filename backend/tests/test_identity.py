@@ -13,7 +13,7 @@ from app.core.outbox import OutboxEvent
 from app.main import app
 from app.modules.identity.rules import BASELINE_ROLES, PERMISSIONS, ScopeType, password_problems
 from app.modules.identity.tasks import send_password_reset_email
-from tests.factories import PASSWORD, RoleGrant, actor, login_client, make_user
+from tests.factories import PASSWORD, RoleGrant, actor, login_client, make_edition, make_user
 
 # Routes reachable without a permission guard (BACKEND_RULES/security-permissions.md).
 PUBLIC_ROUTES = {
@@ -84,7 +84,7 @@ def test_scope_resolution() -> None:
 
 
 async def test_login_me_and_cookie_flags(client: AsyncClient) -> None:
-    edition = uuid.uuid4()
+    edition = (await make_edition()).id
     user = await make_user(RoleGrant("TELEMARKETING_AGENT", "OWNED", edition))
     r = await client.post("/api/v1/auth/login", json={"email": user.email, "password": PASSWORD})
     assert r.status_code == 200
@@ -149,7 +149,7 @@ async def test_logout_kills_session() -> None:
 
 async def test_deactivation_invalidates_sessions_immediately() -> None:
     _, admin = await actor(RoleGrant("SUPER_ADMIN"))
-    victim = await make_user(RoleGrant("TELEMARKETING_AGENT", "OWNED", uuid.uuid4()))
+    victim = await make_user(RoleGrant("TELEMARKETING_AGENT", "OWNED", (await make_edition()).id))
     victim_client = await login_client(victim.email)
     assert (await victim_client.get("/api/v1/auth/me")).status_code == 200
     r = await admin.patch(f"/api/v1/users/{victim.id}", json={"version": 1, "is_active": False})
@@ -201,7 +201,7 @@ async def test_password_reset_flow(client: AsyncClient, mailbox: MemorySender) -
 
 
 async def test_agent_cannot_manage_users() -> None:
-    _, agent = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", uuid.uuid4()))
+    _, agent = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", (await make_edition()).id))
     r = await agent.get("/api/v1/users")
     assert r.status_code == 403
     assert r.json()["error"]["code"] == "PERMISSION_DENIED"
@@ -234,7 +234,7 @@ async def test_user_crud_and_role_assignment() -> None:
         json={
             "role_id": roles["TELEMARKETING_AGENT"]["id"],
             "scope_type": "TEAM",
-            "edition_id": str(uuid.uuid4()),
+            "edition_id": str((await make_edition()).id),
             "team_id": team["id"],
         },
     )
@@ -246,7 +246,7 @@ async def test_user_crud_and_role_assignment() -> None:
 
 
 async def test_edition_admin_cannot_grant_outside_their_edition() -> None:
-    mine, other = uuid.uuid4(), uuid.uuid4()
+    mine, other = (await make_edition()).id, (await make_edition()).id
     _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", mine))
     target = await make_user()
     roles = {x["code"]: x["id"] for x in (await admin.get("/api/v1/roles")).json()}
@@ -278,7 +278,7 @@ async def test_role_permission_matrix_editing() -> None:
 
 
 async def test_exhibition_admin_cannot_edit_roles() -> None:
-    _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", uuid.uuid4()))
+    _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", (await make_edition()).id))
     assert (await admin.get("/api/v1/roles")).status_code == 200
     r = await admin.post("/api/v1/roles", json={"code": "X_ROLE", "name": "X"})
     assert r.status_code == 403

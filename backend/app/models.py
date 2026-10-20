@@ -3,6 +3,7 @@
 from app.core.audit import AuditLog
 from app.core.db import Base
 from app.core.outbox import OutboxEvent
+from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition, Venue
 from app.modules.identity.models import (
     PasswordResetToken,
     Permission,
@@ -17,6 +18,9 @@ from app.modules.identity.models import (
 __all__ = [
     "AuditLog",
     "Base",
+    "Edition",
+    "EditionCounter",
+    "Exhibition",
     "OutboxEvent",
     "PasswordResetToken",
     "Permission",
@@ -26,4 +30,5 @@ __all__ = [
     "User",
     "UserRoleAssignment",
     "UserTeamMembership",
+    "Venue",
 ]

@@ -3,12 +3,14 @@
 import itertools
 import uuid
 from dataclasses import dataclass
+from datetime import date
 
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from app.core.db import get_sessionmaker
 from app.main import app
+from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition
 from app.modules.identity.models import Role, User, UserRoleAssignment, UserTeamMembership
 from app.modules.identity.service import hash_password
 
@@ -72,3 +74,33 @@ async def login_client(email: str, password: str = PASSWORD) -> AsyncClient:
 async def actor(*grants: RoleGrant, teams: tuple[uuid.UUID, ...] = ()) -> tuple[User, AsyncClient]:
     user = await make_user(*grants, teams=teams)
     return user, await login_client(user.email)
+
+
+async def make_edition(
+    *, exhibition_code: str | None = None, year: int = 2027, timezone: str = "Asia/Jakarta"
+) -> Edition:
+    """Exhibition + ACTIVE edition + Registration ID counter."""
+    n = next(_seq)
+    code = exhibition_code or f"EX{n:04d}"
+    async with get_sessionmaker()() as session, session.begin():
+        ex = await session.scalar(select(Exhibition).where(Exhibition.code == code))
+        if ex is None:
+            ex = Exhibition(code=code, name=f"Exhibition {code}")
+            session.add(ex)
+            await session.flush()
+        edition = Edition(
+            exhibition_id=ex.id,
+            year=year,
+            code=f"{code}{year}",
+            name=f"{code} {year}",
+            start_date=date(year, 3, 10),
+            end_date=date(year, 3, 12),
+            timezone=timezone,
+            default_currency="IDR",
+            registration_id_prefix=f"{code}{year}",
+            status="ACTIVE",
+        )
+        session.add(edition)
+        await session.flush()
+        session.add(EditionCounter(edition_id=edition.id, last_value=0))
+        return edition

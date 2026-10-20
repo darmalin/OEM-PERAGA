@@ -53,7 +53,7 @@ class AuditLog(UUIDPk, Base):
     )
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     source: Mapped[str] = mapped_column(String(20), nullable=False)
-    edition_id: Mapped[uuid.UUID | None] = mapped_column()
+    edition_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("exhibition_editions.id"))
     entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
     entity_id: Mapped[uuid.UUID | None] = mapped_column()
     action: Mapped[str] = mapped_column(String(64), nullable=False)

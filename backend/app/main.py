@@ -6,6 +6,7 @@ from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import install_middleware
 from app.modules.audit import router as audit
+from app.modules.exhibitions import router as exhibitions
 from app.modules.identity import router as identity
 
 API_PREFIX = "/api/v1"
@@ -17,6 +18,7 @@ def build_api_router() -> APIRouter:
     router.include_router(identity.auth_router)
     router.include_router(identity.router)
     router.include_router(audit.router)
+    router.include_router(exhibitions.router)
     return router
 
 

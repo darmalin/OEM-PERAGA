@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -29,10 +29,21 @@ class UserBrief(BaseModel):
     full_name: str
 
 
+class EditionBrief(BaseModel):
+    id: uuid.UUID
+    code: str
+    name: str
+    status: str
+    timezone: str
+    start_date: date
+    end_date: date
+
+
 class MeOut(BaseModel):
     user: UserBrief
     permissions: list[str]
     grants: list[GrantOut]
+    editions: list[EditionBrief]
     csrf_token: str
 
 

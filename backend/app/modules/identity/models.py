@@ -96,7 +96,9 @@ class UserRoleAssignment(UUIDPk, Base):
     )
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"), nullable=False, index=True)
     scope_type: Mapped[ScopeType] = mapped_column(String(20), nullable=False)
-    edition_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
+    edition_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("exhibition_editions.id"), index=True
+    )
     team_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("teams.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

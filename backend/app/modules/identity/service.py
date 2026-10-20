@@ -24,6 +24,7 @@ from app.core.errors import (
 )
 from app.core.logging import mask_email
 from app.core.pagination import Page
+from app.modules.exhibitions import service as exhibitions_service
 from app.modules.identity import repository as repo
 from app.modules.identity.models import (
     PasswordResetToken,
@@ -35,6 +36,7 @@ from app.modules.identity.models import (
 )
 from app.modules.identity.rules import PERMISSIONS, ScopeType, normalize_email, password_problems
 from app.modules.identity.schemas import (
+    EditionBrief,
     GrantOut,
     MeOut,
     RoleAssignmentIn,
@@ -96,7 +98,9 @@ async def me(session: AsyncSession, ctx: AuthContext) -> MeOut:
     """Current user, effective permissions, and grants."""
     rows = await repo.list_assignments(session, ctx.user.id)
     assert ctx.session is not None  # noqa: S101 - set by load_auth
+    editions = await exhibitions_service.edition_summaries(session, ctx.edition_ids("edition.read"))
     return MeOut(
+        editions=[EditionBrief.model_validate(e.model_dump()) for e in editions],
         user=UserBrief(id=ctx.user.id, email=ctx.user.email, full_name=ctx.user.full_name),
         permissions=sorted({p for g in ctx.grants for p in g.permissions}),
         grants=[

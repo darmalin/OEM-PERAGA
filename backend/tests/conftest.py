@@ -24,6 +24,9 @@ SEED_TABLES = {"alembic_version", "permissions", "roles", "role_permissions"}
 
 @pytest.fixture(scope="session", autouse=True)
 def _migrate() -> None:
+    # Fresh schema per run; also exercises every downgrade() (BACKEND_RULES/testing.md).
+    subprocess.run(["alembic", "upgrade", "head"], check=True)  # noqa: S607
+    subprocess.run(["alembic", "downgrade", "base"], check=True)  # noqa: S607
     subprocess.run(["alembic", "upgrade", "head"], check=True)  # noqa: S607
 
 

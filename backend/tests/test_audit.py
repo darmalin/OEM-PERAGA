@@ -7,7 +7,7 @@ from sqlalchemy.exc import DBAPIError
 from app.core import audit
 from app.core.audit import REDACTED, AuditLog
 from app.core.db import get_sessionmaker
-from tests.factories import PASSWORD, RoleGrant, actor
+from tests.factories import PASSWORD, RoleGrant, actor, make_edition
 
 
 def test_redaction_at_any_depth() -> None:
@@ -104,7 +104,7 @@ async def test_login_success_audited() -> None:
 
 
 async def test_audit_read_requires_permission_and_scope() -> None:
-    mine, other = uuid.uuid4(), uuid.uuid4()
+    mine, other = (await make_edition()).id, (await make_edition()).id
     async with get_sessionmaker()() as session, session.begin():
         await audit.record(
             session, entity_type="x", entity_id=uuid.uuid4(), action="a", edition_id=mine
