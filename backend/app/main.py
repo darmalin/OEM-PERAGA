@@ -8,6 +8,7 @@ from app.core.middleware import install_middleware
 from app.modules.audit import router as audit
 from app.modules.exhibitions import router as exhibitions
 from app.modules.identity import router as identity
+from app.modules.visitors import router as visitors
 
 API_PREFIX = "/api/v1"
 
@@ -19,6 +20,7 @@ def build_api_router() -> APIRouter:
     router.include_router(identity.router)
     router.include_router(audit.router)
     router.include_router(exhibitions.router)
+    router.include_router(visitors.router)
     return router
 
 

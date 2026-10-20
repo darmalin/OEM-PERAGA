@@ -333,6 +333,21 @@ async def update_edition(
     return _edition_out(edition, await repo.exhibition_code(session, edition.exhibition_id))
 
 
+async def ensure_writable(session: AsyncSession, edition_id: uuid.UUID) -> Edition:
+    """Event data of an ARCHIVED edition is read-only."""
+    edition = await repo.get_edition(session, edition_id)
+    if edition is None:
+        raise NotFound("Edition not found.", code="EDITION_NOT_FOUND")
+    if edition.status == EditionStatus.ARCHIVED:
+        raise ValidationFailed("This edition is archived.", code="EDITION_ARCHIVED")
+    return edition
+
+
+async def get_edition_by_id(session: AsyncSession, edition_id: uuid.UUID) -> Edition | None:
+    """Internal lookup for other modules; callers have already checked scope."""
+    return await repo.get_edition(session, edition_id)
+
+
 async def next_registration_id(session: AsyncSession, edition_id: uuid.UUID) -> str:
     """Next Registration ID for the edition: prefix + 6-digit counter (spec 5.1)."""
     edition = await repo.get_edition(session, edition_id)

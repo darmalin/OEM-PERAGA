@@ -14,12 +14,18 @@ from app.modules.identity.models import (
     UserRoleAssignment,
     UserTeamMembership,
 )
+from app.modules.visitors.models import (
+    EditionFieldOption,
+    VisitorCustomFieldDefinition,
+    VisitorLead,
+)
 
 __all__ = [
     "AuditLog",
     "Base",
     "Edition",
     "EditionCounter",
+    "EditionFieldOption",
     "Exhibition",
     "OutboxEvent",
     "PasswordResetToken",
@@ -31,4 +37,6 @@ __all__ = [
     "UserRoleAssignment",
     "UserTeamMembership",
     "Venue",
+    "VisitorCustomFieldDefinition",
+    "VisitorLead",
 ]
