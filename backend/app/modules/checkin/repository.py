@@ -1,9 +1,9 @@
 import uuid
 from collections.abc import Sequence
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, and_, func, select, true, update
+from sqlalchemy import ColumnElement, Select, and_, func, or_, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
@@ -76,11 +76,24 @@ async def list_devices(
     return rows.all(), int(total or 0)
 
 
+# last_seen_at is for "device online?" in the desk; minute precision is enough.
+TOUCH_INTERVAL = timedelta(seconds=60)
+
+
 async def touch_device(session: AsyncSession, device_id: uuid.UUID) -> None:
-    """Bulk UPDATE on purpose: last_seen_at must not bump the optimistic-lock version."""
+    """At most one write per device per minute, so scans never queue on the device row lock.
+
+    Bulk UPDATE on purpose: last_seen_at must not bump the optimistic-lock version.
+    """
     await session.execute(
         update(ScannerDevice)
-        .where(ScannerDevice.id == device_id)
+        .where(
+            ScannerDevice.id == device_id,
+            or_(
+                ScannerDevice.last_seen_at.is_(None),
+                ScannerDevice.last_seen_at < func.now() - TOUCH_INTERVAL,
+            ),
+        )
         .values(last_seen_at=func.now())
         .execution_options(synchronize_session=False)
     )

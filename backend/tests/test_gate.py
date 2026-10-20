@@ -484,3 +484,23 @@ async def test_gate_role_assignment(same_edition: bool) -> None:
     else:
         assert r.status_code == 422
         assert "gate_id" in r.json()["error"]["fields"]
+
+
+async def test_last_seen_is_written_at_most_once_a_minute() -> None:
+    edition, admin, _, device = await setup()
+
+    async def last_seen() -> Any:
+        r = await admin.get("/api/v1/gate/devices", params={"edition_id": str(edition.id)})
+        return r.json()["items"][0]["last_seen_at"]
+
+    await device.get(f"{DEVICE}/me")
+    first = await last_seen()
+    assert first is not None
+    await device.get(f"{DEVICE}/me")
+    assert await last_seen() == first
+    async with get_sessionmaker()() as session, session.begin():
+        await session.execute(
+            text("UPDATE scanner_devices SET last_seen_at = now() - interval '2 minutes'")
+        )
+    await device.get(f"{DEVICE}/me")
+    assert await last_seen() > first
