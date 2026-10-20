@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from functools import lru_cache
+from typing import Any
 
 from sqlalchemy import DateTime, Integer, MetaData, func
 from sqlalchemy.ext.asyncio import (
@@ -11,7 +12,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from sqlalchemy.pool import NullPool
 from uuid6 import uuid7
 
@@ -49,7 +50,13 @@ class Timestamps:
 
 
 class Versioned:
+    """Optimistic locking: UPDATE ... WHERE version = :v (StaleDataError on 0 rows)."""
+
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    @declared_attr.directive
+    def __mapper_args__(cls) -> dict[str, Any]:  # noqa: N805
+        return {"version_id_col": cls.__table__.c.version}  # type: ignore[attr-defined]
 
 
 @lru_cache

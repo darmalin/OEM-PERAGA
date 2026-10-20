@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Integer, String, func, select
+from sqlalchemy import DateTime, Index, Integer, String, func, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -19,6 +19,11 @@ from app.core.db import Base, UUIDPk
 
 class OutboxEvent(UUIDPk, Base):
     __tablename__ = "outbox_events"
+    __table_args__ = (
+        Index(
+            "ix_outbox_events_pending", "created_at", postgresql_where=text("dispatched_at IS NULL")
+        ),
+    )
 
     event_type: Mapped[str] = mapped_column(String(100), nullable=False)
     # Celery task that handles this event; receives the event id only.

@@ -39,7 +39,7 @@ def _propagate_request_id(headers: dict[str, Any] | None = None, **_: Any) -> No
 
 
 @task_prerun.connect
-def _set_task_context(task: Task[Any, Any] | None = None, **_: Any) -> None:
+def _set_task_context(task: "Task[Any, Any] | None" = None, **_: Any) -> None:
     rid = getattr(task.request, "request_id", None) if task else None
     request_id_var.set(rid or uuid.uuid4().hex)
     source_var.set(Source.WORKER)
@@ -56,4 +56,4 @@ def run_async[T](coro: Coroutine[Any, Any, T]) -> T:
 
 
 # Every module with Celery tasks is listed here.
-celery_app.conf.include = ["app.core.tasks"]
+celery_app.conf.include = ["app.core.tasks", "app.modules.identity.tasks"]

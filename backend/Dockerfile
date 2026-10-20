@@ -18,7 +18,7 @@ FROM deps AS dev
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-install-project
 COPY . .
 USER app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--proxy-headers", "--forwarded-allow-ips", "*"]
 
 FROM base AS prod
 COPY --from=deps /opt/venv /opt/venv
@@ -27,4 +27,4 @@ COPY migrations ./migrations
 COPY alembic.ini ./
 USER app
 EXPOSE 8000
-CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "-w", "4"]
+CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "-w", "4", "--forwarded-allow-ips", "*"]

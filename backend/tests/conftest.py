@@ -16,6 +16,7 @@ from app.core.email import MemorySender, set_email_sender
 from app.core.redis import get_redis
 from app.core.storage import MemoryStorage, set_storage
 from app.main import app
+from app.modules.identity.rules import BASELINE_ROLES
 
 # Seeded by migrations; never truncated between tests.
 SEED_TABLES = {"alembic_version", "permissions", "roles", "role_permissions"}
@@ -35,6 +36,24 @@ async def _clean_state() -> AsyncIterator[None]:
         tables = [r[0] for r in rows if r[0] not in SEED_TABLES]
         if tables:
             await conn.execute(text(f"TRUNCATE {', '.join(tables)} RESTART IDENTITY CASCADE"))
+        # Restore the role seed in case a test edited roles.
+        await conn.execute(text("DELETE FROM roles WHERE NOT is_system"))
+        for code, (_name, perms) in BASELINE_ROLES.items():
+            await conn.execute(
+                text(
+                    "DELETE FROM role_permissions WHERE role_id = "
+                    "(SELECT id FROM roles WHERE code = :code)"
+                ),
+                {"code": code},
+            )
+            await conn.execute(
+                text(
+                    "INSERT INTO role_permissions (role_id, permission_id) "
+                    "SELECT r.id, p.id FROM roles r JOIN permissions p ON p.code = ANY(:perms) "
+                    "WHERE r.code = :code"
+                ),
+                {"code": code, "perms": perms},
+            )
     await get_redis().flushdb()
     yield
 

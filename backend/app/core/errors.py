@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm.exc import StaleDataError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.context import current_request_id
@@ -119,6 +120,17 @@ async def _http_handler(_: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(error_body(code, message), status_code=exc.status_code)
 
 
+async def _stale_handler(_: Request, exc: Exception) -> JSONResponse:
+    err = VersionConflict()
+    return JSONResponse(error_body(err.code, err.message), status_code=err.status_code)
+
+
+def check_version(current: int, expected: int) -> None:
+    """Optimistic lock check for form updates (BACKEND_RULES/api.md)."""
+    if current != expected:
+        raise VersionConflict()
+
+
 async def _unhandled_handler(_: Request, exc: Exception) -> JSONResponse:
     logger.exception("unhandled_error", exc_info=exc)
     return JSONResponse(error_body("INTERNAL_ERROR", "Internal server error."), status_code=500)
@@ -128,4 +140,5 @@ def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(AppError, _app_error_handler)
     app.add_exception_handler(RequestValidationError, _validation_handler)
     app.add_exception_handler(StarletteHTTPException, _http_handler)
+    app.add_exception_handler(StaleDataError, _stale_handler)
     app.add_exception_handler(Exception, _unhandled_handler)

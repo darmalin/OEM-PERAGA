@@ -3,7 +3,7 @@ TEST_DB_URL = postgresql+asyncpg://ems:ems@postgres:5432/ems_test
 RUN_BACKEND = $(COMPOSE) run --rm --no-deps -T
 TEST_ENV = -e EMS_ENVIRONMENT=test -e EMS_DATABASE_URL=$(TEST_DB_URL) -e EMS_REDIS_URL=redis://redis:6379/15 -e EMS_EMAIL_BACKEND=memory
 
-.PHONY: up down logs migrate test lint fmt typecheck gen-api shell
+.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell
 
 up:
 	$(COMPOSE) up -d --build
@@ -16,6 +16,9 @@ logs:
 
 migrate:
 	$(COMPOSE) run --rm migrate
+
+superuser:
+	$(COMPOSE) run --rm api python -m app.cli create-superuser
 
 test:
 	$(COMPOSE) up -d postgres redis
