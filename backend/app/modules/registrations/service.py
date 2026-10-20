@@ -1,6 +1,7 @@
 """Registration, QR credentials, and QR emails (spec 7, FEATURES/08)."""
 
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -470,3 +471,70 @@ async def public_register(
         return accepted
     await register_lead(session, lead, RegistrationChannel.WEBSITE)
     return accepted
+
+
+# --- lookups for the gate module (callers check device or user scope first) -----------------
+
+
+@dataclass(frozen=True)
+class CredentialMatch:
+    credential_id: uuid.UUID
+    credential_active: bool
+    edition_id: uuid.UUID
+    registration_id: uuid.UUID
+    registered: bool
+    registration_code: str
+    first_name: str
+
+
+async def match_credential(session: AsyncSession, token_hash: str) -> CredentialMatch | None:
+    row = await repo.match_credential(session, token_hash)
+    if row is None:
+        return None
+    cred, reg, code, first_name = row
+    return CredentialMatch(
+        credential_id=cred.id,
+        credential_active=cred.status == CredentialStatus.ACTIVE,
+        edition_id=cred.edition_id,
+        registration_id=reg.id,
+        registered=reg.status == RegistrationState.REGISTERED,
+        registration_code=code,
+        first_name=first_name,
+    )
+
+
+async def gate_cache_rows(
+    session: AsyncSession, edition_id: uuid.UUID
+) -> list[tuple[str, str, str, str]]:
+    """(token hash, ACTIVE/REVOKED/CANCELLED, Registration ID, first name) per credential."""
+    out = []
+    for token_hash, cred_status, reg_status, code, first_name in await repo.cache_rows(
+        session, edition_id
+    ):
+        status = cred_status if reg_status == RegistrationState.REGISTERED else "CANCELLED"
+        out.append((token_hash, status, code, first_name))
+    return out
+
+
+async def registration_labels(
+    session: AsyncSession, registration_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, tuple[str, str]]:
+    """registration id -> (Registration ID, first name)."""
+    return await repo.labels(session, registration_ids) if registration_ids else {}
+
+
+async def active_token_hashes(
+    session: AsyncSession, registration_ids: list[uuid.UUID]
+) -> list[str]:
+    return await repo.token_hashes(session, registration_ids) if registration_ids else []
+
+
+async def registration_for_override(
+    session: AsyncSession, registration_id: uuid.UUID
+) -> tuple[VisitorRegistration, uuid.UUID | None] | None:
+    """Registration and its active credential id, for a supervisor override."""
+    reg = await session.get(VisitorRegistration, registration_id)
+    if reg is None:
+        return None
+    cred = await repo.active_credential(session, reg.id)
+    return reg, cred.id if cred else None

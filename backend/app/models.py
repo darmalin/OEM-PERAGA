@@ -4,6 +4,7 @@ from app.core.audit import AuditLog
 from app.core.db import Base
 from app.core.idempotency import IdempotencyKey
 from app.core.outbox import OutboxEvent
+from app.modules.checkin.models import Gate, ScanAttempt, ScannerDevice, VisitorCheckin
 from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition, Venue
 from app.modules.identity.models import (
     PasswordResetToken,
@@ -51,6 +52,7 @@ __all__ = [
     "EmailTemplate",
     "Exhibition",
     "FollowupReminder",
+    "Gate",
     "IdempotencyKey",
     "ImportJob",
     "ImportMappingPreset",
@@ -63,12 +65,15 @@ __all__ = [
     "Role",
     "RolePermission",
     "RoundRobinCursor",
+    "ScanAttempt",
+    "ScannerDevice",
     "Team",
     "User",
     "UserRoleAssignment",
     "UserTeamMembership",
     "Venue",
     "VisitorCallActivity",
+    "VisitorCheckin",
     "VisitorCustomFieldDefinition",
     "VisitorFollowup",
     "VisitorFollowupChange",

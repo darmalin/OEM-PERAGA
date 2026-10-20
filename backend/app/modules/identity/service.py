@@ -24,6 +24,7 @@ from app.core.errors import (
 )
 from app.core.logging import mask_email
 from app.core.pagination import Page
+from app.modules.checkin import service as checkin_service
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.identity import repository as repo
 from app.modules.identity.models import (
@@ -87,7 +88,7 @@ async def load_principal(
             scope_type=ScopeType(a.scope_type),
             edition_id=a.edition_id,
             team_id=a.team_id,
-            gate_id=getattr(a, "gate_id", None),
+            gate_id=a.gate_id,
         )
         for a in assignments.values()
     ]
@@ -109,7 +110,7 @@ async def me(session: AsyncSession, ctx: AuthContext) -> MeOut:
                 scope_type=ScopeType(a.scope_type),
                 edition_id=a.edition_id,
                 team_id=a.team_id,
-                gate_id=getattr(a, "gate_id", None),
+                gate_id=a.gate_id,
             )
             for a, code in rows
         ],
@@ -242,6 +243,7 @@ def _assignment_out(a: UserRoleAssignment, role_code: str) -> RoleAssignmentOut:
         scope_type=ScopeType(a.scope_type),
         edition_id=a.edition_id,
         team_id=a.team_id,
+        gate_id=a.gate_id,
         created_at=a.created_at,
     )
 
@@ -332,7 +334,7 @@ async def update_user(
 
 
 def _assignment_audit(a: UserRoleAssignment) -> dict[str, Any]:
-    return audit.snapshot(a, ("id", "role_id", "scope_type", "edition_id", "team_id"))
+    return audit.snapshot(a, ("id", "role_id", "scope_type", "edition_id", "team_id", "gate_id"))
 
 
 def _check_can_grant(ctx: AuthContext, edition_id: uuid.UUID | None) -> None:
@@ -357,6 +359,11 @@ async def add_role_assignment(
         raise ValidationFailed(fields={"role_id": "Unknown role."})
     if data.team_id is not None and await repo.get_team(session, data.team_id) is None:
         raise ValidationFailed(fields={"team_id": "Unknown team."})
+    if (
+        data.gate_id is not None
+        and await checkin_service.gate_edition(session, data.gate_id) != data.edition_id
+    ):
+        raise ValidationFailed(fields={"gate_id": "Unknown gate in this edition."})
     _check_can_grant(ctx, data.edition_id)
     assignment = UserRoleAssignment(
         user_id=user.id,
@@ -364,6 +371,7 @@ async def add_role_assignment(
         scope_type=data.scope_type,
         edition_id=data.edition_id,
         team_id=data.team_id,
+        gate_id=data.gate_id,
         created_by=ctx.user.id,
     )
     session.add(assignment)

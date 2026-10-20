@@ -65,11 +65,16 @@ class RoleAssignmentIn(BaseModel):
     scope_type: ScopeType
     edition_id: uuid.UUID | None = None
     team_id: uuid.UUID | None = None
+    gate_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
     def _team_needed(self) -> "RoleAssignmentIn":
         if self.scope_type == ScopeType.TEAM and self.team_id is None:
             raise ValueError("team_id is required for TEAM scope")
+        if self.scope_type == ScopeType.GATE and (self.gate_id is None or self.edition_id is None):
+            raise ValueError("gate_id and edition_id are required for GATE scope")
+        if self.scope_type != ScopeType.GATE and self.gate_id is not None:
+            raise ValueError("gate_id is only allowed for GATE scope")
         return self
 
 
@@ -82,6 +87,7 @@ class RoleAssignmentOut(BaseModel):
     scope_type: ScopeType
     edition_id: uuid.UUID | None
     team_id: uuid.UUID | None
+    gate_id: uuid.UUID | None = None
     created_at: datetime
 
 

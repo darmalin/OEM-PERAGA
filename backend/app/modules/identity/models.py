@@ -89,6 +89,10 @@ class UserRoleAssignment(UUIDPk, Base):
             "scope_type IN ('EDITION', 'TEAM', 'OWNED', 'GATE')", name="scope_type_valid"
         ),
         CheckConstraint("scope_type <> 'TEAM' OR team_id IS NOT NULL", name="team_scope_has_team"),
+        CheckConstraint(
+            "scope_type <> 'GATE' OR (gate_id IS NOT NULL AND edition_id IS NOT NULL)",
+            name="gate_scope_has_gate",
+        ),
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -100,6 +104,7 @@ class UserRoleAssignment(UUIDPk, Base):
         ForeignKey("exhibition_editions.id"), index=True
     )
     team_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("teams.id"), index=True)
+    gate_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("gates.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

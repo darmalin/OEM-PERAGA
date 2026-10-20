@@ -17,7 +17,7 @@ from app.modules.telemarketing.models import LeadAssignmentHistory
 from app.modules.telemarketing.rules import round_robin
 from app.modules.telemarketing.tasks import run_assignment_event
 from app.modules.visitors.models import VisitorLead
-from tests.factories import RoleGrant, actor, login_client, make_edition, make_user
+from tests.factories import RoleGrant, actor, login_client, make_edition, make_gate, make_user
 
 A, B, C = (uuid.UUID(int=i) for i in (1, 2, 3))
 
@@ -179,7 +179,8 @@ async def test_only_eligible_agents_and_visible_leads() -> None:
     edition, other = await make_edition(), await make_edition()
     client = await manager(edition)
     (outsider,) = await agents(other, 1)
-    gate = await make_user(RoleGrant("GATE_STAFF", "GATE", edition.id))
+    gate_row = await make_gate(edition)
+    gate = await make_user(RoleGrant("GATE_STAFF", "GATE", edition.id, gate_id=gate_row.id))
     ids = await leads_in(edition, 1)
     for bad in (outsider.id, gate.id):
         r = await client.post(

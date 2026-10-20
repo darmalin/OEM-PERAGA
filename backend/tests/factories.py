@@ -10,6 +10,7 @@ from sqlalchemy import select
 
 from app.core.db import get_sessionmaker
 from app.main import app
+from app.modules.checkin.models import Gate
 from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition
 from app.modules.identity.models import Role, User, UserRoleAssignment, UserTeamMembership
 from app.modules.identity.service import hash_password
@@ -52,9 +53,8 @@ async def make_user(
                 scope_type=g.scope,
                 edition_id=g.edition_id,
                 team_id=g.team_id,
+                gate_id=g.gate_id,
             )
-            if g.gate_id is not None:
-                assignment.gate_id = g.gate_id  # type: ignore[attr-defined]
             session.add(assignment)
         for team_id in teams:
             session.add(UserTeamMembership(team_id=team_id, user_id=user.id))
@@ -104,3 +104,12 @@ async def make_edition(
         await session.flush()
         session.add(EditionCounter(edition_id=edition.id, last_value=0))
         return edition
+
+
+async def make_gate(edition: Edition, code: str | None = None) -> Gate:
+    n = next(_seq)
+    async with get_sessionmaker()() as session, session.begin():
+        gate = Gate(edition_id=edition.id, code=code or f"G{n:04d}", name=f"Gate {n:04d}")
+        session.add(gate)
+        await session.flush()
+        return gate

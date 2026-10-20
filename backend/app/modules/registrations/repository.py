@@ -170,3 +170,57 @@ async def template_versions(
         .order_by(EmailTemplate.version.desc())
     )
     return list(rows)
+
+
+# --- lookups for the gate module -------------------------------------------------------------
+
+
+async def match_credential(session: AsyncSession, token_hash: str) -> Any | None:
+    """(credential, registration, Registration ID, first name) for a scanned token hash."""
+    row = await session.execute(
+        select(
+            QrCredential, VisitorRegistration, VisitorLead.registration_code, VisitorLead.first_name
+        )
+        .join(VisitorRegistration, VisitorRegistration.id == QrCredential.registration_id)
+        .join(VisitorLead, VisitorLead.id == VisitorRegistration.visitor_lead_id)
+        .where(QrCredential.token_hash == token_hash)
+    )
+    return row.first()
+
+
+async def cache_rows(session: AsyncSession, edition_id: uuid.UUID) -> Sequence[Any]:
+    """Every credential of the edition with what the gate screen shows."""
+    rows = await session.execute(
+        select(
+            QrCredential.token_hash,
+            QrCredential.status,
+            VisitorRegistration.status,
+            VisitorLead.registration_code,
+            VisitorLead.first_name,
+        )
+        .join(VisitorRegistration, VisitorRegistration.id == QrCredential.registration_id)
+        .join(VisitorLead, VisitorLead.id == VisitorRegistration.visitor_lead_id)
+        .where(QrCredential.edition_id == edition_id)
+        .order_by(QrCredential.issued_at)
+    )
+    return rows.all()
+
+
+async def labels(
+    session: AsyncSession, registration_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, tuple[str, str]]:
+    rows = await session.execute(
+        select(VisitorRegistration.id, VisitorLead.registration_code, VisitorLead.first_name)
+        .join(VisitorLead, VisitorLead.id == VisitorRegistration.visitor_lead_id)
+        .where(VisitorRegistration.id.in_(registration_ids))
+    )
+    return {r[0]: (r[1], r[2]) for r in rows}
+
+
+async def token_hashes(session: AsyncSession, registration_ids: list[uuid.UUID]) -> list[str]:
+    rows = await session.scalars(
+        select(QrCredential.token_hash).where(
+            QrCredential.registration_id.in_(registration_ids), QrCredential.status == "ACTIVE"
+        )
+    )
+    return list(rows)

@@ -11,7 +11,7 @@ from app.core.db import get_sessionmaker
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitions.models import EditionCounter
 from app.modules.exhibitions.rules import EditionStatus, can_transition
-from tests.factories import RoleGrant, actor, make_edition
+from tests.factories import RoleGrant, actor, make_edition, make_gate
 
 
 def edition_body(exhibition_id: str, **over: Any) -> dict[str, Any]:
@@ -157,7 +157,8 @@ async def test_agent_reads_but_cannot_edit_edition() -> None:
 
 async def test_me_lists_allowed_editions() -> None:
     mine, _other = await make_edition(), await make_edition()
-    _, agent = await actor(RoleGrant("GATE_STAFF", "GATE", mine.id))
+    gate = await make_gate(mine)
+    _, agent = await actor(RoleGrant("GATE_STAFF", "GATE", mine.id, gate_id=gate.id))
     me = (await agent.get("/api/v1/auth/me")).json()
     assert [e["id"] for e in me["editions"]] == [str(mine.id)]
 
