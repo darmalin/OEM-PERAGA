@@ -14,6 +14,7 @@ from app.modules.identity.models import (
     UserRoleAssignment,
     UserTeamMembership,
 )
+from app.modules.importexport.models import ImportJob, ImportMappingPreset, ImportRowError
 from app.modules.visitors.models import (
     EditionFieldOption,
     VisitorCustomFieldDefinition,
@@ -27,6 +28,9 @@ __all__ = [
     "EditionCounter",
     "EditionFieldOption",
     "Exhibition",
+    "ImportJob",
+    "ImportMappingPreset",
+    "ImportRowError",
     "OutboxEvent",
     "PasswordResetToken",
     "Permission",

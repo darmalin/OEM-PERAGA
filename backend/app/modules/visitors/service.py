@@ -89,6 +89,17 @@ _UNIQUE_FIELDS = {
 class DuplicateVisitor(Conflict):
     code = "DUPLICATE_VISITOR"
 
+    def __init__(
+        self,
+        message: str | None = None,
+        *,
+        fields: dict[str, str] | None = None,
+        import_job_ids: set[uuid.UUID] | None = None,
+    ) -> None:
+        super().__init__(message, fields=fields)
+        # Import jobs that created the conflicting leads (in-file duplicate detection).
+        self.import_job_ids = import_job_ids or set()
+
 
 # --- scope -------------------------------------------------------------------------------
 
@@ -229,7 +240,10 @@ async def _raise_if_duplicate(
         return
     fields: dict[str, str] = {}
     codes: list[str] = []
-    for code, other_email, other_phone in rows:
+    job_ids: set[uuid.UUID] = set()
+    for code, other_email, other_phone, job_id in rows:
+        if job_id is not None:
+            job_ids.add(job_id)
         if email_n and other_email == email_n:
             fields["email"] = "Already used in this edition."
         if phone_n and other_phone == phone_n:
@@ -237,7 +251,9 @@ async def _raise_if_duplicate(
         codes.append(code)
     label = " and ".join(k.capitalize() for k in ("email", "phone") if k in fields)
     raise DuplicateVisitor(
-        f"{label} already used by {', '.join(sorted(set(codes)))} in this edition.", fields=fields
+        f"{label} already used by {', '.join(sorted(set(codes)))} in this edition.",
+        fields=fields,
+        import_job_ids=job_ids,
     )
 
 
@@ -276,6 +292,7 @@ async def insert_lead(
     source: LeadSource,
     external_source: str | None = None,
     external_id: str | None = None,
+    import_job_id: uuid.UUID | None = None,
 ) -> VisitorLead:
     """Create a lead after normalization and duplicate checks. Used by API, import, website."""
     await exhibitions_service.ensure_writable(session, edition_id)
@@ -290,6 +307,7 @@ async def insert_lead(
         source=source,
         external_source=clean_text(external_source),
         external_id=clean_text(external_id),
+        import_job_id=import_job_id,
         created_by=actor,
         updated_by=actor,
         **{k: v for k, v in clean.items() if v is not None or k == "custom_fields"},

@@ -83,7 +83,11 @@ async def task_session() -> AsyncIterator[AsyncSession]:
     """Session for worker tasks. Each task runs in its own event loop, so no shared pool."""
     engine = create_async_engine(get_settings().database_url, poolclass=NullPool)
     try:
-        async with AsyncSession(engine, expire_on_commit=False) as session:
+        # One connection for the whole task, so session-level advisory locks survive commits.
+        async with (
+            engine.connect() as conn,
+            AsyncSession(bind=conn, expire_on_commit=False) as session,
+        ):
             yield session
     finally:
         await engine.dispose()

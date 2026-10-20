@@ -150,6 +150,10 @@ class VisitorLead(UUIDPk, Timestamps, Versioned, Base):
 
     external_source: Mapped[str | None] = mapped_column(String(50))
     external_id: Mapped[str | None] = mapped_column(String(100))
+    # Import that created the lead, for traceability and in-file duplicate detection.
+    import_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("import_jobs.id"), index=True
+    )
     custom_fields: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, server_default="{}", default=dict
     )

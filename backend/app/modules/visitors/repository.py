@@ -143,7 +143,7 @@ async def find_conflicts(
     email_normalized: str | None,
     phone_normalized: str | None,
     exclude_id: uuid.UUID | None = None,
-) -> Sequence[Row[str, str | None, str | None]]:
+) -> Sequence[Row[str, str | None, str | None, uuid.UUID | None]]:
     """Duplicate check across the whole edition, independent of the caller's scope (spec 5.2)."""
     conds: list[ColumnElement[bool]] = []
     if email_normalized:
@@ -153,7 +153,10 @@ async def find_conflicts(
     if not conds:
         return []
     stmt = select(
-        VisitorLead.registration_code, VisitorLead.email_normalized, VisitorLead.phone_normalized
+        VisitorLead.registration_code,
+        VisitorLead.email_normalized,
+        VisitorLead.phone_normalized,
+        VisitorLead.import_job_id,
     ).where(VisitorLead.edition_id == edition_id, or_(*conds))
     if exclude_id is not None:
         stmt = stmt.where(VisitorLead.id != exclude_id)

@@ -56,4 +56,8 @@ def run_async[T](coro: Coroutine[Any, Any, T]) -> T:
 
 
 # Every module with Celery tasks is listed here.
-celery_app.conf.include = ["app.core.tasks", "app.modules.identity.tasks"]
+celery_app.conf.include = [
+    "app.core.tasks",
+    "app.modules.identity.tasks",
+    "app.modules.importexport.tasks",
+]
