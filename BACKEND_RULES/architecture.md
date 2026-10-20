@@ -46,6 +46,7 @@ Modules: `identity`, `exhibitions`, `visitors`, `telemarketing`, `registrations`
 ## Cross-module calls
 
 - A module calls another module only through that module's `service.py` public functions. Never import another module's `models.py` to query it directly (exception: foreign keys and relationships in models).
+- Exception: `reporting` is read-only and may query other modules' tables directly for aggregate reports. It never writes, and it still applies scope through `visitors.filtered_lead_ids(scope, filters)` and the gate scope clause.
 - No circular imports between modules. If two modules need each other, the shared piece moves to `core/` or a new module.
 - Cross-module side effects (send QR email after registration) go through the outbox, not direct calls.
 

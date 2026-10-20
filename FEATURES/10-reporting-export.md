@@ -34,3 +34,30 @@ Filters: edition, date range, country, source, lead owner / team, telemarketing 
 - [ ] Load test: lead list/filter and scan API (k6 or Locust), with targets set from expected volume.
 - [ ] Security review: permission matrix, rate limits, headers, dependency audit.
 - [ ] Backup (`pg_dump` schedule + MinIO bucket) and a documented restore drill that has actually been run.
+
+## Hardening results (2026-10-20, dev stack)
+
+Load test (`backend/scripts/seed_loadtest.py` + `backend/scripts/loadtest.py`): 50,000 leads,
+5,000 registrations, 20 concurrent clients, 30 s per scenario, against the dev API (one
+`uvicorn --reload` process; production runs gunicorn with 4 workers). No 5xx in any run.
+
+| Scenario | RPS | p50 | p95 | p99 |
+|---|---|---|---|---|
+| Lead list/filter (random page, source, country, search, status) | 96.6 | 174 ms | 386 ms | 478 ms |
+| Gate scan, online, before the fix below | 72.1 | 201 ms | 763 ms | 1,222 ms |
+| Gate scan, online, after the fix | 114.1 | 172 ms | 189 ms | 272 ms |
+
+Fix found by the test: every scan updated `scanner_devices.last_seen_at` on the same row,
+so concurrent scans queued on its row lock. It is now written at most once a minute.
+
+These are baselines, not targets. Targets still need the expected volume (leads per
+edition, scanners per gate, concurrent agents) from the business; rerun the same scripts
+on staging with production settings.
+
+Backup/restore drill (`deployments/backup/drill.sh`): PASS, 40 tables, 2,603 rows.
+
+Security pass: route guard test fixed so it really checks all 89 routes (it checked none
+under FastAPI 0.151); API responses carry CSP `default-src 'none'`, X-Frame-Options,
+nosniff, Referrer-Policy, Permissions-Policy; nginx re-resolves the api container.
+Not done here: dependency vulnerability scan (`pip-audit` is not in the image), HSTS
+(belongs to the TLS terminator), penetration test.

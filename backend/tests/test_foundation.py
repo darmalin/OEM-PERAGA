@@ -30,6 +30,11 @@ async def test_unknown_route_uses_error_envelope(client: AsyncClient) -> None:
 async def test_security_headers(client: AsyncClient) -> None:
     r = await client.get("/api/v1/health/live")
     assert r.headers["X-Content-Type-Options"] == "nosniff"
+    assert r.headers["X-Frame-Options"] == "DENY"
+    assert r.headers["Content-Security-Policy"] == "default-src 'none'; frame-ancestors 'none'"
+    assert r.headers["Permissions-Policy"].startswith("camera=()")
+    docs = await client.get("/api/v1/docs")
+    assert "Content-Security-Policy" not in docs.headers  # Swagger UI needs its scripts
 
 
 async def test_outbox_claim_skips_dispatched() -> None:

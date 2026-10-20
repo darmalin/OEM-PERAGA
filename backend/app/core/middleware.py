@@ -13,7 +13,11 @@ _SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "same-origin",
     "X-Frame-Options": "DENY",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 }
+# The API only returns JSON, so nothing in a response may load or run. Swagger UI (dev
+# only, /docs) needs its scripts, so it is left out.
+_API_CSP = "default-src 'none'; frame-ancestors 'none'"
 
 
 def install_middleware(app: FastAPI) -> None:
@@ -31,6 +35,8 @@ def install_middleware(app: FastAPI) -> None:
         response.headers["X-Request-ID"] = rid
         for k, v in _SECURITY_HEADERS.items():
             response.headers.setdefault(k, v)
+        if not request.url.path.endswith("/docs"):
+            response.headers.setdefault("Content-Security-Policy", _API_CSP)
         logger.info(
             "request",
             method=request.method,
