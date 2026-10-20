@@ -8,17 +8,20 @@ from app.core.authorization import AuthContext, require
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.pagination import Page
-from app.modules.importexport import service
+from app.modules.importexport import export_service, service
 from app.modules.importexport.rules import ImportType
 from app.modules.importexport.schemas import (
     DownloadOut,
     EditionParam,
+    ExportJobOut,
     ImportErrorOut,
     ImportErrorParams,
     ImportJobOut,
     ImportListParams,
     JobAccepted,
     PreviewOut,
+    ReportExportIn,
+    VisitorExportIn,
 )
 
 router = APIRouter(prefix="/visitor-leads/imports", tags=["imports"])
@@ -121,3 +124,35 @@ async def import_errors_xlsx(
 ) -> DownloadOut:
     url = await service.error_report_url(session, ctx, job_id)
     return DownloadOut(url=url, expires_in=get_settings().presigned_url_ttl_seconds)
+
+
+export_router = APIRouter(prefix="/exports", tags=["exports"])
+
+
+@export_router.post("/visitors", response_model=ExportJobOut, status_code=status.HTTP_202_ACCEPTED)
+async def export_visitors(
+    data: VisitorExportIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("visitor.export")),
+) -> ExportJobOut:
+    return await export_service.request_visitor_export(session, ctx, data)
+
+
+@export_router.post("/reports", response_model=ExportJobOut, status_code=status.HTTP_202_ACCEPTED)
+async def export_report(
+    data: ReportExportIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("report.export")),
+) -> ExportJobOut:
+    return await export_service.request_report_export(session, ctx, data)
+
+
+@export_router.get("/{job_id}", response_model=ExportJobOut)
+async def get_export(
+    job_id: uuid.UUID,
+    session: Session,
+    response: Response,
+    ctx: AuthContext = Depends(require("visitor.export", "report.export")),
+) -> ExportJobOut:
+    response.headers["Cache-Control"] = "no-store"
+    return await export_service.get_export(session, ctx, job_id)

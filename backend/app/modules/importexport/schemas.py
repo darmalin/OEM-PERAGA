@@ -5,7 +5,15 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.pagination import PageParams
-from app.modules.importexport.rules import ImportErrorReason, ImportStatus, ImportType
+from app.modules.importexport.rules import (
+    ExportKind,
+    ExportStatus,
+    ImportErrorReason,
+    ImportStatus,
+    ImportType,
+)
+from app.modules.reporting.schemas import ReportParams
+from app.modules.visitors.schemas import LeadFilters
 
 
 class JobAccepted(BaseModel):
@@ -77,3 +85,29 @@ class PreviewOut(BaseModel):
 class DownloadOut(BaseModel):
     url: str
     expires_in: int
+
+
+class VisitorExportIn(LeadFilters):
+    edition_id: uuid.UUID
+
+
+class ReportExportIn(ReportParams):
+    pass
+
+
+class ExportJobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    edition_id: uuid.UUID
+    kind: ExportKind
+    status: ExportStatus
+    row_count: int | None
+    file_name: str | None
+    file_size: int | None
+    error_summary: str | None
+    created_at: datetime
+    finished_at: datetime | None
+    expires_at: datetime | None
+    # Short-lived signed link, only while the file exists.
+    download_url: str | None = None

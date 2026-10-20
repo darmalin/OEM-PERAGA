@@ -79,3 +79,35 @@ class ImportMappingPreset(UUIDPk, Timestamps, Base):
     )
     mapping: Mapped[dict[str, str]] = mapped_column(JSONB, nullable=False, default=dict)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
+class ExportJob(UUIDPk, Timestamps, Base):
+    """spec 11: Excel exports run in the worker; the file expires (EMS_EXPORT_TTL_SECONDS)."""
+
+    __tablename__ = "export_jobs"
+    __table_args__ = (
+        Index("ix_export_jobs_edition_created", "edition_id", "created_at"),
+        Index("ix_export_jobs_status_expires", "status", "expires_at"),
+        CheckConstraint("kind IN ('VISITORS', 'REPORT')", name="kind_valid"),
+        CheckConstraint(
+            "status IN ('QUEUED', 'RUNNING', 'COMPLETED', 'FAILED', 'EXPIRED')",
+            name="status_valid",
+        ),
+    )
+
+    edition_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("exhibition_editions.id"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Filters / report params as sent; re-validated by the worker.
+    params: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="QUEUED")
+    row_count: Mapped[int | None] = mapped_column(Integer)
+    file_name: Mapped[str | None] = mapped_column(String(255))
+    file_size: Mapped[int | None] = mapped_column(Integer)
+    object_key: Mapped[str | None] = mapped_column(String(100))
+    error_summary: Mapped[str | None] = mapped_column(String(500))
+    requested_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

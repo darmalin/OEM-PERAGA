@@ -2,8 +2,9 @@
 
 import uuid
 from collections.abc import Sequence
+from datetime import datetime
 
-from sqlalchemy import ColumnElement, Row, Select, case, false, func, or_, select, true
+from sqlalchemy import ColumnElement, Row, Select, case, false, func, or_, select, true, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import Scope
@@ -282,3 +283,27 @@ async def get_field_option(
     session: AsyncSession, option_id: uuid.UUID
 ) -> EditionFieldOption | None:
     return await session.get(EditionFieldOption, option_id)
+
+
+def filtered_ids(scope: Scope, f: LeadFilters) -> Select[uuid.UUID]:
+    """Lead IDs in scope that match the filters (subquery for reports and exports)."""
+    return apply_scope(select(VisitorLead.id), scope).where(filter_clause(f))
+
+
+async def export_batch(
+    session: AsyncSession,
+    scope: Scope,
+    f: LeadFilters,
+    after: tuple[datetime, uuid.UUID] | None,
+    limit: int,
+) -> Sequence[Row[VisitorLead, str | None]]:
+    """Keyset page in creation order, so a long export never skips or repeats a lead."""
+    stmt = (
+        apply_scope(select(VisitorLead, User.full_name), scope)
+        .outerjoin(User, User.id == VisitorLead.lead_owner_id)
+        .where(filter_clause(f))
+    )
+    if after is not None:
+        stmt = stmt.where(tuple_(VisitorLead.created_at, VisitorLead.id) > tuple_(*after))
+    stmt = stmt.order_by(VisitorLead.created_at, VisitorLead.id).limit(limit)
+    return (await session.execute(stmt)).all()

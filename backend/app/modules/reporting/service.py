@@ -1,0 +1,233 @@
+"""Reports (spec 11). Numbers come from the database only; every report applies the scope."""
+
+from datetime import UTC, date, datetime, time, timedelta
+from typing import Any
+from zoneinfo import ZoneInfo
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.authorization import AuthContext, Scope
+from app.core.errors import NotFound, PermissionDenied
+from app.modules.exhibitions import service as exhibitions_service
+from app.modules.reporting import repository as repo
+from app.modules.reporting.repository import Window
+from app.modules.reporting.schemas import (
+    EDITION_REPORTS,
+    AgentRow,
+    AgentsReport,
+    AttendanceDay,
+    AttendanceReport,
+    Count,
+    EmailsReport,
+    GateRow,
+    GatesReport,
+    HourRow,
+    ImportsReport,
+    LeadsReport,
+    RegistrationReport,
+    Report,
+    ReportParams,
+    ReportType,
+    TelemarketingReport,
+    VerificationReport,
+)
+from app.modules.visitors import service as visitors_service
+from app.modules.visitors.schemas import LeadFilters
+
+PERMISSION = "report.view"
+
+
+def local_window(date_from: date | None, date_to: date | None, timezone: str) -> Window:
+    """Inclusive event-local dates to a half-open UTC window."""
+    tz = ZoneInfo(timezone)
+    start = datetime.combine(date_from, time.min, tz).astimezone(UTC) if date_from else None
+    end = (
+        datetime.combine(date_to + timedelta(days=1), time.min, tz).astimezone(UTC)
+        if date_to
+        else None
+    )
+    return start, end
+
+
+def _rate(part: int, whole: int) -> float | None:
+    return round(part / whole, 4) if whole else None
+
+
+def _counts(rows: list[tuple[Any, int]]) -> list[Count]:
+    return [Count(key=None if k is None else str(k), count=c) for k, c in rows]
+
+
+def lead_filters(params: ReportParams) -> LeadFilters:
+    return LeadFilters.model_validate(
+        params.model_dump(include=set(LeadFilters.model_fields), exclude_unset=True)
+    )
+
+
+async def build(session: AsyncSession, scope: Scope, params: ReportParams, timezone: str) -> Report:
+    """Compute one report for an already-resolved scope (API and export worker)."""
+    now = datetime.now(UTC)
+    window = local_window(params.date_from, params.date_to, timezone)
+    base: dict[str, Any] = {"edition_id": scope.edition_id, "generated_at": now}
+    lead_ids = visitors_service.filtered_lead_ids(scope, lead_filters(params))
+
+    match params.report:
+        case ReportType.LEADS:
+            total, new, assigned = await repo.lead_overview(session, lead_ids)
+            return LeadsReport(
+                **base,
+                total=total,
+                new=new,
+                assigned=assigned,
+                unassigned=total - assigned,
+                by_source=_counts(await repo.leads_by(session, lead_ids, "source")),
+                by_country=_counts(await repo.leads_by(session, lead_ids, "country")),
+            )
+        case ReportType.TELEMARKETING:
+            attempts, answered = await repo.call_totals(session, lead_ids, window)
+            today = datetime.now(ZoneInfo(timezone)).date()
+            open_, due_today, overdue = await repo.followup_totals(
+                session, lead_ids, local_window(today, today, timezone), now
+            )
+            return TelemarketingReport(
+                **base,
+                attempts=attempts,
+                answered=answered,
+                answer_rate=_rate(answered, attempts),
+                leads_by_status=_counts(
+                    await repo.leads_by(session, lead_ids, "telemarketing_status")
+                ),
+                followups_open=open_,
+                followups_due_today=due_today,
+                followups_overdue=overdue,
+            )
+        case ReportType.VERIFICATION:
+            valid, invalid, undecided, b2b = await repo.verification_totals(session, lead_ids)
+            return VerificationReport(
+                **base,
+                valid=valid,
+                invalid=invalid,
+                undecided=undecided,
+                by_attend=_counts(await repo.leads_by(session, lead_ids, "attend")),
+                by_buyer_type=_counts(await repo.leads_by(session, lead_ids, "buyer_type")),
+                b2b_matching=b2b,
+            )
+        case ReportType.REGISTRATION:
+            registered, not_registered, qr_active, qr_revoked = await repo.registration_totals(
+                session, lead_ids
+            )
+            return RegistrationReport(
+                **base,
+                registered=registered,
+                not_registered=not_registered,
+                by_channel=_counts(await repo.registrations_by_channel(session, lead_ids)),
+                qr_active=qr_active,
+                qr_revoked=qr_revoked,
+                emails_by_status=_counts(
+                    await repo.emails_by_status_for_leads(session, lead_ids, window)
+                ),
+            )
+        case ReportType.AGENTS:
+            rows = await repo.agent_rows(session, scope.edition_id, lead_ids, window)
+            return AgentsReport(
+                **base,
+                agents=[
+                    AgentRow(
+                        agent_id=agent_id,
+                        full_name=name,
+                        leads_owned=owned,
+                        attempts=attempts,
+                        answered=answered,
+                        followups_total=f_total,
+                        followups_done=f_done,
+                        followup_completion=_rate(f_done, f_total),
+                    )
+                    for agent_id, name, owned, attempts, answered, f_total, f_done in rows
+                ],
+            )
+        case ReportType.ATTENDANCE:
+            total, valid, first, rejected, unique = await repo.attendance_totals(
+                session, scope, params.gate_id, window
+            )
+            return AttendanceReport(
+                **base,
+                unique_event_visitors=unique,
+                total_scans=total,
+                valid_entries=valid,
+                first_entries=first,
+                repeat_entries=valid - first,
+                rejected=rejected,
+                by_day=[
+                    AttendanceDay(
+                        local_date=day,
+                        unique_visitors=uniq,
+                        first_entries=f,
+                        repeat_entries=v - f,
+                        total_scans=t,
+                        rejected=r,
+                    )
+                    for day, uniq, f, v, t, r in await repo.attendance_by_day(
+                        session, scope, params.gate_id, window
+                    )
+                ],
+            )
+        case ReportType.GATES:
+            return GatesReport(
+                **base,
+                by_gate=[
+                    GateRow(
+                        gate_id=gid,
+                        gate_code=code,
+                        gate_name=name,
+                        total_scans=t,
+                        valid_entries=v,
+                        rejected=r,
+                    )
+                    for gid, code, name, t, v, r in await repo.by_gate(
+                        session, scope, params.gate_id, window
+                    )
+                ],
+                by_hour=[
+                    HourRow(local_date=day, hour=int(h), total_scans=t, valid_entries=v)
+                    for day, h, t, v in await repo.by_hour(
+                        session, scope, params.gate_id, window, timezone
+                    )
+                ],
+            )
+        case ReportType.IMPORTS:
+            (jobs, processed, created, duplicate, invalid), statuses = await repo.import_totals(
+                session, scope.edition_id, window
+            )
+            return ImportsReport(
+                **base,
+                jobs=jobs,
+                by_status=_counts(statuses),
+                processed=processed,
+                created=created,
+                duplicate=duplicate,
+                invalid=invalid,
+            )
+        case ReportType.EMAILS:
+            statuses = await repo.email_status_totals(session, scope.edition_id, window)
+            return EmailsReport(
+                **base, total=sum(c for _, c in statuses), by_status=_counts(statuses)
+            )
+
+
+def scope_for_report(ctx: AuthContext, params: ReportParams, permission: str) -> Scope:
+    scope = ctx.scope_for(params.edition_id, permission)
+    if params.report in EDITION_REPORTS and not scope.full_access:
+        raise PermissionDenied("This report needs access to the whole edition.")
+    return scope
+
+
+async def edition_timezone(session: AsyncSession, edition_id: Any) -> str:
+    edition = await exhibitions_service.get_edition_by_id(session, edition_id)
+    if edition is None:
+        raise NotFound("Edition not found.", code="EDITION_NOT_FOUND")
+    return edition.timezone
+
+
+async def visitor_report(session: AsyncSession, ctx: AuthContext, params: ReportParams) -> Report:
+    """GET /reports/visitors."""
+    scope = scope_for_report(ctx, params, PERMISSION)
+    return await build(session, scope, params, await edition_timezone(session, params.edition_id))

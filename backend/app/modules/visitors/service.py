@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
@@ -637,3 +638,22 @@ async def update_field_option(
     )
     await session.refresh(option)
     return FieldOptionOut.model_validate(option)
+
+
+# --- reports and exports -------------------------------------------------------------------
+
+
+def filtered_lead_ids(scope: Scope, filters: LeadFilters) -> Any:
+    """Subquery of lead IDs in scope matching the list filters (reports)."""
+    return repo.filtered_ids(scope, filters)
+
+
+async def export_batch(
+    session: AsyncSession,
+    scope: Scope,
+    filters: LeadFilters,
+    after: tuple[datetime, uuid.UUID] | None,
+    limit: int,
+) -> list[tuple[VisitorLead, str | None]]:
+    """(lead, owner name) pages in creation order for the Excel export worker."""
+    return [(r[0], r[1]) for r in await repo.export_batch(session, scope, filters, after, limit)]

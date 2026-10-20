@@ -96,3 +96,73 @@ def split_multi(value: str | None) -> list[str]:
     if not value:
         return []
     return [part.strip() for part in re.split(r"[;,\n]", value) if part.strip()]
+
+
+class ExportKind(StrEnum):
+    VISITORS = "VISITORS"
+    REPORT = "REPORT"
+
+
+class ExportStatus(StrEnum):
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    EXPIRED = "EXPIRED"
+
+
+# Visitor export columns, in screenshot order, with the labels the team already uses.
+EXPORT_COLUMNS: list[tuple[str, str]] = [
+    ("lead_date", "Date"),
+    ("registration_code", "Registration ID"),
+    ("first_name", "First Name"),
+    ("email", "Email"),
+    ("phone", "Phone"),
+    ("gender", "Gender"),
+    ("company_name", "Company Name"),
+    ("job_title", "Job Title"),
+    ("country", "Country"),
+    ("city", "City"),
+    ("website", "Website"),
+    ("business_type", "Business Type"),
+    ("branch", "Branch"),
+    ("exhibition_type", "Exhibition Type"),
+    ("source", "Source"),
+    ("lead_owner", "Lead Owner"),
+    ("telemarketing_status", "Telemarketing Status"),
+    ("product_categories", "Product Categories Interested In"),
+    ("comment", "Comment"),
+    ("is_valid_lead", "Valid Lead"),
+    ("is_invalid", "Invalid"),
+    ("attend", "Attend"),
+    ("b2b_matching", "B2B Matching"),
+    ("buyer_type", "Type of Buyers"),
+    ("registration_status", "Registration Status"),
+    ("qr_status", "QR Status"),
+    ("updated_at", "Updated At"),
+]
+
+# spec 4.2 / 4.3: labels shown to the team, not the stored codes.
+VALUE_LABELS: dict[str, dict[str, str]] = {
+    "attend": {
+        "ATTEND": "Attend",
+        "ATTEND_SOURCING": "Attend Sourcing",
+        "UNDER_CONSIDERATION": "Under Consideration",
+        "NOT_ATTEND": "Not Attend",
+        "HANG_UP_IMMEDIATELY": "Hang Up Immediately",
+    },
+    "buyer_type": {"B_SIDE": "B-Side", "C_SIDE": "C-Side"},
+}
+
+
+def display_value(field: str, value: Any) -> Any:
+    """Excel cell value: labels for fixed options, Yes/No for flags, lists joined."""
+    if value is None:
+        return None
+    if field in VALUE_LABELS:
+        return VALUE_LABELS[field].get(value, value)
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+    if isinstance(value, list):
+        return ", ".join(str(v) for v in value)
+    return value

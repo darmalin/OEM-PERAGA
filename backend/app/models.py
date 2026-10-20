@@ -16,7 +16,12 @@ from app.modules.identity.models import (
     UserRoleAssignment,
     UserTeamMembership,
 )
-from app.modules.importexport.models import ImportJob, ImportMappingPreset, ImportRowError
+from app.modules.importexport.models import (
+    ExportJob,
+    ImportJob,
+    ImportMappingPreset,
+    ImportRowError,
+)
 from app.modules.registrations.models import (
     EmailJob,
     EmailLog,
@@ -51,6 +56,7 @@ __all__ = [
     "EmailLog",
     "EmailTemplate",
     "Exhibition",
+    "ExportJob",
     "FollowupReminder",
     "Gate",
     "IdempotencyKey",

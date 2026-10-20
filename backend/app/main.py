@@ -11,6 +11,7 @@ from app.modules.exhibitions import router as exhibitions
 from app.modules.identity import router as identity
 from app.modules.importexport import router as importexport
 from app.modules.registrations import router as registrations
+from app.modules.reporting import router as reporting
 from app.modules.telemarketing import router as telemarketing
 from app.modules.visitors import router as visitors
 
@@ -31,6 +32,8 @@ def build_api_router() -> APIRouter:
     router.include_router(registrations.public_router)
     router.include_router(checkin.router)
     router.include_router(checkin.device_router)
+    router.include_router(reporting.router)
+    router.include_router(importexport.export_router)
     return router
 
 
