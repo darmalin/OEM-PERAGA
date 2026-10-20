@@ -29,3 +29,40 @@ def round_robin(
         start = next((i for i, a in enumerate(agents) if a > last_agent_id), 0)
     pairs = [(lead, agents[(start + i) % len(agents)]) for i, lead in enumerate(lead_ids)]
     return pairs, pairs[-1][1]
+
+
+class CallResult(StrEnum):
+    """D7: Answer / No Answer by default; extra results come from EMS_CALL_RESULTS_EXTRA."""
+
+    ANSWER = "ANSWER"
+    NO_ANSWER = "NO_ANSWER"
+
+
+class FollowupStatus(StrEnum):
+    OPEN = "OPEN"
+    DONE = "DONE"
+    CANCELLED = "CANCELLED"
+
+
+class FollowupAction(StrEnum):
+    CREATE = "CREATE"
+    RESCHEDULE = "RESCHEDULE"
+    DONE = "DONE"
+    CANCEL = "CANCEL"
+
+
+def telemarketing_status(results: list[str]) -> str:
+    """spec 6.2: derive the status from the attempt history (oldest first).
+
+    Only ANSWER counts as answered; any other configured result counts as not answered.
+    """
+    if not results:
+        return "NEW"
+    answered = results[-1] == CallResult.ANSWER
+    if len(results) == 1:
+        return "ANSWER" if answered else "NO_ANSWER"
+    return "RECONTACTED" if answered else "RETRY_NO_ANSWER"
+
+
+def allowed_call_results(extra: list[str]) -> list[str]:
+    return [CallResult.ANSWER.value, CallResult.NO_ANSWER.value, *extra]

@@ -29,6 +29,11 @@ celery_app.conf.update(
     beat_schedule={
         "dispatch-outbox": {"task": "core.dispatch_outbox", "schedule": 5.0},
         "purge-idempotency-keys": {"task": "core.purge_idempotency_keys", "schedule": 3600.0},
+        # No-op until EMS_FOLLOWUP_REMINDERS_ENABLED (open decision D4).
+        "followup-reminders": {
+            "task": "telemarketing.queue_followup_reminders",
+            "schedule": 300.0,
+        },
     },
 )
 

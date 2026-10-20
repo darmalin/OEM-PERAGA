@@ -18,8 +18,13 @@ from app.modules.identity.models import (
 from app.modules.importexport.models import ImportJob, ImportMappingPreset, ImportRowError
 from app.modules.telemarketing.models import (
     AssignmentJob,
+    FollowupReminder,
     LeadAssignmentHistory,
     RoundRobinCursor,
+    VisitorCallActivity,
+    VisitorFollowup,
+    VisitorFollowupChange,
+    VisitorVerification,
 )
 from app.modules.visitors.models import (
     EditionFieldOption,
@@ -35,6 +40,7 @@ __all__ = [
     "EditionCounter",
     "EditionFieldOption",
     "Exhibition",
+    "FollowupReminder",
     "IdempotencyKey",
     "ImportJob",
     "ImportMappingPreset",
@@ -51,6 +57,10 @@ __all__ = [
     "UserRoleAssignment",
     "UserTeamMembership",
     "Venue",
+    "VisitorCallActivity",
     "VisitorCustomFieldDefinition",
+    "VisitorFollowup",
+    "VisitorFollowupChange",
     "VisitorLead",
+    "VisitorVerification",
 ]

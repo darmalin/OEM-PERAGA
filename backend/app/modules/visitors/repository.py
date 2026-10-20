@@ -3,7 +3,7 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import ColumnElement, Row, Select, false, func, or_, select, true
+from sqlalchemy import ColumnElement, Row, Select, case, false, func, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import Scope
@@ -145,6 +145,45 @@ async def lock_leads(
         .with_for_update()
     )
     return list((await session.scalars(stmt)).all())
+
+
+def visible_ids(scope: Scope) -> Select[tuple[uuid.UUID]]:
+    """Subquery of lead IDs in the scope, for other modules' filters."""
+    return apply_scope(select(VisitorLead.id), scope)
+
+
+async def labels(
+    session: AsyncSession, scope: Scope, lead_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, tuple[str, str]]:
+    rows = await session.execute(
+        select(VisitorLead.id, VisitorLead.first_name, VisitorLead.registration_code).where(
+            VisitorLead.edition_id == scope.edition_id, VisitorLead.id.in_(lead_ids)
+        )
+    )
+    return {i: (name, code) for i, name, code in rows.all()}
+
+
+async def owner_queue(
+    session: AsyncSession, scope: Scope, owner_id: uuid.UUID, offset: int, limit: int
+) -> tuple[Sequence[Row[VisitorLead, str | None]], int]:
+    """Call queue: follow-ups due first (soonest first), then NEW leads, then the rest."""
+    base = apply_scope(select(VisitorLead), scope).where(VisitorLead.lead_owner_id == owner_id)
+    total = await session.scalar(select(func.count()).select_from(base.subquery())) or 0
+    is_new = case((VisitorLead.telemarketing_status == "NEW", 0), else_=1)
+    stmt = (
+        apply_scope(select(VisitorLead, User.full_name), scope)
+        .outerjoin(User, User.id == VisitorLead.lead_owner_id)
+        .where(VisitorLead.lead_owner_id == owner_id)
+        .order_by(
+            VisitorLead.next_followup_at.asc().nulls_last(),
+            is_new,
+            VisitorLead.last_call_at.asc().nulls_first(),
+            VisitorLead.created_at,
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    return (await session.execute(stmt)).all(), total
 
 
 async def edition_of(session: AsyncSession, lead_id: uuid.UUID) -> uuid.UUID | None:

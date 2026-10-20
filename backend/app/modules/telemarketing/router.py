@@ -6,8 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import idempotency
 from app.core.authorization import AuthContext, require
+from app.core.config import get_settings
 from app.core.db import get_session
+from app.core.pagination import Page
 from app.modules.telemarketing import service
+from app.modules.telemarketing.rules import allowed_call_results
 from app.modules.telemarketing.schemas import (
     AgentOut,
     AgentParams,
@@ -16,7 +19,19 @@ from app.modules.telemarketing.schemas import (
     AssignmentIn,
     AssignmentJobOut,
     AssignmentResult,
+    CallIn,
+    CallLoggedOut,
+    CallOut,
+    FollowupChangeOut,
+    FollowupIn,
+    FollowupListParams,
+    FollowupOut,
+    FollowupUpdateIn,
+    QueueParams,
+    VerificationIn,
+    VerificationOut,
 )
+from app.modules.visitors.schemas import LeadListItem, LeadOut
 
 router = APIRouter(tags=["telemarketing"])
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -62,3 +77,109 @@ async def lead_assignments(
     lead_id: uuid.UUID, session: Session, ctx: AuthContext = Depends(require("visitor.read"))
 ) -> list[AssignmentHistoryOut]:
     return await service.lead_assignment_history(session, ctx, lead_id)
+
+
+# --- calls, verification, follow-ups, queues ----------------------------------------------
+
+
+@router.post(
+    "/visitor-leads/{lead_id}/calls",
+    response_model=CallLoggedOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def log_call(
+    lead_id: uuid.UUID,
+    data: CallIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("telemarketing.call")),
+) -> CallLoggedOut:
+    return await service.log_call(session, ctx, lead_id, data)
+
+
+@router.get("/visitor-leads/{lead_id}/calls", response_model=list[CallOut])
+async def list_calls(
+    lead_id: uuid.UUID, session: Session, ctx: AuthContext = Depends(require("visitor.read"))
+) -> list[CallOut]:
+    return await service.list_calls(session, ctx, lead_id)
+
+
+@router.patch("/visitor-leads/{lead_id}/verification", response_model=LeadOut)
+async def update_verification(
+    lead_id: uuid.UUID,
+    data: VerificationIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("visitor.verify")),
+) -> LeadOut:
+    return await service.update_verification(session, ctx, lead_id, data)
+
+
+@router.get("/visitor-leads/{lead_id}/verifications", response_model=list[VerificationOut])
+async def list_verifications(
+    lead_id: uuid.UUID, session: Session, ctx: AuthContext = Depends(require("visitor.read"))
+) -> list[VerificationOut]:
+    return await service.list_verifications(session, ctx, lead_id)
+
+
+@router.post(
+    "/visitor-leads/{lead_id}/followups",
+    response_model=FollowupOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_followup(
+    lead_id: uuid.UUID,
+    data: FollowupIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("telemarketing.followup")),
+) -> FollowupOut:
+    return await service.create_followup(session, ctx, lead_id, data)
+
+
+@router.get("/followups", response_model=Page[FollowupOut])
+async def list_followups(
+    session: Session,
+    params: Annotated[FollowupListParams, Query()],
+    ctx: AuthContext = Depends(require("telemarketing.followup")),
+) -> Page[FollowupOut]:
+    return await service.list_followups(session, ctx, params)
+
+
+@router.patch("/followups/{followup_id}", response_model=FollowupOut)
+async def update_followup(
+    followup_id: uuid.UUID,
+    data: FollowupUpdateIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("telemarketing.followup")),
+) -> FollowupOut:
+    return await service.update_followup(session, ctx, followup_id, data)
+
+
+@router.get("/followups/{followup_id}/history", response_model=list[FollowupChangeOut])
+async def followup_history(
+    followup_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("telemarketing.followup")),
+) -> list[FollowupChangeOut]:
+    return await service.followup_history(session, ctx, followup_id)
+
+
+@router.get("/telemarketing/my-queue", response_model=Page[LeadListItem])
+async def my_queue(
+    session: Session,
+    params: Annotated[QueueParams, Query()],
+    ctx: AuthContext = Depends(require("telemarketing.call")),
+) -> Page[LeadListItem]:
+    return await service.my_queue(session, ctx, params)
+
+
+@router.get("/telemarketing/team-queue", response_model=Page[LeadListItem])
+async def team_queue(
+    session: Session,
+    params: Annotated[QueueParams, Query()],
+    ctx: AuthContext = Depends(require("telemarketing.view_team")),
+) -> Page[LeadListItem]:
+    return await service.team_queue(session, ctx, params)
+
+
+@router.get("/telemarketing/call-results", response_model=list[str])
+async def call_results(_: AuthContext = Depends(require("telemarketing.call"))) -> list[str]:
+    return allowed_call_results(get_settings().call_results_extra)

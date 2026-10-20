@@ -145,6 +145,42 @@ async def lock_leads(
     return await repo.lock_leads(session, scope, lead_ids)
 
 
+async def get_lead_internal(
+    session: AsyncSession, edition_id: uuid.UUID, lead_id: uuid.UUID, *, for_update: bool = False
+) -> VisitorLead:
+    """Unscoped lookup for callers that already authorized access another way
+    (e.g. the assignee of a follow-up). Never expose its result without that check."""
+    full = Scope(edition_id=edition_id, user_id=uuid.UUID(int=0), full_access=True)
+    return await get_lead_entity(session, full, lead_id, for_update=for_update)
+
+
+def visible_lead_ids(scope: Scope) -> Any:
+    """Subquery of lead IDs visible in the scope (for filters in other modules)."""
+    return repo.visible_ids(scope)
+
+
+async def lead_labels(
+    session: AsyncSession, scope: Scope, lead_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, tuple[str, str]]:
+    """lead id -> (first name, Registration ID)."""
+    return await repo.labels(session, scope, lead_ids) if lead_ids else {}
+
+
+async def owner_queue(
+    session: AsyncSession, scope: Scope, owner_id: uuid.UUID, page: int, page_size: int
+) -> Page[LeadListItem]:
+    """Leads owned by one agent in call order."""
+    rows, total = await repo.owner_queue(
+        session, scope, owner_id, (page - 1) * page_size, page_size
+    )
+    items = []
+    for lead, owner in rows:
+        item = LeadListItem.model_validate(lead)
+        item.lead_owner_name = owner
+        items.append(item)
+    return Page(items=items, total=total, page=page, page_size=page_size)
+
+
 async def lead_out(session: AsyncSession, lead: VisitorLead) -> LeadOut:
     out = LeadOut.model_validate(lead)
     out.lead_owner_name = await repo.owner_name(session, lead.lead_owner_id)

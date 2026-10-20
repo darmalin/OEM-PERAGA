@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     export_ttl_seconds: int = 24 * 60 * 60
     idempotency_ttl_seconds: int = 24 * 60 * 60
 
+    # D7: extra call results beyond ANSWER / NO_ANSWER, e.g. ["BUSY", "INVALID_NUMBER"].
+    call_results_extra: list[str] = []
+    # D4: follow-up reminders stay off until interval and send time are decided.
+    followup_reminders_enabled: bool = False
+    followup_reminder_lead_minutes: int = 30
+
     scanner_cache_ttl_seconds: int = 12 * 60 * 60
     scanner_activation_code_ttl_seconds: int = 15 * 60
 
