@@ -288,4 +288,5 @@ Large type (32px result word, 18px body), controls ≥ 56px, high contrast, work
 | Pages instead of popups for insert/edit | Owner decision; URLs can be shared and the back button works. |
 | Toasts for feedback | Owner decision; errors also stay next to the fields. |
 | Ink edition band | The single bold accent; tells the user which event they are working in. |
+| 1px shadow on the selected sidebar item and panel segment | The selected item sits on the page surface above the grey sidebar; the only non-overlay shadow, 1px. |
 | Full-screen colored scanner results | Gate staff read the result from arm's length in a crowd. |
