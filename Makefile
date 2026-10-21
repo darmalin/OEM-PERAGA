@@ -3,7 +3,7 @@ TEST_DB_URL = postgresql+asyncpg://ems:ems@postgres:5432/ems_test
 RUN_BACKEND = $(COMPOSE) run --rm --no-deps -T
 TEST_ENV = -e EMS_ENVIRONMENT=test -e EMS_DATABASE_URL=$(TEST_DB_URL) -e EMS_REDIS_URL=redis://redis:6379/15 -e EMS_EMAIL_BACKEND=memory
 
-.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell web web-check e2e
+.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell web scanner web-check e2e e2e-scanner
 
 up:
 	$(COMPOSE) up -d --build
@@ -41,6 +41,10 @@ gen-api:
 web:
 	cd frontend && pnpm install && pnpm dev
 
+# Scanner PWA dev server at http://localhost:5174/scanner/ (camera needs localhost or HTTPS).
+scanner:
+	cd frontend && pnpm install && pnpm dev:scanner
+
 web-check:
 	cd frontend && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
@@ -49,6 +53,11 @@ e2e:
 	cd frontend/apps/web && set -a && . ../../../.env && set +a && \
 	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/flows.mjs && \
 	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/smoke.mjs
+
+# Scanner offline flow (activate, scan offline, sync, replay, revoke); needs `make scanner` running.
+e2e-scanner:
+	cd frontend/apps/scanner && set -a && . ../../../.env && set +a && \
+	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/offline.mjs
 
 shell:
 	$(COMPOSE) exec api sh

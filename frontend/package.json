@@ -4,7 +4,8 @@
   "packageManager": "pnpm@11.21.0",
   "scripts": {
     "dev": "pnpm --filter @ems/web dev",
-    "build": "pnpm --filter @ems/web build",
+    "dev:scanner": "pnpm --filter @ems/scanner dev",
+    "build": "pnpm --filter @ems/web --filter @ems/scanner build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",

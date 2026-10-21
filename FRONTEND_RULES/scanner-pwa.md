@@ -43,3 +43,13 @@ Spec §8, FEATURES/09, DESIGN.md "Scanner".
 ## Tests
 - Unit: provisional decision, debounce, timezone day boundary.
 - Integration (Playwright, offline emulation): scan offline, go online, verify synced and no duplicates when the same batch is sent twice.
+
+## As built (2026-10-21)
+
+- Served at `/scanner/` from the same nginx as the desk (`frontend/Dockerfile`); dev server `make scanner` on port 5174. Device API calls use `X-Device-Token`, never the desk session.
+- QR decoding is `@zxing/browser` on the main thread: `qr-scanner` builds its worker from a `blob:` URL, which the CSP (`default-src 'self'`) blocks. The decoder is lazy-loaded so activation stays light.
+- Online scans are also written to `scan_queue` (status `synced`/`rejected`, no provisional result), so a later offline scan of the same visitor today is a provisional REPEAT.
+- Offline with no cache or an expired cache: the scan is still queued with `provisional_result: null` and the screen shows NOT CHECKED with the reason; the server decides on sync.
+- Debounce is per token hash and sliding: a code held in front of the camera stays ignored until it has been out of view for 3 s. Manual entry is not debounced.
+- `scanned_at` uses the server offset from the `Date` header of the cache download. Synced items older than 3 days are pruned on start; pending items are never pruned.
+- A server answer that is not about the visitor (gate closed, edition archived) shows CANNOT CHECK with the message and is not queued. `DEVICE_REVOKED` or `DEVICE_NOT_AUTHENTICATED` wipes all four stores and shows the revoked screen.

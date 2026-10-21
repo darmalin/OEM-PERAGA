@@ -6,7 +6,9 @@ closes or adds a gap. Backend gaps are in `BACKEND_RULES/known-gaps.md`.
 | # | Pri | Gap | Fix |
 |---|---|---|---|
 | W1 | P1 | Exhibitor panel not built: outside spec phase 1 and no backend. | Decisions E1 to E6 in `FEATURES/11-exhibitor-portal.md`, then backend, then the panel. |
-| W2 | P1 | Scanner PWA (`apps/scanner`) not built. The backend `/gate/device/*` API is ready. | Build per `FRONTEND_RULES/scanner-pwa.md`; nginx then needs `camera=(self)` on its location (backend gap S5). |
+| W2 | P1 | Scanner PWA is built and served at `/scanner/`, but in production the camera is blocked: nginx sends `camera=()` for every location (backend gap S5). Manual code entry works meanwhile. | nginx: `camera=(self)` on `/scanner/` only. |
+| W9 | P2 | Scanner FIRST/REPEAT with a real QR on a phone camera is not run end to end; the offline E2E uses unknown codes, and FIRST/REPEAT is covered by unit tests against a fake server. | Run on a phone over HTTPS with a registration's QR email once S5 is fixed. |
+| W10 | P3 | Scanner PWA has no manifest icons (W3), so browsers do not offer "Install app". It still works from the browser and offline after the first load. | Add icons with the logo. |
 | W3 | P2 | No logo or favicon: the header shows "EMS" as text (antislop R-23). | Owner supplies the logo; replace the text and the empty `<link rel="icon">`. |
 | W4 | P2 | Public website registration form is not part of this app; the API exists (`/public/editions/{code}/registrations`) but needs CORS for the website origin (backend gap S3). | Build it on the website, or add a public page here. |
 | W5 | P2 | Tests are a smoke run and a click-through script (`e2e/*.mjs`, local Chromium) plus a few unit tests. No component tests with mocked API yet, no axe accessibility run. | Add Vitest + Testing Library + MSW for forms and list states; add axe to the smoke run. |

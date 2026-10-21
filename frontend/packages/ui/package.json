@@ -1,0 +1,13 @@
+{
+  "name": "@ems/ui",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./src/tokens.css",
+    "./cn": "./src/cn.ts"
+  },
+  "dependencies": {
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.7.0"
+  }
+}

@@ -1,0 +1,46 @@
+@import "@fontsource-variable/inter";
+@import "tailwindcss";
+
+@import "@ems/ui/tokens.css";
+
+/* Scanner result colors (DESIGN.md "Scanner"); the same in light and dark, read in daylight. */
+:root {
+  --scan-first: #15803d;
+  --on-scan-first: #ffffff;
+  --scan-repeat: #f5b400;
+  --on-scan-repeat: #171717;
+  --scan-rejected: #c4302b;
+  --on-scan-rejected: #ffffff;
+  --scan-neutral: #404040;
+  --on-scan-neutral: #ffffff;
+}
+
+@theme inline {
+  --color-scan-first: var(--scan-first);
+  --color-on-scan-first: var(--on-scan-first);
+  --color-scan-repeat: var(--scan-repeat);
+  --color-on-scan-repeat: var(--on-scan-repeat);
+  --color-scan-rejected: var(--scan-rejected);
+  --color-on-scan-rejected: var(--on-scan-rejected);
+  --color-scan-neutral: var(--scan-neutral);
+  --color-on-scan-neutral: var(--on-scan-neutral);
+  --color-green-fg: var(--green-fg);
+  --color-green-bg: var(--green-bg);
+  --color-amber-fg: var(--amber-fg);
+  --color-amber-bg: var(--amber-bg);
+  --color-red-fg: var(--red-fg);
+  --color-red-bg: var(--red-bg);
+  /* DESIGN.md: 32px result word, 18px body. */
+  --text-result: 2rem;
+}
+
+@layer base {
+  /* Override the desk's 14px root: the scanner's body text is 18px. */
+  html {
+    font-size: 16px;
+  }
+  body {
+    @apply text-lg;
+    overscroll-behavior: none;
+  }
+}

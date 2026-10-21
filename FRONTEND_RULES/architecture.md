@@ -14,12 +14,18 @@ frontend/
 │       ├── shell/              # top bar, panel switcher, sidebar (nav.ts), command bar
 │       ├── ui/                 # design-system components (tokens from DESIGN.md)
 │       └── lib/                # auth, edition, format, labels, status colors, forms, toasts
-└── packages/api/               # generated OpenAPI types + typed client (call, upload, downloadFile)
+├── apps/scanner/               # gate scanner PWA, served at /scanner/ (scanner-pwa.md)
+│   ├── e2e/offline.mjs         # activate, scan offline, sync, replay the batch, revoke
+│   └── src/
+│       ├── lib/                # engine (scan, sync, cache), Dexie db, provisional decision, device API
+│       └── ui/                 # activation, scan screen, full-screen result, recent scans
+├── packages/api/               # generated OpenAPI types + typed client (call, upload, downloadFile)
+└── packages/ui/                # shared design tokens (tokens.css) and cn()
 ```
 
 Decisions that differ from the first plan, with the reason:
 
-- `packages/ui` is not extracted yet; components live in `apps/web/src/ui`. Extract it when the scanner app starts, so both share one copy.
+- `packages/ui` holds only the tokens and `cn()`. Components stay in `apps/web/src/ui`: the scanner shares no component with the desk (its controls are 56px, its screens full-bleed), so moving them would only add indirection.
 - The active edition is a per-user choice in the header (saved in localStorage), not a `?edition=` search param. Every event page would otherwise carry the param, and switching edition should keep you on the same page.
 - Insert, edit, and actions are pages with their own URL, never dialogs (owner decision, DESIGN.md). The only overlays are menus, native selects, and the command bar.
 - Feedback is a toast (sonner) plus field errors; errors stay until dismissed and show the request ID.
