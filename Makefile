@@ -3,7 +3,7 @@ TEST_DB_URL = postgresql+asyncpg://ems:ems@postgres:5432/ems_test
 RUN_BACKEND = $(COMPOSE) run --rm --no-deps -T
 TEST_ENV = -e EMS_ENVIRONMENT=test -e EMS_DATABASE_URL=$(TEST_DB_URL) -e EMS_REDIS_URL=redis://redis:6379/15 -e EMS_EMAIL_BACKEND=memory
 
-.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell
+.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell web web-check e2e
 
 up:
 	$(COMPOSE) up -d --build
@@ -35,6 +35,20 @@ typecheck:
 
 gen-api:
 	$(RUN_BACKEND) api python -c "import json; from app.main import app; print(json.dumps(app.openapi()))" > openapi.json
+	cd frontend && pnpm gen:api
+
+# Frontend on the host (needs Node 24 + pnpm); the API stays in Docker behind :8080.
+web:
+	cd frontend && pnpm install && pnpm dev
+
+web-check:
+	cd frontend && pnpm typecheck && pnpm lint && pnpm test && pnpm build
+
+# Click-through and page sweep with a local Chromium; credentials from .env (EMS_DEV_ADMIN_*).
+e2e:
+	cd frontend/apps/web && set -a && . ../../../.env && set +a && \
+	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/flows.mjs && \
+	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/smoke.mjs
 
 shell:
 	$(COMPOSE) exec api sh

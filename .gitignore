@@ -8,3 +8,5 @@ __pycache__/
 node_modules/
 dist/
 openapi.json
+frontend/.corepack
+frontend/apps/web/*-out/

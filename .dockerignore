@@ -1,0 +1,7 @@
+# Root build context (frontend/Dockerfile). The backend builds from ./backend.
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+.git
+backups

@@ -1,0 +1,15 @@
+# Known Gaps (Frontend)
+
+State of the web app as of 2026-10-21. Read before frontend work; update in the same PR that
+closes or adds a gap. Backend gaps are in `BACKEND_RULES/known-gaps.md`.
+
+| # | Pri | Gap | Fix |
+|---|---|---|---|
+| W1 | P1 | Exhibitor panel not built: outside spec phase 1 and no backend. | Decisions E1 to E6 in `FEATURES/11-exhibitor-portal.md`, then backend, then the panel. |
+| W2 | P1 | Scanner PWA (`apps/scanner`) not built. The backend `/gate/device/*` API is ready. | Build per `FRONTEND_RULES/scanner-pwa.md`; nginx then needs `camera=(self)` on its location (backend gap S5). |
+| W3 | P2 | No logo or favicon: the header shows "EMS" as text (antislop R-23). | Owner supplies the logo; replace the text and the empty `<link rel="icon">`. |
+| W4 | P2 | Public website registration form is not part of this app; the API exists (`/public/editions/{code}/registrations`) but needs CORS for the website origin (backend gap S3). | Build it on the website, or add a public page here. |
+| W5 | P2 | Tests are a smoke run and a click-through script (`e2e/*.mjs`, local Chromium) plus a few unit tests. No component tests with mocked API yet, no axe accessibility run. | Add Vitest + Testing Library + MSW for forms and list states; add axe to the smoke run. |
+| W6 | P2 | Native date and time inputs follow the browser locale (e.g. mm/dd/yyyy in en-US), while the rest of the app shows dd-mm-yyyy. | Accept, or replace with a date picker that uses the app format. |
+| W7 | P3 | Lists fetch one page at a time with a total count; for very large editions the backend count (backend gap P3) may need keyset paging. | Follow the backend change. |
+| W8 | P3 | Visual check is manual from screenshots; no screenshot diffing. | Add Playwright screenshot comparisons if the design stabilises. |

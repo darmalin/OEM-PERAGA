@@ -9,6 +9,7 @@ Rules for `frontend/apps/web` (desk), `frontend/apps/scanner` (PWA), and the sha
 | [ui-components.md](ui-components.md) | shadcn customization, tokens, Frappe patterns, states, accessibility |
 | [scanner-pwa.md](scanner-pwa.md) | Offline cache, scan queue, sync |
 | [testing.md](testing.md) | Unit, component, E2E |
+| [known-gaps.md](known-gaps.md) | What is not built or not verified yet. Read before starting work |
 
 ## The non-negotiables
 

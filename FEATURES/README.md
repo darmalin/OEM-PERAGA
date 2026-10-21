@@ -23,6 +23,7 @@ Out (do not build, §1.2 and §18): exhibitor CRM, booth inventory, proposals, c
 | 08 | [08-registration-qr-email.md](08-registration-qr-email.md) | §7 | M4 |
 | 09 | [09-gate-scanner.md](09-gate-scanner.md) | §8 | M5 |
 | 10 | [10-reporting-export.md](10-reporting-export.md) | §11 | M6 |
+| 11 | [11-exhibitor-portal.md](11-exhibitor-portal.md) | outside §1.2 | not planned; decisions E1 to E6 first |
 
 ## Milestones (§15)
 

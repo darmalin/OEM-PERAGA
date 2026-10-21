@@ -57,3 +57,26 @@ services:
   beat:
     <<: *backend-dev
     command: ["celery", "-A", "app.worker", "beat", "--loglevel", "INFO", "--schedule", "/tmp/celerybeat-schedule"]
+
+  # Dev: nginx proxies to the Vite dev server instead of serving a build.
+  nginx:
+    build: !reset null
+    image: nginx:1.27-alpine
+    volumes:
+      - ./deployments/nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+
+  # Vite dev server in Docker (optional): docker compose --profile frontend up -d web
+  # Without it, run `pnpm dev` in frontend/ on the host and open http://localhost:5173.
+  web:
+    image: node:24-alpine
+    profiles: ["frontend"]
+    working_dir: /app/frontend
+    user: "${EMS_UID:-1000}:${EMS_GID:-1000}"
+    environment:
+      EMS_API_URL: http://api:8000
+      COREPACK_HOME: /app/frontend/.corepack
+    command: ["sh", "-c", "corepack pnpm install --frozen-lockfile && corepack pnpm --filter @ems/web dev"]
+    volumes:
+      - ./frontend:/app/frontend
+    ports:
+      - "${EMS_WEB_PORT:-5173}:5173"

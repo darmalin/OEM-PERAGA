@@ -1,0 +1,158 @@
+@import "@fontsource-variable/inter";
+@import "tailwindcss";
+
+/* Tokens from DESIGN/DESIGN.md. Every pair used for text was checked for WCAG AA. */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f8f8f8;
+  --surface-input: #f3f3f3;
+  --surface-hover: #ededed;
+  --border: #e2e2e2;
+  --ink: #171717;
+  --ink-muted: #525252;
+  --ink-label: #6b6b6b;
+  --primary: #171717;
+  --on-primary: #ffffff;
+  --link: #0b6bcb;
+  --focus: #0b6bcb;
+  --required: #c4302b;
+  --band: #171717;
+  --on-band: #ffffff;
+  --on-band-muted: #c7c7c7;
+
+  --gray-fg: #525252;
+  --gray-bg: #f3f3f3;
+  --blue-fg: #0b5fb0;
+  --blue-bg: #e6f1fd;
+  --green-fg: #1e7d47;
+  --green-bg: #e4f5ea;
+  --amber-fg: #8a5a00;
+  --amber-bg: #fff4db;
+  --red-fg: #b42318;
+  --red-bg: #fdebea;
+
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.08);
+}
+
+.dark {
+  --bg: #171717;
+  --bg-subtle: #1f1f1f;
+  --surface-input: #2a2a2a;
+  --surface-hover: #333333;
+  --border: #333333;
+  --ink: #ededed;
+  --ink-muted: #c7c7c7;
+  --ink-label: #a3a3a3;
+  --primary: #ededed;
+  --on-primary: #171717;
+  --link: #5aa9f5;
+  --focus: #5aa9f5;
+  --required: #f58a80;
+  --band: #262626;
+  --on-band: #ededed;
+  --on-band-muted: #b5b5b5;
+
+  --gray-fg: #c7c7c7;
+  --gray-bg: #2a2a2a;
+  --blue-fg: #7db8f7;
+  --blue-bg: #10263d;
+  --green-fg: #6fd49a;
+  --green-bg: #16301f;
+  --amber-fg: #f2c14e;
+  --amber-bg: #33270a;
+  --red-fg: #f58a80;
+  --red-bg: #3a1714;
+
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.4);
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-subtle: var(--bg-subtle);
+  --color-input: var(--surface-input);
+  --color-hover: var(--surface-hover);
+  --color-line: var(--border);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-label: var(--ink-label);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-link: var(--link);
+  --color-focus: var(--focus);
+  --color-required: var(--required);
+  --color-band: var(--band);
+  --color-on-band: var(--on-band);
+  --color-on-band-muted: var(--on-band-muted);
+  --shadow-overlay: var(--shadow-overlay);
+  --radius-control: 8px;
+  --radius-card: 12px;
+}
+
+@layer base {
+  html {
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-subtle text-ink font-sans;
+    font-feature-settings: "cv11", "ss01";
+  }
+  /* One focus ring everywhere (R-32): visible, never removed without a replacement. */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--blue-bg);
+    color: var(--ink);
+  }
+}
+
+/* Chevron for native selects; a plain class so tailwind-merge never drops the fill color. */
+.select-chevron {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888' stroke-width='1.5'><path d='m4 6 4 4 4-4'/></svg>");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* MOTION 2: route fade and skeleton shimmer; both off for reduced motion. */
+@keyframes ems-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ems-shimmer {
+  from {
+    background-position: -200px 0;
+  }
+  to {
+    background-position: 200px 0;
+  }
+}
+.route-fade {
+  animation: ems-fade 150ms ease-out;
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-input) 0%, var(--surface-hover) 50%, var(--surface-input) 100%);
+  background-size: 400px 100%;
+  animation: ems-shimmer 1.2s linear infinite;
+  border-radius: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-fade,
+  .skeleton {
+    animation: none;
+  }
+}

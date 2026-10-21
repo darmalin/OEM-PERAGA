@@ -93,10 +93,11 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # Web entry point: the built SPA plus the /api proxy (frontend/Dockerfile).
   nginx:
-    image: nginx:1.27-alpine
-    volumes:
-      - ./deployments/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
       - "${EMS_HTTP_PORT:-8080}:80"
     depends_on:
