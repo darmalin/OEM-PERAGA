@@ -143,6 +143,15 @@ async def list_followups(
     return await service.list_followups(session, ctx, params)
 
 
+@router.get("/followups/{followup_id}", response_model=FollowupOut)
+async def get_followup(
+    followup_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("telemarketing.followup")),
+) -> FollowupOut:
+    return await service.get_followup(session, ctx, followup_id)
+
+
 @router.patch("/followups/{followup_id}", response_model=FollowupOut)
 async def update_followup(
     followup_id: uuid.UUID,

@@ -174,6 +174,10 @@ async def test_followups_from_call_and_lifecycle() -> None:
     assert followup_id is not None
     lead = (await client.get(f"/api/v1/visitor-leads/{lead_id}")).json()
     assert lead["next_followup_at"] is not None
+    one = (await client.get(f"/api/v1/followups/{followup_id}")).json()
+    assert (one["status"], one["lead_first_name"], one["version"]) == ("OPEN", "Tho", 1)
+    _, outsider = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", (await make_edition()).id))
+    assert (await outsider.get(f"/api/v1/followups/{followup_id}")).status_code == 404
 
     later = due + timedelta(days=3)
     r = await client.patch(

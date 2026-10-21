@@ -523,10 +523,10 @@ async def create_followup(
     return (await _followup_out(session, scope, [followup]))[0]
 
 
-async def update_followup(
-    session: AsyncSession, ctx: AuthContext, followup_id: uuid.UUID, data: FollowupUpdateIn
-) -> FollowupOut:
-    """Reschedule, complete, or cancel an open follow-up; history keeps every change."""
+async def _visible_followup(
+    session: AsyncSession, ctx: AuthContext, followup_id: uuid.UUID
+) -> tuple[VisitorFollowup, Scope]:
+    """The follow-up if it is assigned to the caller or its lead is in the caller's scope."""
     followup = await repo.get_followup(session, followup_id)
     if followup is None:
         raise NotFound("Follow-up not found.")
@@ -544,6 +544,22 @@ async def update_followup(
     )
     if not visible:
         raise NotFound("Follow-up not found.")
+    return followup, scope
+
+
+async def get_followup(
+    session: AsyncSession, ctx: AuthContext, followup_id: uuid.UUID
+) -> FollowupOut:
+    """GET /followups/{id}."""
+    followup, scope = await _visible_followup(session, ctx, followup_id)
+    return (await _followup_out(session, scope, [followup]))[0]
+
+
+async def update_followup(
+    session: AsyncSession, ctx: AuthContext, followup_id: uuid.UUID, data: FollowupUpdateIn
+) -> FollowupOut:
+    """Reschedule, complete, or cancel an open follow-up; history keeps every change."""
+    followup, scope = await _visible_followup(session, ctx, followup_id)
     check_version(followup.version, data.version)
     if followup.status != FollowupStatus.OPEN:
         raise ValidationFailed("Only open follow-ups can change.", code="FOLLOWUP_CLOSED")
