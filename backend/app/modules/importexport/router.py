@@ -14,6 +14,7 @@ from app.modules.importexport.schemas import (
     DownloadOut,
     EditionParam,
     ExportJobOut,
+    ExportListParams,
     ImportErrorOut,
     ImportErrorParams,
     ImportJobOut,
@@ -145,6 +146,15 @@ async def export_report(
     ctx: AuthContext = Depends(require("report.export")),
 ) -> ExportJobOut:
     return await export_service.request_report_export(session, ctx, data)
+
+
+@export_router.get("", response_model=Page[ExportJobOut])
+async def list_exports(
+    session: Session,
+    params: Annotated[ExportListParams, Query()],
+    ctx: AuthContext = Depends(require("visitor.export", "report.export")),
+) -> Page[ExportJobOut]:
+    return await export_service.list_exports(session, ctx, params)
 
 
 @export_router.get("/{job_id}", response_model=ExportJobOut)

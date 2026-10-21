@@ -6,11 +6,13 @@ Filter: antislop (during). Direction source: product owner asked for a Frappe/ER
 
 ## Design Read
 
-> Reading this as: an internal data-entry CRM for telemarketing agents, managers and gate staff, in a Frappe Desk / ERPNext v15 visual language, dial **ENERGY 1 / RHYTHM 1 / MOTION 1**.
+> Reading this as: an internal data-entry CRM for telemarketing agents, managers, gate staff, and support, in a Frappe Desk / ERPNext v15 visual language with an enterprise finish, dial **ENERGY 2 / RHYTHM 2 / MOTION 2**.
 
-- ENERGY 1: agents sit in this tool for full shifts. The screen should never compete with the data.
-- RHYTHM 1: uniform on purpose. List, form, list, form. Predictability is what makes a desk app fast; a lead form must look like every other form.
-- MOTION 1: hover, focus, and open/close of popovers and dialogs only. No scroll reveals, no loops.
+Updated 2026-10-21: the owner asked for a "fancy and enterprise" look (ENERGY 2), insert and edit on their own pages instead of popups, and toasts for feedback.
+
+- ENERGY 2: Frappe structure stays (sidebar, list, form, indicators), with more presence: larger page heads with a meta line, one ink "edition band" per overview screen, and denser, richer list rows. Data entry stays dense; agents still sit in this tool for full shifts.
+- RHYTHM 2: lists and forms stay uniform (speed), overview screens break the grid on purpose (edition band, then a two-column layout of the numbers that matter for the role).
+- MOTION 2: 150 ms route fade, toast slide-in, skeleton shimmer while loading, hover and focus. No scroll reveals, no loops. Respects `prefers-reduced-motion`.
 
 ## Identity
 
@@ -117,7 +119,17 @@ Lucide via `lucide-react`, size 16, `stroke-width: 1.5`. Reason: Frappe's icon s
 ```
 
 - Top bar 48px: product name as text (`[LOGO]` placeholder until the owner supplies a logo, R-23), edition switcher, breadcrumbs, command bar, notifications, user menu (Theme, Logout).
-- Sidebar 220px, collapsible. Items come from the user's permissions: only routes that exist and the user can open appear (R-24). Groups: CRM (Visitor Leads, My Calls, Follow-ups), Registration, Gate (Gates, Devices, Scan History), Reports, Setup (Exhibitions, Editions, Custom Fields, Users, Roles, Audit Log).
+- Sidebar 232px, collapsible. Items come from the user's permissions: only routes that exist and the user can open appear (R-24).
+
+### Panels
+
+Three groups of pages, each with its own sidebar and URL prefix. A user sees a panel only if they hold a permission it needs; the panel switcher sits at the top of the sidebar.
+
+| Panel | Prefix | For | Pages |
+|---|---|---|---|
+| Admin | `/app` | Owner, exhibition admins, telemarketing, gate supervisors | Overview, Visitor Leads, My Calls, Follow-ups, Registrations, Imports, Exports, Gates, Devices, Scan History, Reconciliation, Reports, Exhibitions, Editions, Custom Fields, Field Options |
+| System | `/system` | Developer and support | Health, Users, Roles and Permissions, Teams, Audit Log, Email Templates |
+| Exhibitor | `/exhibitor` | Booth exhibitors | Not built: outside phase 1 (spec 1.2) and no backend. Requirements draft in `FEATURES/11-exhibitor-portal.md`. No link appears until it exists (R-24). |
 - Mobile (< 768px): sidebar becomes a drawer opened from a menu button in the top bar; command bar collapses to a search icon.
 
 ### List view (Frappe list)
@@ -166,11 +178,23 @@ Visitor Lead  TE202610294490  ● Answer  ● Registered      [Log Call] [Save  
 - Right sidebar (≥ 1280px only; below that it moves under the form): assignment, next follow-up, created/modified info.
 - Activity timeline at the bottom: one line per event with actor, action, relative time, and the before/after diff on expand.
 
-### Dialogs
+### No popups for insert and edit
 
-- "Log Call": Call Result (radio), Notes, Next Follow-up (date-time, optional). Primary: "Save Call".
-- "Assign To": Agent select (or Round Robin with agent multi-select). Primary: "Assign".
-- Close with Escape, focus trapped, focus returns to the trigger.
+Owner decision: every create, edit, and action form is its own page with its own URL (shareable, back-button safe, room for help text). Examples: `/app/visitor-leads/new`, `/app/visitor-leads/:id/log-call`, `/app/visitor-leads/assign`, `/app/registrations/:id/revoke`, `/app/devices/new`.
+
+- Action pages use the same page head: title names the action and the record ("Log Call for IBTE2027000123"), Cancel returns to where the user came from.
+- After success: navigate back to the record and show a toast.
+- The only overlays left are menus, select lists, and the command bar (Ctrl+K). They are not forms.
+
+### Toasts
+
+- Bottom-right, stacked, max 3. Neutral surface with a status icon and word, shadow (it sits above content).
+- Success: 4 s. Error: stays until dismissed, shows the API message and the request ID.
+- Never the only place an error appears: field errors also show under the fields.
+
+### Edition band (the one bold moment)
+
+Overview and edition pages open with an ink band (`#171717` light / `#EDEDED`-on-`#232323` dark, white text 17:1): edition name at 28px, code, dates, venue, and the days until the event or "Day 2 of 3" during the event, computed from the edition dates. It is the deliberate accent of ENERGY 2; nothing else gets a dark surface.
 
 ### Dashboard
 
@@ -206,10 +230,10 @@ Numbers come from the API only. Chart titles state the question ("Valid entries 
 
 ## Interaction and keyboard
 
-- `Ctrl/Cmd+K` command bar, `Ctrl/Cmd+S` save form, `Esc` close dialog, `↑/↓` move in list, `Enter` open row, `Space` toggle row selection.
+- `Ctrl/Cmd+K` command bar, `Ctrl/Cmd+S` save form, `Esc` close menu or cancel an action page, `↑/↓` move in list, `Enter` open row, `Space` toggle row selection.
 - Visible focus ring on every interactive element: 2px `--focus`, 2px offset. Never `outline: none` without this replacement.
 - Tap targets ≥ 44px on touch (`@media (pointer: coarse)`): inputs and buttons grow from 32px to 44px. Desktop stays dense at 32px.
-- Motion: 120ms ease-out for popover/dialog open, none elsewhere. Respect `prefers-reduced-motion`.
+- Motion: 150 ms route fade, toast slide-in, skeleton shimmer, 120 ms menu open. Respect `prefers-reduced-motion`.
 
 ## Scanner PWA
 
@@ -241,9 +265,9 @@ Large type (32px result word, 18px body), controls ≥ 56px, high contrast, work
 
 ## Dial and lever summary
 
-- Dial: ENERGY 1 / RHYTHM 1 / MOTION 1.
+- Dial: ENERGY 2 / RHYTHM 2 / MOTION 2.
 - Focal point per screen: list view = the table; form view = the Person section; scanner = the result word.
-- Accent: primary button (ink black), one per screen.
+- Accent: the ink edition band on overview screens, and the ink primary button (one per screen).
 - Motif: indicator pill + collapsible section header.
 - Whitespace: 16/24 field grid inside sections, 32 between sections, dividers instead of cards.
 
@@ -260,5 +284,8 @@ Large type (32px result word, 18px body), controls ≥ 56px, high contrast, work
 | Flat surfaces, shadows only on overlays | Only overlays sit above content. |
 | 3-column form grid | Screenshot layout; collapses to 2 and 1 for smaller screens. |
 | Light + dark + system | Frappe parity; long shifts. |
-| Uniform rhythm | Desk app; predictability speeds up data entry. |
+| Uniform lists and forms, varied overviews | Speed where people type, presence where they look (owner asked for ENERGY 2). |
+| Pages instead of popups for insert/edit | Owner decision; URLs can be shared and the back button works. |
+| Toasts for feedback | Owner decision; errors also stay next to the fields. |
+| Ink edition band | The single bold accent; tells the user which event they are working in. |
 | Full-screen colored scanner results | Gate staff read the result from arm's length in a crowd. |

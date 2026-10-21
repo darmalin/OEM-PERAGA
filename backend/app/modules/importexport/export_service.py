@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 import structlog
 from pydantic import BaseModel, ValidationError
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import audit, outbox
@@ -20,11 +20,17 @@ from app.core.config import get_settings
 from app.core.context import Source, actor_id_var, source_var
 from app.core.errors import NotFound
 from app.core.excel import WorkbookWriter
+from app.core.pagination import Page
 from app.core.storage import get_storage, new_object_key
 from app.modules.identity import service as identity_service
 from app.modules.importexport.models import ExportJob
 from app.modules.importexport.rules import EXPORT_COLUMNS, ExportKind, ExportStatus, display_value
-from app.modules.importexport.schemas import ExportJobOut, ReportExportIn, VisitorExportIn
+from app.modules.importexport.schemas import (
+    ExportJobOut,
+    ExportListParams,
+    ReportExportIn,
+    VisitorExportIn,
+)
 from app.modules.reporting import service as reporting_service
 from app.modules.visitors import service as visitors_service
 from app.modules.visitors.schemas import LeadFilters
@@ -90,6 +96,31 @@ async def request_report_export(
     params = data.model_dump(mode="json", exclude_unset=True, exclude={"edition_id"})
     params["report"] = data.report.value
     return await _queue(session, ctx, ExportKind.REPORT, data.edition_id, params)
+
+
+async def list_exports(
+    session: AsyncSession, ctx: AuthContext, params: ExportListParams
+) -> Page[ExportJobOut]:
+    """GET /exports: own jobs, or every job of the edition with edition-wide export rights."""
+    kinds = [k for k, perm in PERMISSION.items() if ctx.has(perm, params.edition_id)]
+    scopes = [ctx.scope_for(params.edition_id, PERMISSION[k]) for k in kinds]
+    if not scopes:
+        raise NotFound("Edition not found.", code="EDITION_NOT_FOUND")
+    stmt = select(ExportJob).where(
+        ExportJob.edition_id == params.edition_id, ExportJob.kind.in_(kinds)
+    )
+    if not any(s.full_access for s in scopes):
+        stmt = stmt.where(ExportJob.requested_by == ctx.user.id)
+    total = await session.scalar(select(func.count()).select_from(stmt.subquery()))
+    rows = await session.scalars(
+        stmt.order_by(ExportJob.created_at.desc()).offset(params.offset).limit(params.page_size)
+    )
+    return Page(
+        items=[ExportJobOut.model_validate(j) for j in rows],
+        total=int(total or 0),
+        page=params.page,
+        page_size=params.page_size,
+    )
 
 
 async def get_export(session: AsyncSession, ctx: AuthContext, job_id: uuid.UUID) -> ExportJobOut:

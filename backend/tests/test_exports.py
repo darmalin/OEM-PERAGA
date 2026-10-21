@@ -191,3 +191,16 @@ async def test_cleanup_expires_files_and_fails_stuck_jobs(storage: MemoryStorage
     assert statuses[done["id"]]["status"] == "EXPIRED"
     assert statuses[done["id"]]["download_url"] is None
     assert statuses[stuck["id"]]["status"] == "FAILED"
+
+
+async def test_list_exports_own_or_edition_wide(storage: MemoryStorage) -> None:
+    w = await world()
+    mine = await request(w.manager, w)
+    theirs = await request(w.admin, w)
+    params = {"edition_id": str(w.edition.id)}
+    manager_view = (await w.manager.get(EXPORTS, params=params)).json()
+    assert [j["id"] for j in manager_view["items"]] == [mine["id"]]
+    admin_view = (await w.admin.get(EXPORTS, params=params)).json()
+    assert {j["id"] for j in admin_view["items"]} == {mine["id"], theirs["id"]}
+    assert all(j["download_url"] is None for j in admin_view["items"])
+    assert (await w.team_agent_client.get(EXPORTS, params=params)).status_code == 403

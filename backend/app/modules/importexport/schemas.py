@@ -95,6 +95,10 @@ class ReportExportIn(ReportParams):
     pass
 
 
+class ExportListParams(PageParams):
+    edition_id: uuid.UUID
+
+
 class ExportJobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
