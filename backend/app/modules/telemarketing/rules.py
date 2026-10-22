@@ -51,17 +51,63 @@ class FollowupAction(StrEnum):
     CANCEL = "CANCEL"
 
 
-def telemarketing_status(results: list[str]) -> str:
-    """spec 6.2: derive the status from the attempt history (oldest first).
+# Kanban moves (owner decision 2026-10-22): the status after one more call, by whether it was
+# answered. RECONTACTED and RETRY_NO_ANSWER are final: no further call is accepted.
+TRANSITIONS: dict[str, dict[bool, str]] = {
+    "NEW": {True: "ANSWER", False: "NO_ANSWER"},
+    "ANSWER": {True: "RECONTACTED"},
+    "NO_ANSWER": {True: "ANSWER", False: "RETRY_NO_ANSWER"},
+}
 
-    Only ANSWER counts as answered; any other configured result counts as not answered.
+
+def is_answered(call_result: str) -> bool:
+    """Only ANSWER counts as answered; any other configured result counts as not answered."""
+    return call_result == CallResult.ANSWER
+
+
+def next_status(current: str, answered: bool) -> str | None:
+    """Status after one more call, or None when the move is not allowed."""
+    return TRANSITIONS.get(current, {}).get(answered)
+
+
+def telemarketing_status(results: list[str]) -> str:
+    """Derive the status from the attempt history (oldest first) by replaying the transitions.
+
+    History written before the 2026-10-22 rules may contain moves that are no longer allowed;
+    such a step leaves the status unchanged, so the result is defined for every history.
     """
-    if not results:
-        return "NEW"
-    answered = results[-1] == CallResult.ANSWER
-    if len(results) == 1:
-        return "ANSWER" if answered else "NO_ANSWER"
-    return "RECONTACTED" if answered else "RETRY_NO_ANSWER"
+    status = "NEW"
+    for result in results:
+        status = next_status(status, is_answered(result)) or status
+    return status
+
+
+class LeadQuality(StrEnum):
+    """Verification "Lead Quality": whether the phone or email reached a real visitor."""
+
+    VALID = "VALID"
+    INVALID = "INVALID"
+    UNDECIDED = "UNDECIDED"
+
+
+def quality_flags(quality: LeadQuality) -> dict[str, bool]:
+    """Lead Quality as the two stored flags (Valid Lead / Invalid, never both)."""
+    return {
+        "is_valid_lead": quality == LeadQuality.VALID,
+        "is_invalid": quality == LeadQuality.INVALID,
+    }
+
+
+def call_verification_errors(
+    answered: bool, quality: LeadQuality, attend: str | None
+) -> dict[str, str]:
+    """Verification required with every call: an answered call needs Valid and Attend."""
+    errors: dict[str, str] = {}
+    if answered and quality != LeadQuality.VALID:
+        errors["lead_quality"] = "An answered call needs Lead Quality Valid."
+    if answered and attend is None:
+        errors["attend"] = "Attend is required for an answered call."
+    return errors
 
 
 def allowed_call_results(extra: list[str]) -> list[str]:

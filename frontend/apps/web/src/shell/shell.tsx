@@ -1,12 +1,11 @@
 import { api } from "@ems/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Check, ChevronsUpDown, LogOut, Menu as MenuIcon, Monitor, Moon, Search, Sun, X } from "lucide-react";
+import { LogOut, Menu as MenuIcon, Monitor, Moon, Search, Sun, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { useMe } from "@/lib/auth";
 import { cn } from "@/lib/cn";
-import { useEdition } from "@/lib/edition";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 import { Button } from "@/ui/button";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/ui/menu";
@@ -76,39 +75,6 @@ function Sidebar({ panel, panels, onNavigate }: { panel: PanelDef; panels: Panel
         </div>
       ))}
     </nav>
-  );
-}
-
-function EditionSwitcher() {
-  const { edition, editions, setEditionId } = useEdition();
-  const queryClient = useQueryClient();
-  if (!edition) return <span className="text-[13px] text-label">No edition</span>;
-  return (
-    <Menu>
-      <MenuTrigger asChild>
-        <Button variant="ghost" className="max-w-[240px] gap-2 px-2" aria-label={`Edition: ${edition.name}. Change edition`}>
-          <span className="truncate font-semibold tabular">{edition.code}</span>
-          <span className="truncate text-label max-lg:hidden">{edition.name}</span>
-          <ChevronsUpDown className="text-label" aria-hidden />
-        </Button>
-      </MenuTrigger>
-      <MenuContent align="start">
-        <MenuLabel>Edition</MenuLabel>
-        {editions.map((e) => (
-          <MenuItem
-            key={e.id}
-            onSelect={() => {
-              setEditionId(e.id);
-              void queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] !== "auth" });
-            }}
-          >
-            <span className="w-24 font-medium tabular">{e.code}</span>
-            <span className="flex-1 truncate text-muted">{e.name}</span>
-            {e.id === edition.id ? <Check aria-label="Current edition" /> : null}
-          </MenuItem>
-        ))}
-      </MenuContent>
-    </Menu>
   );
 }
 
@@ -190,10 +156,6 @@ export function Shell({ panelId, children }: { panelId: PanelDef["id"]; children
         <Link to="/" className="rounded-[6px] px-2 text-[15px] font-bold tracking-[-0.02em]">
           EMS
         </Link>
-        <span className="h-5 w-px bg-line max-sm:hidden" aria-hidden />
-        <div className="max-sm:hidden">
-          <EditionSwitcher />
-        </div>
         <div className="flex-1" />
         <Button
           variant="secondary"
@@ -221,8 +183,7 @@ export function Shell({ panelId, children }: { panelId: PanelDef["id"]; children
         <div className="fixed inset-0 z-40 lg:hidden">
           <button className="absolute inset-0 bg-black/40" aria-label="Close navigation" onClick={() => setDrawer(false)} />
           <aside className="absolute inset-y-0 left-0 flex w-[280px] flex-col bg-subtle shadow-overlay">
-            <div className="flex h-12 items-center justify-between border-b border-line px-3">
-              <EditionSwitcher />
+            <div className="flex h-12 items-center justify-end border-b border-line px-3">
               <Button variant="ghost" size="icon" onClick={() => setDrawer(false)} aria-label="Close navigation">
                 <X aria-hidden />
               </Button>

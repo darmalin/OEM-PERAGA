@@ -113,9 +113,14 @@ async def test_verification_report() -> None:
 
 async def test_telemarketing_and_agents_reports() -> None:
     w = await world()
-    for lead_id, result in ((w.leads[0], "ANSWER"), (w.leads[1], "NO_ANSWER")):
+    calls = (
+        (w.leads[0], "ANSWER", {"lead_quality": "VALID", "attend": "ATTEND"}),
+        (w.leads[1], "NO_ANSWER", {"lead_quality": "UNDECIDED"}),
+    )
+    for lead_id, result, verification in calls:
         r = await w.team_agent_client.post(
-            f"/api/v1/visitor-leads/{lead_id}/calls", json={"call_result": result}
+            f"/api/v1/visitor-leads/{lead_id}/calls",
+            json={"call_result": result, "verification": verification},
         )
         assert r.status_code == 201, r.text
     now = datetime.now(UTC)

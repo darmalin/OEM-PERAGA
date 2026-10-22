@@ -43,7 +43,7 @@ function Scans() {
   const filtered = Boolean(s.gate_id || s.local_date || s.result || s.mode);
   return (
     <Page>
-      <PageHead
+      <PageHead edition
         title="Scan History"
         meta={`Every scan, valid or not. Times in ${edition.timezone}. Refreshes every 15 seconds.`}
         actions={can(me, "gate.override") ? <Button asChild variant="primary"><Link to="/app/overrides/new">Manual Entry</Link></Button> : null}

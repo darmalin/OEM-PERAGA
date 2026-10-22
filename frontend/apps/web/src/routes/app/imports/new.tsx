@@ -72,7 +72,7 @@ function NewImport() {
 
   return (
     <Page className="max-w-[1000px]">
-      <PageHead
+      <PageHead edition
         title="Import Excel"
         meta={`Into ${edition.code}. Rows become visitor leads; registering them is a separate step.`}
         back={{ to: "/app/imports", label: "Imports" }}

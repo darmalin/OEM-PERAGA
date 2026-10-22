@@ -54,7 +54,7 @@ function Followups() {
 
   return (
     <Page>
-      <PageHead title="Follow-ups" meta={`Times in ${tz}.`} />
+      <PageHead edition title="Follow-ups" meta={`Times in ${tz}.`} />
       <Panel>
         <div className="flex gap-6 overflow-x-auto border-b border-line px-5" role="tablist" aria-label="When">
           {BUCKETS.map((b) => (

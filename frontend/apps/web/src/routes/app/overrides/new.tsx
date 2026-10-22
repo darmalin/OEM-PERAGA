@@ -50,7 +50,7 @@ function ManualEntry() {
 
   return (
     <Page className="max-w-[960px]">
-      <PageHead title="Manual Entry" meta="Admit a registered visitor whose QR cannot be read. Counts as an entry and is audited." back={{ to: "/app/scans", label: "Scan History" }} />
+      <PageHead edition title="Manual Entry" meta="Admit a registered visitor whose QR cannot be read. Counts as an entry and is audited." back={{ to: "/app/scans", label: "Scan History" }} />
       <Panel>
         <form onSubmit={onSubmit} noValidate>
           <Section title="Visitor">

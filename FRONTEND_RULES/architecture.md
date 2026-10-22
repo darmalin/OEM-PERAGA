@@ -9,7 +9,7 @@ frontend/
 │   ├── e2e/                    # smoke.mjs (every page x light/dark/mobile), flows.mjs (click-through)
 │   └── src/
 │       ├── main.tsx            # router, query client, error and not-found boundaries
-│       ├── routes/             # file-based: /login, /app/* (Admin panel), /system/* (System panel)
+│       ├── routes/             # file-based: /login, /app/* (Admin panel), /system/* (System panel); leads list + board
 │       ├── features/           # shared per-domain pieces: leads/, gate/, reports.ts, edition-form.tsx, ...
 │       ├── shell/              # top bar, panel switcher, sidebar (nav.ts), command bar
 │       ├── ui/                 # design-system components (tokens from DESIGN.md)
@@ -26,7 +26,7 @@ frontend/
 Decisions that differ from the first plan, with the reason:
 
 - `packages/ui` holds only the tokens and `cn()`. Components stay in `apps/web/src/ui`: the scanner shares no component with the desk (its controls are 56px, its screens full-bleed), so moving them would only add indirection.
-- The active edition is a per-user choice in the header (saved in localStorage), not a `?edition=` search param. Every event page would otherwise carry the param, and switching edition should keep you on the same page.
+- There is no edition switcher in the top bar (owner decision 2026-10-22). Pages that work in one edition show an "Exhibition Type" picker in their page head (`<PageHead edition>`); the choice is saved in localStorage and carried to the next page. Visitor Leads (list and board) instead filter by Exhibition Type in the URL (`?edition=`), with All as the default, and the new-lead form picks the edition in its Exhibition Type field.
 - Insert, edit, and actions are pages with their own URL, never dialogs (owner decision, DESIGN.md). The only overlays are menus, native selects, and the command bar.
 - Feedback is a toast (sonner) plus field errors; errors stay until dismissed and show the request ID.
 - Helper files inside `routes/` start with `-` (e.g. `-form.tsx`) so the router does not treat them as routes.

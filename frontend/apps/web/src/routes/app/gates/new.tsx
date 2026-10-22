@@ -32,7 +32,7 @@ function NewGate() {
   });
   return (
     <Page className="max-w-[860px]">
-      <PageHead title="New Gate" meta={`In ${edition.code}.`} back={{ to: "/app/gates", label: "Gates" }} />
+      <PageHead edition title="New Gate" meta={`In ${edition.code}.`} back={{ to: "/app/gates", label: "Gates" }} />
       <Panel>
         <form onSubmit={onSubmit} noValidate>
           <Section title="Gate">

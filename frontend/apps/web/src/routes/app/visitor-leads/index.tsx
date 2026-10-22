@@ -6,6 +6,7 @@ import { useState } from "react";
 import { z } from "zod";
 
 import type { LeadItem } from "@/features/leads/queries";
+import { LeadViewSwitch } from "@/features/leads/view-switch";
 import { can, useMe } from "@/lib/auth";
 import { countryName } from "@/lib/countries";
 import { useEdition } from "@/lib/edition";
@@ -21,6 +22,8 @@ import { type Column, ListTable } from "@/ui/table";
 
 const search = z.object({
   q: z.string().optional(),
+  // Exhibition Type (edition) filter; absent means every edition the user can read.
+  edition: z.string().optional(),
   telemarketing_status: z.string().optional(),
   registration_status: z.string().optional(),
   source: z.string().optional(),
@@ -36,7 +39,7 @@ export const Route = createFileRoute("/app/visitor-leads/")({
   component: LeadList,
 });
 
-const COLUMNS: Column<LeadItem>[] = [
+const columns = (editionCode: (id: string) => string | undefined): Column<LeadItem>[] => [
   {
     key: "name",
     header: "Name",
@@ -48,6 +51,7 @@ const COLUMNS: Column<LeadItem>[] = [
     ),
   },
   { key: "code", header: "Registration ID", cell: (l) => <span className="tabular text-muted">{l.registration_code}</span> },
+  { key: "edition", header: "Exhibition Type", hideBelow: "lg", cell: (l) => <span className="text-muted">{editionCode(l.edition_id)}</span> },
   { key: "contact", header: "Contact", hideBelow: "xl", cell: (l) => <span className="text-muted">{l.phone ?? l.email ?? ""}</span> },
   { key: "country", header: "Country", hideBelow: "2xl", cell: (l) => countryName(l.country) },
   { key: "status", header: "Status", cell: (l) => <Indicator value={l.telemarketing_status} group="telemarketing_status" /> },
@@ -58,23 +62,24 @@ const COLUMNS: Column<LeadItem>[] = [
 
 function LeadList() {
   const me = useMe();
-  const { edition } = useEdition();
+  const { editions } = useEdition();
   const s = Route.useSearch();
+  const edition = editions.find((e) => e.id === s.edition);
   const navigate = useNavigate({ from: Route.fullPath });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const set = (patch: Partial<Search>) =>
     void navigate({ search: (prev) => ({ ...prev, page: 1, ...patch }), replace: true });
 
   const query = useQuery({
-    queryKey: ["leads", edition?.id, s],
-    enabled: Boolean(edition),
+    queryKey: ["leads", s],
+    enabled: editions.length > 0,
     placeholderData: keepPreviousData,
     queryFn: () =>
       call(
         api.GET("/api/v1/visitor-leads", {
           params: {
             query: {
-              edition_id: edition!.id,
+              edition_id: s.edition,
               q: s.q,
               telemarketing_status: s.telemarketing_status ? [s.telemarketing_status as "NEW"] : undefined,
               registration_status: s.registration_status as "REGISTERED" | undefined,
@@ -91,8 +96,9 @@ function LeadList() {
       ),
   });
 
-  if (!edition) return <Page><NoEdition /></Page>;
-  const filtered = Boolean(s.q || s.telemarketing_status || s.registration_status || s.source || s.validity || s.unassigned);
+  if (editions.length === 0) return <Page><NoEdition /></Page>;
+  const where = edition ? edition.code : "all editions";
+  const filtered = Boolean(s.edition || s.q || s.telemarketing_status || s.registration_status || s.source || s.validity || s.unassigned);
   const toggle = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -106,9 +112,10 @@ function LeadList() {
     <Page>
       <PageHead
         title="Visitor Leads"
-        meta={query.data ? `${query.data.total.toLocaleString("en")} in ${edition.code}${filtered ? " matching the filters" : ""}` : edition.code}
+        meta={query.data ? `${query.data.total.toLocaleString("en")} in ${where}${filtered ? " matching the filters" : ""}` : where}
         actions={
           <>
+            <LeadViewSwitch current="list" />
             {can(me, "visitor.import") ? (
               <Button asChild>
                 <Link to="/app/imports/new"><FileUp aria-hidden />Import Excel</Link>
@@ -128,24 +135,27 @@ function LeadList() {
           onClear={() => void navigate({ search: { page: 1, page_size: s.page_size }, replace: true })}
         >
           <SearchFilter value={s.q} onChange={(q) => set({ q })} placeholder="Name, email, phone, company, Registration ID" label="Search leads" />
+          <SelectFilter label="Exhibition Type" value={s.edition} onChange={(v) => { setSelected(new Set()); set({ edition: v }); }} options={editions.map((e) => ({ value: e.id, label: e.code }))} />
           <SelectFilter label="Status" value={s.telemarketing_status} onChange={(v) => set({ telemarketing_status: v })} options={options("telemarketing_status")} />
           <SelectFilter label="Registration" value={s.registration_status} onChange={(v) => set({ registration_status: v })} options={options("registration_status")} />
           <SelectFilter label="Source" value={s.source} onChange={(v) => set({ source: v })} options={options("source")} />
-          <SelectFilter label="Verification" value={s.validity} onChange={(v) => set({ validity: v as Search["validity"] })} options={[{ value: "VALID", label: "Valid Lead" }, { value: "INVALID", label: "Invalid" }]} />
+          <SelectFilter label="Lead Quality" value={s.validity} onChange={(v) => set({ validity: v as Search["validity"] })} options={[{ value: "VALID", label: "Valid" }, { value: "INVALID", label: "Invalid" }]} />
           <SelectFilter label="Lead Owner" allLabel="Anyone" value={s.unassigned ? "none" : undefined} onChange={(v) => set({ unassigned: v === "none" ? true : undefined })} options={[{ value: "none", label: "Unassigned" }]} />
         </FilterBar>
         {selected.size > 0 ? (
           <div className="flex flex-wrap items-center gap-3 border-b border-line bg-subtle px-4 py-2 text-[13px]" role="region" aria-label="Bulk actions">
             <span className="font-medium tabular">{selected.size} selected</span>
-            {can(me, "visitor.assign") ? (
+            {can(me, "visitor.assign") && edition ? (
               <Button
                 size="sm"
                 variant="primary"
-                onClick={() => void navigate({ to: "/app/visitor-leads/assign", state: { leadIds: [...selected] } })}
+                onClick={() => void navigate({ to: "/app/visitor-leads/assign", state: { leadIds: [...selected], editionId: edition.id } })}
               >
                 <UserPlus aria-hidden />
                 Assign To
               </Button>
+            ) : can(me, "visitor.assign") ? (
+              <span className="text-label">Choose one Exhibition Type to assign leads.</span>
             ) : null}
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear Selection</Button>
           </div>
@@ -159,7 +169,7 @@ function LeadList() {
               <EmptyState title="No leads match these filters." action={<Button onClick={() => void navigate({ search: { page: 1, page_size: s.page_size } })}>Clear Filters</Button>} />
             ) : (
               <EmptyState
-                title={`No visitor leads in ${edition.code} yet. Import an Excel file or add one by hand.`}
+                title="No visitor leads yet. Import an Excel file or add one by hand."
                 action={can(me, "visitor.import") ? <Button asChild variant="primary"><Link to="/app/imports/new">Import Excel</Link></Button> : undefined}
               />
             )
@@ -169,7 +179,7 @@ function LeadList() {
             <ListTable
               caption="Visitor leads"
               rows={items}
-              columns={COLUMNS}
+              columns={columns((id) => editions.find((e) => e.id === id)?.code)}
               rowKey={(l) => l.id}
               rowLink={(l) => ({ to: "/app/visitor-leads/$leadId", params: { leadId: l.id } })}
               selected={can(me, "visitor.assign") ? selected : undefined}

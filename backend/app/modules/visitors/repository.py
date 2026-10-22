@@ -101,16 +101,23 @@ def _and(conds: list[ColumnElement[bool]]) -> ColumnElement[bool]:
 
 
 async def list_leads(
-    session: AsyncSession, scope: Scope, f: LeadFilters, sort: str, offset: int, limit: int
+    session: AsyncSession,
+    scopes: Sequence[Scope],
+    f: LeadFilters,
+    sort: str,
+    offset: int,
+    limit: int,
 ) -> tuple[Sequence[Row[VisitorLead, str | None]], int]:
-    base = apply_scope(select(VisitorLead.id), scope).where(filter_clause(f))
+    """One edition, or several (the list without an edition): each keeps its own scope."""
+    visible = or_(*(scope_clause(s) for s in scopes)) if scopes else false()
+    base = select(VisitorLead.id).where(visible, filter_clause(f))
     total = await session.scalar(select(func.count()).select_from(base.subquery())) or 0
     column = getattr(VisitorLead, sort.lstrip("-"))
     order = column.desc().nulls_last() if sort.startswith("-") else column.asc().nulls_last()
     stmt = (
-        apply_scope(select(VisitorLead, User.full_name), scope)
+        select(VisitorLead, User.full_name)
         .outerjoin(User, User.id == VisitorLead.lead_owner_id)
-        .where(filter_clause(f))
+        .where(visible, filter_clause(f))
         .order_by(order, VisitorLead.id)
         .offset(offset)
         .limit(limit)
@@ -307,3 +314,20 @@ async def export_batch(
         stmt = stmt.where(tuple_(VisitorLead.created_at, VisitorLead.id) > tuple_(*after))
     stmt = stmt.order_by(VisitorLead.created_at, VisitorLead.id).limit(limit)
     return (await session.execute(stmt)).all()
+
+
+async def unregistered_leads(
+    session: AsyncSession, edition_ids: list[uuid.UUID], limit: int
+) -> list[VisitorLead]:
+    """Leads never registered (not cancelled ones), locked, for the registration backfill."""
+    stmt = (
+        select(VisitorLead)
+        .where(
+            VisitorLead.edition_id.in_(edition_ids),
+            VisitorLead.registration_status == "NOT_REGISTERED",
+        )
+        .order_by(VisitorLead.created_at, VisitorLead.id)
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )
+    return list((await session.scalars(stmt)).all())

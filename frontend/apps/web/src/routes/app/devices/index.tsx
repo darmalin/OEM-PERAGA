@@ -46,7 +46,7 @@ function Devices() {
   ];
   return (
     <Page>
-      <PageHead title="Scanner Devices" meta="Phones or tablets that scan QR codes at a gate. Revoke a device that is lost." actions={<Button asChild variant="primary"><Link to="/app/devices/new">Register Device</Link></Button>} />
+      <PageHead edition title="Scanner Devices" meta="Phones or tablets that scan QR codes at a gate. Revoke a device that is lost." actions={<Button asChild variant="primary"><Link to="/app/devices/new">Register Device</Link></Button>} />
       <Panel>
         <FilterBar>
           <SelectFilter label="Gate" value={s.gate_id} onChange={(v) => void navigate({ search: (p) => ({ ...p, gate_id: v, page: 1 }) })} options={(gates.data ?? []).map((g) => ({ value: g.id, label: `${g.code} ${g.name}` }))} />

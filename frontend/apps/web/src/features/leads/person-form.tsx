@@ -24,7 +24,6 @@ export interface PersonValues {
   website: string;
   business_type: string;
   branch: string;
-  exhibition_type: string;
   product_categories: string[];
   comment: string;
   custom_fields: Record<string, unknown>;
@@ -32,13 +31,13 @@ export interface PersonValues {
 
 export const PERSON_FIELDS = [
   "lead_date", "first_name", "email", "phone", "gender", "company_name", "job_title", "country", "city",
-  "website", "business_type", "branch", "exhibition_type", "product_categories", "comment", "custom_fields",
+  "website", "business_type", "branch", "product_categories", "comment", "custom_fields",
 ] as const;
 
 export function emptyPerson(): PersonValues {
   return {
     lead_date: "", first_name: "", email: "", phone: "", gender: "", company_name: "", job_title: "",
-    country: "", city: "", website: "", business_type: "", branch: "", exhibition_type: "",
+    country: "", city: "", website: "", business_type: "", branch: "",
     product_categories: [], comment: "", custom_fields: {},
   };
 }
@@ -63,6 +62,8 @@ interface Props {
   readOnly?: boolean;
   /** Extra read-only cells shown in the grid, e.g. Registration ID and Status. */
   systemCells?: ReactNode;
+  /** The Exhibition Type cell: the lead's edition (owner decision 2026-10-22). */
+  exhibitionType: ReactNode;
 }
 
 function OptionSelect({ field, opts, ...rest }: { field: string; opts: { value: string; label: string }[] } & React.SelectHTMLAttributes<HTMLSelectElement>) {
@@ -77,7 +78,7 @@ function OptionSelect({ field, opts, ...rest }: { field: string; opts: { value: 
 }
 
 /** The Person section in the screenshot's order (DESIGN.md "Form view"). */
-export function PersonFields({ editionId, register, control, errors, readOnly, systemCells }: Props) {
+export function PersonFields({ editionId, register, control, errors, readOnly, systemCells, exhibitionType }: Props) {
   const options = useQuery(fieldOptionsQuery(editionId));
   const custom = useQuery(customFieldsQuery(editionId));
   const opts = (field: string) =>
@@ -125,9 +126,7 @@ export function PersonFields({ editionId, register, control, errors, readOnly, s
           <Field label="Branch">
             {(p) => <OptionSelect {...p} field="branch" opts={opts("BRANCH")} disabled={readOnly} {...register("branch")} />}
           </Field>
-          <Field label="Exhibition Type">
-            {(p) => <OptionSelect {...p} field="exhibition_type" opts={opts("EXHIBITION_TYPE")} disabled={readOnly} {...register("exhibition_type")} />}
-          </Field>
+          {exhibitionType}
           <Field label="Product Categories Interested In" className="lg:row-span-2">
             {(p) => (
               <Controller

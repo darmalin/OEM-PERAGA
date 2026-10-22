@@ -34,7 +34,29 @@ def create_superuser() -> None:
     asyncio.run(run())
 
 
-COMMANDS = {"ensure-buckets": ensure_buckets, "create-superuser": create_superuser}
+def register_backlog() -> None:
+    """Register every lead created before auto-registration (2026-10-22), in batches.
+    No QR email is sent; use Resend QR Email per registration."""
+    from app.core.db import task_session
+    from app.modules.registrations import service
+
+    async def run() -> int:
+        total = 0
+        while True:
+            async with task_session() as session, session.begin():
+                done = await service.register_backlog(session, 500)
+            total += done
+            if done == 0:
+                return total
+
+    print(f"registered {asyncio.run(run())} leads")
+
+
+COMMANDS = {
+    "ensure-buckets": ensure_buckets,
+    "create-superuser": create_superuser,
+    "register-backlog": register_backlog,
+}
 
 
 def main() -> None:

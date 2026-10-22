@@ -69,7 +69,7 @@ const LABELS: Record<string, Record<string, string>> = {
   },
   edition_status: { DRAFT: "Draft", ACTIVE: "Active", CLOSED: "Closed", ARCHIVED: "Archived" },
   followup_status: { OPEN: "Open", DONE: "Done", CANCELLED: "Cancelled" },
-  validity: { VALID: "Valid Lead", INVALID: "Invalid", UNDECIDED: "Undecided" },
+  validity: { VALID: "Valid", INVALID: "Invalid", UNDECIDED: "Undecided" },
   scope_type: { EDITION: "Edition", TEAM: "Team", OWNED: "Own Leads", GATE: "Gate" },
   field_type: {
     text: "Text",
@@ -83,7 +83,8 @@ const LABELS: Record<string, Record<string, string>> = {
   option_field: {
     BUSINESS_TYPE: "Business Type",
     BRANCH: "Branch",
-    EXHIBITION_TYPE: "Exhibition Type",
+    // Retired 2026-10-22: Exhibition Type is now the lead's edition. Kept to label old rows.
+    EXHIBITION_TYPE: "Exhibition Type (old)",
     PRODUCT_CATEGORY: "Product Category",
   },
 };

@@ -9,7 +9,8 @@ import { z } from "zod";
 import { PERSON_FIELDS, personPayload, PersonFields, type PersonValues } from "@/features/leads/person-form";
 import { type Lead, leadQuery } from "@/features/leads/queries";
 import { can, useMe } from "@/lib/auth";
-import { useEdition } from "@/lib/edition";
+import { useEditionById } from "@/lib/edition";
+import { isFinal } from "@/lib/transitions";
 import { handleFormError } from "@/lib/forms";
 import { formatDateTime, fromLocalInput, relative, toLocalInput } from "@/lib/format";
 import { label, options } from "@/lib/labels";
@@ -37,8 +38,8 @@ function LeadDetail() {
   const { tab } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const me = useMe();
-  const { edition } = useEdition();
   const lead = useQuery(leadQuery(leadId));
+  const edition = useEditionById(lead.data?.edition_id);
   const tz = edition?.timezone;
 
   if (lead.isPending) {
@@ -89,7 +90,7 @@ function LeadDetail() {
                 <Link to="/app/visitor-leads/$leadId/register" params={{ leadId }}><Ticket aria-hidden />Register Visitor</Link>
               </Button>
             ) : null}
-            {can(me, "telemarketing.call") ? (
+            {can(me, "telemarketing.call") && !isFinal(l.telemarketing_status) ? (
               <Button asChild variant="primary">
                 <Link to="/app/visitor-leads/$leadId/log-call" params={{ leadId }}><PhoneCall aria-hidden />Log Call</Link>
               </Button>
@@ -123,7 +124,7 @@ function LeadDetail() {
               actions={
                 can(me, "visitor.assign") ? (
                   <Button asChild size="sm" variant="ghost">
-                    <Link to="/app/visitor-leads/assign" state={{ leadIds: [l.id] }}><UserPlus aria-hidden />{l.lead_owner_id ? "Reassign" : "Assign"}</Link>
+                    <Link to="/app/visitor-leads/assign" state={{ leadIds: [l.id], editionId: l.edition_id }}><UserPlus aria-hidden />{l.lead_owner_id ? "Reassign" : "Assign"}</Link>
                   </Button>
                 ) : null
               }
@@ -177,7 +178,6 @@ function toValues(l: Lead, tz?: string): PersonValues {
     website: l.website ?? "",
     business_type: l.business_type ?? "",
     branch: l.branch ?? "",
-    exhibition_type: l.exhibition_type ?? "",
     product_categories: l.product_categories,
     comment: l.comment ?? "",
     custom_fields: l.custom_fields,
@@ -186,6 +186,7 @@ function toValues(l: Lead, tz?: string): PersonValues {
 
 function PersonTab({ lead, timezone }: { lead: Lead; timezone?: string }) {
   const me = useMe();
+  const edition = useEditionById(lead.edition_id);
   const queryClient = useQueryClient();
   const editable = can(me, "visitor.update");
   const form = useForm<PersonValues>({ defaultValues: toValues(lead, timezone) });
@@ -246,6 +247,11 @@ function PersonTab({ lead, timezone }: { lead: Lead; timezone?: string }) {
         control={form.control}
         errors={form.formState.errors}
         readOnly={!editable}
+        exhibitionType={
+          <Field label="Exhibition Type" help="The edition of this lead; set when it was created.">
+            {(p) => <Input {...p} value={edition ? `${edition.code} · ${edition.name}` : lead.edition_id} readOnly className="text-muted" />}
+          </Field>
+        }
         systemCells={
           <>
             <Field label="Registration ID" help="Issued by the system.">
@@ -320,7 +326,7 @@ function VerificationTab({ lead, timezone }: { lead: Lead; timezone?: string }) 
       <Section title="Verification">
         <FieldGrid>
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1.5 text-[13px] text-label">Lead quality</legend>
+            <legend className="mb-1.5 text-[13px] text-label">Lead Quality</legend>
             {(["VALID", "INVALID", "UNDECIDED"] as const).map((v) => (
               <label key={v} className="flex items-center gap-2 text-[14px]">
                 <input type="radio" value={v} disabled={!editable} {...form.register("validity")} className="size-4 accent-[var(--primary)]" />
@@ -400,7 +406,7 @@ function CallsTab({ lead, timezone }: { lead: Lead; timezone?: string }) {
         empty={
           <EmptyState
             title="No calls logged yet."
-            action={can(me, "telemarketing.call") ? <Button asChild variant="primary"><Link to="/app/visitor-leads/$leadId/log-call" params={{ leadId: lead.id }}>Log Call</Link></Button> : undefined}
+            action={can(me, "telemarketing.call") && !isFinal(lead.telemarketing_status) ? <Button asChild variant="primary"><Link to="/app/visitor-leads/$leadId/log-call" params={{ leadId: lead.id }}>Log Call</Link></Button> : undefined}
           />
         }
       >

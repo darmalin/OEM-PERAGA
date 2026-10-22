@@ -47,11 +47,17 @@ await step("Sign in -> lands on a panel", async () => {
   await page.waitForURL((u) => u.pathname.startsWith("/app") || u.pathname.startsWith("/system"));
   return page.url();
 });
-await step("Edition switcher -> E2EQR2027", async () => {
-  await page.getByRole("button", { name: /Change edition/ }).click();
-  await page.getByRole("menuitem", { name: new RegExp(process.env.EMS_EDITION ?? "E2EQR2027") }).click();
-  await page.getByRole("button", { name: /Edition: .*Change edition/ }).filter({ hasText: process.env.EMS_EDITION ?? "E2EQR2027" }).waitFor();
-  return "header shows the edition";
+const EDITION = process.env.EMS_EDITION ?? "E2EQR2027";
+/** Pick an edition by code in an "Exhibition Type" select (page picker or list filter). */
+async function pickEdition(select) {
+  const value = await select.locator("option", { hasText: EDITION }).first().getAttribute("value");
+  await select.selectOption(value);
+}
+await step("Exhibition Type picker on Overview -> E2EQR2027", async () => {
+  await goto("/app");
+  await pickEdition(page.getByLabel("Exhibition Type"));
+  await page.getByRole("heading", { level: 1 }).filter({ hasText: EDITION }).waitFor();
+  return "overview shows the edition";
 });
 
 // --- visitor leads ------------------------------------------------------------------------
@@ -91,16 +97,19 @@ await step("Edit lead + Ctrl+S -> Not Saved, then saved toast", async () => {
   await page.keyboard.press("Control+s");
   return await toast("Saved");
 });
-await step("Log Call page (Answer + follow-up) -> verification tab + toast", async () => {
+await step("Log Call (New -> Answer) needs Attend, then moves + toast", async () => {
   await page.getByRole("link", { name: "Log Call" }).click();
   await page.getByRole("heading", { name: /Log Call for/ }).waitFor();
-  await page.locator("label", { hasText: /^Answer$/ }).click();
+  await page.locator("label", { hasText: /^Answer/ }).click();
   const next = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 16);
   await page.getByLabel("Next Follow-up").fill(next);
   await page.getByLabel("Notes").fill("Interested in sourcing");
-  await page.getByRole("button", { name: "Save Call" }).click();
-  await page.waitForURL(/tab=verification/);
-  return await toast("Call #1 saved");
+  await page.getByRole("button", { name: "Save and Move" }).click();
+  await page.getByText("Attend is required for an answered call.").waitFor();
+  await page.getByLabel("Attend").selectOption("ATTEND_SOURCING");
+  await page.getByRole("button", { name: "Save and Move" }).click();
+  await page.waitForURL((u) => u.href.split("?")[0] === leadUrl);
+  return await toast("moved to Answer");
 });
 await step("Status indicator updated to Answer", async () => {
   await page.locator("header").getByText("Answer", { exact: true }).first().waitFor();
@@ -124,12 +133,12 @@ await step("Activity tab shows audit entries", async () => {
   return `${await page.locator("ol li").count()} entries`;
 });
 let regUrl = "";
-await step("Register Visitor -> registration page + toast", async () => {
-  await page.getByRole("link", { name: "Register Visitor" }).click();
-  await page.getByRole("button", { name: "Register and Issue QR" }).click();
+await step("Lead was registered on creation -> Open Registration", async () => {
+  await page.getByRole("tab", { name: "Registration" }).click();
+  await page.getByRole("link", { name: "Open Registration" }).click();
   await page.waitForURL(/\/app\/registrations\/[0-9a-f-]{36}/);
   regUrl = page.url();
-  return await toast("Visitor registered");
+  return "registered without a manual step";
 });
 await step("Resend QR Email -> toast", async () => {
   await page.getByRole("button", { name: "Resend QR Email" }).click();
@@ -149,6 +158,7 @@ await step("Registration shows two credentials (revoked + active)", async () => 
 });
 await step("List: select lead -> Assign To page -> assign -> toast", async () => {
   await goto(`/app/visitor-leads?q=flow-${run}`);
+  await pickEdition(page.getByLabel("Exhibition Type"));
   await page.getByRole("checkbox", { name: "Select row" }).first().click();
   await page.getByRole("button", { name: "Assign To" }).click();
   await page.getByRole("heading", { name: /Assign Visitor Lead/ }).waitFor();

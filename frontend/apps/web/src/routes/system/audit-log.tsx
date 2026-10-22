@@ -50,7 +50,7 @@ function AuditLog() {
   });
   return (
     <Page>
-      <PageHead title="Audit Log" meta="Every important change, who made it, and what changed. Secrets are never stored here." />
+      <PageHead edition title="Audit Log" meta="Every important change, who made it, and what changed. Secrets are never stored here." />
       <Panel>
         <FilterBar active={Boolean(s.entity_type || s.action || s.from || s.to || s.scope === "all")} onClear={() => void navigate({ search: { scope: "edition", page: 1, page_size: s.page_size } })}>
           <SelectFilter label="Records" allLabel={edition ? `Edition ${edition.code}` : "This edition"} value={s.scope === "all" ? "all" : undefined} onChange={(v) => set({ scope: v === "all" ? "all" : "edition" })} options={[{ value: "all", label: "All, including system" }]} />

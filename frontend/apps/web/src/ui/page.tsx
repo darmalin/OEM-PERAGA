@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
+import { EditionPicker } from "./edition-picker";
+
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("route-fade mx-auto w-full max-w-[1400px] px-6 pb-16 max-md:px-4", className)}>{children}</div>;
 }
@@ -14,10 +16,12 @@ interface PageHeadProps {
   indicators?: ReactNode;
   actions?: ReactNode;
   back?: { to: string; label: string; params?: Record<string, string> };
+  /** The page works in one edition: show the Exhibition Type picker before the actions. */
+  edition?: boolean;
 }
 
 /** ENERGY 2 page head: 24px title, a meta line, indicators, one primary action. */
-export function PageHead({ title, meta, indicators, actions, back }: PageHeadProps) {
+export function PageHead({ title, meta, indicators, actions, back, edition }: PageHeadProps) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-4 pt-6 pb-5">
       <div className="min-w-0">
@@ -38,7 +42,12 @@ export function PageHead({ title, meta, indicators, actions, back }: PageHeadPro
         </div>
         {meta ? <div className="mt-1 text-[13px] text-label">{meta}</div> : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions || edition ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {edition ? <EditionPicker /> : null}
+          {actions}
+        </div>
+      ) : null}
     </header>
   );
 }

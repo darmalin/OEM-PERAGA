@@ -51,7 +51,7 @@ function Exports() {
   ];
   return (
     <Page>
-      <PageHead title="Exports" meta="Files are built in the background and kept for 24 hours. Every export is audited." actions={<Button asChild variant="primary"><Link to="/app/exports/new">New Export</Link></Button>} />
+      <PageHead edition title="Exports" meta="Files are built in the background and kept for 24 hours. Every export is audited." actions={<Button asChild variant="primary"><Link to="/app/exports/new">New Export</Link></Button>} />
       <Panel>
         <ListBody
           query={query}

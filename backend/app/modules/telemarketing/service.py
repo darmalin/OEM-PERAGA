@@ -10,7 +10,7 @@ from app.core import audit, idempotency, outbox
 from app.core.authorization import AuthContext, Scope
 from app.core.config import get_settings
 from app.core.db import new_id
-from app.core.errors import NotFound, PermissionDenied, ValidationFailed, check_version
+from app.core.errors import Conflict, NotFound, PermissionDenied, ValidationFailed, check_version
 from app.core.pagination import Page
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.identity import service as identity_service
@@ -28,6 +28,10 @@ from app.modules.telemarketing.rules import (
     FollowupAction,
     FollowupStatus,
     allowed_call_results,
+    call_verification_errors,
+    is_answered,
+    next_status,
+    quality_flags,
     round_robin,
     telemarketing_status,
 )
@@ -369,6 +373,18 @@ async def log_call(
     scope = await visitors_service.scope_for_lead(session, ctx, lead_id)
     lead = await visitors_service.get_lead_entity(session, scope, lead_id, for_update=True)
     await exhibitions_service.ensure_writable(session, lead.edition_id)
+    # Checked under the lead lock, so two agents cannot both move the same card.
+    answered = is_answered(data.call_result)
+    if next_status(lead.telemarketing_status, answered) is None:
+        raise Conflict(
+            f"A lead in {lead.telemarketing_status} cannot take "
+            f"{'an answered' if answered else 'an unanswered'} call.",
+            code="STATUS_TRANSITION_NOT_ALLOWED",
+        )
+    v = data.verification
+    errors = call_verification_errors(answered, v.lead_quality, v.attend)
+    if errors:
+        raise ValidationFailed(fields=errors)
     called_at = data.called_at or datetime.now(UTC)
     _not_future(called_at, "called_at")
     if data.next_followup_at is not None and data.next_followup_at <= called_at:
@@ -417,6 +433,11 @@ async def log_call(
         "next_followup_at": await repo.earliest_open_followup(session, lead.id),
     }
     lead = await visitors_service.apply_changes(session, lead, summary, action="call")
+    verification = {
+        **quality_flags(v.lead_quality),
+        **v.model_dump(exclude={"lead_quality"}, exclude_none=True),
+    }
+    lead = await _record_verification(session, ctx, lead, verification)
     return CallLoggedOut(
         call=CallOut.model_validate(call),
         telemarketing_status=lead.telemarketing_status,
@@ -457,6 +478,14 @@ async def update_verification(
             changes[flag] = False
     if not changes:
         return await visitors_service.lead_out(session, lead)
+    lead = await _record_verification(session, ctx, lead, changes)
+    return await visitors_service.lead_out(session, lead)
+
+
+async def _record_verification(
+    session: AsyncSession, ctx: AuthContext, lead: "VisitorLead", changes: dict[str, object]
+) -> "VisitorLead":
+    """Apply verification changes to a locked lead and append a history row."""
     changes["verification_updated_at"] = datetime.now(UTC)
     lead = await visitors_service.apply_changes(session, lead, changes, action="verify")
     session.add(
@@ -472,7 +501,7 @@ async def update_verification(
         )
     )
     await session.flush()
-    return await visitors_service.lead_out(session, lead)
+    return lead
 
 
 async def list_verifications(

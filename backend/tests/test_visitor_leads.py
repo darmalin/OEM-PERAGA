@@ -83,8 +83,9 @@ async def test_create_normalizes_and_generates_registration_code() -> None:
     assert lead["company_name"] is None  # empty stored as NULL
     assert lead["source"] == "MANUAL"
     assert lead["telemarketing_status"] == "NEW"
-    assert lead["registration_status"] == "NOT_REGISTERED"
-    assert lead["qr_status"] == "NONE"
+    # Registered on creation (owner decision 2026-10-22).
+    assert lead["registration_status"] == "REGISTERED"
+    assert lead["qr_status"] == "ACTIVE"
     r2 = await create(client, edition, email="second@example.test")
     assert r2.json()["registration_code"] == "IBTE2027000002"
 
@@ -95,18 +96,19 @@ async def test_update_rechecks_duplicates_and_version() -> None:
     first = (await create(client, edition, email="one@example.test")).json()
     second = (await create(client, edition, email="two@example.test")).json()
     url = f"/api/v1/visitor-leads/{second['id']}"
-    r = await client.patch(url, json={"version": 1, "email": "ONE@example.test"})
+    v = second["version"]
+    r = await client.patch(url, json={"version": v, "email": "ONE@example.test"})
     assert r.status_code == 409
     assert r.json()["error"]["fields"] == {"email": "Already used in this edition."}
     assert first["registration_code"] in r.json()["error"]["message"]
-    r = await client.patch(url, json={"version": 1, "company_name": "Khong"})
-    assert r.status_code == 200 and r.json()["version"] == 2
-    r = await client.patch(url, json={"version": 1, "company_name": "Stale"})
+    r = await client.patch(url, json={"version": v, "company_name": "Khong"})
+    assert r.status_code == 200 and r.json()["version"] == v + 1
+    r = await client.patch(url, json={"version": v, "company_name": "Stale"})
     assert r.status_code == 409
     assert r.json()["error"]["code"] == "VERSION_CONFLICT"
-    r = await client.patch(url, json={"version": 2, "email": None})
+    r = await client.patch(url, json={"version": v + 1, "email": None})
     assert r.status_code == 422  # would leave neither email nor phone
-    r = await client.patch(url, json={"version": 2, "first_name": "  "})
+    r = await client.patch(url, json={"version": v + 1, "first_name": "  "})
     assert r.status_code == 422
 
 
@@ -115,10 +117,11 @@ async def test_update_writes_audit_with_before_after() -> None:
     client = await admin_for(edition)
     lead = (await create(client, edition, email="audit@example.test")).json()
     await client.patch(
-        f"/api/v1/visitor-leads/{lead['id']}", json={"version": 1, "city": "Ho Chi Minh City"}
+        f"/api/v1/visitor-leads/{lead['id']}",
+        json={"version": lead["version"], "city": "Ho Chi Minh City"},
     )
     timeline = (await client.get(f"/api/v1/visitor-leads/{lead['id']}/activity")).json()
-    assert [t["action"] for t in timeline] == ["update", "create"]
+    assert [t["action"] for t in timeline] == ["update", "register", "create"]
     assert timeline[0]["before"] == {"city": None}
     assert timeline[0]["after"] == {"city": "Ho Chi Minh City"}
     assert timeline[0]["edition_id"] == str(edition.id)
@@ -186,7 +189,8 @@ async def test_scope_owned_team_and_other_edition() -> None:
     r = await agent_client.get("/api/v1/visitor-leads", params={"edition_id": str(other.id)})
     assert r.status_code == 404
     r = await agent_client.patch(
-        f"/api/v1/visitor-leads/{lead_mine['id']}", json={"version": 2, "city": "Hanoi"}
+        f"/api/v1/visitor-leads/{lead_mine['id']}",
+        json={"version": lead_mine["version"] + 1, "city": "Hanoi"},
     )
     assert r.status_code == 200, r.text
 
@@ -290,7 +294,7 @@ async def test_configurable_options_and_custom_fields() -> None:
         f"/api/v1/visitor-custom-fields/{hall_id}", json={"version": 1, "is_active": False}
     )
     r = await client.patch(
-        f"/api/v1/visitor-leads/{lead['id']}", json={"version": 1, "comment": "kept"}
+        f"/api/v1/visitor-leads/{lead['id']}", json={"version": lead["version"], "comment": "kept"}
     )
     assert r.status_code == 200 and r.json()["custom_fields"] == {"hall": "A"}
 
@@ -305,7 +309,9 @@ async def test_archived_edition_is_read_only() -> None:
         row.status = "ARCHIVED"
     r = await create(client, edition, email="new@example.test")
     assert r.status_code == 422 and r.json()["error"]["code"] == "EDITION_ARCHIVED"
-    r = await client.patch(f"/api/v1/visitor-leads/{lead['id']}", json={"version": 1, "city": "X"})
+    r = await client.patch(
+        f"/api/v1/visitor-leads/{lead['id']}", json={"version": lead["version"], "city": "X"}
+    )
     assert r.status_code == 422
     assert (await client.get(f"/api/v1/visitor-leads/{lead['id']}")).status_code == 200
 
@@ -322,3 +328,60 @@ async def test_db_rejects_valid_and_invalid_together() -> None:
             assert row is not None
             row.is_valid_lead = True
             row.is_invalid = True
+
+
+async def test_new_lead_is_registered_without_email() -> None:
+    """Owner decision 2026-10-22: every lead that comes in can enter the gate."""
+    edition = await make_edition()
+    client = await admin_for(edition)
+    r = await create(client, edition, email="visitor-101@example.test")
+    assert r.status_code == 201, r.text
+    lead = r.json()
+    assert lead["registration_status"] == "REGISTERED" and lead["qr_status"] == "ACTIVE"
+    regs = (await client.get(f"/api/v1/visitor-registrations?edition_id={edition.id}")).json()[
+        "items"
+    ]
+    assert [x["channel"] for x in regs] == ["ADMIN"]
+    detail = (await client.get(f"/api/v1/visitor-registrations/{regs[0]['id']}")).json()
+    assert detail["email_jobs"] == []  # QR email is sent by hand (Resend QR Email)
+
+
+async def test_lead_list_across_editions_keeps_each_scope() -> None:
+    first, second, hidden = await make_edition(), await make_edition(), await make_edition()
+    _, client = await actor(
+        RoleGrant("EXHIBITION_ADMIN", "EDITION", first.id),
+        RoleGrant("EXHIBITION_ADMIN", "EDITION", second.id),
+    )
+    _, super_client = await actor(RoleGrant("SUPER_ADMIN"))
+    for edition in (first, second, hidden):
+        r = await create(super_client, edition, phone=f"0812{uuid.uuid4().int % 10**8:08d}")
+        assert r.status_code == 201, r.text
+    items = (await client.get("/api/v1/visitor-leads?page_size=100")).json()["items"]
+    editions = {i["edition_id"] for i in items}
+    assert {str(first.id), str(second.id)} <= editions
+    assert str(hidden.id) not in editions
+    one = (await client.get(f"/api/v1/visitor-leads?edition_id={first.id}")).json()["items"]
+    assert {i["edition_id"] for i in one} == {str(first.id)}
+
+
+async def test_register_backlog_registers_old_leads() -> None:
+    from app.modules.registrations import service as registrations_service
+
+    edition = await make_edition()
+    async with get_sessionmaker()() as session, session.begin():
+        lead = VisitorLead(
+            edition_id=edition.id,
+            registration_code=f"{edition.registration_id_prefix}{uuid.uuid4().int % 10**6:06d}",
+            first_name="Visitor",
+            email="visitor-102@example.test",
+            email_normalized="visitor-102@example.test",
+            source="MANUAL",
+            custom_fields={},
+        )
+        session.add(lead)
+    async with get_sessionmaker()() as session, session.begin():
+        while await registrations_service.register_backlog(session, 500):
+            pass
+    async with get_sessionmaker()() as session:
+        stored = await session.get(VisitorLead, lead.id)
+    assert stored is not None and stored.registration_status == "REGISTERED"

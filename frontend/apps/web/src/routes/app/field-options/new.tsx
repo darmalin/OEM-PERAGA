@@ -38,13 +38,13 @@ function NewOption() {
   });
   return (
     <Page className="max-w-[1000px]">
-      <PageHead title="New Field Option" meta={`For ${edition.code}.`} back={{ to: "/app/field-options", label: "Field Options" }} />
+      <PageHead edition title="New Field Option" meta={`For ${edition.code}.`} back={{ to: "/app/field-options", label: "Field Options" }} />
       <Panel>
         <form onSubmit={onSubmit} noValidate>
           <Section title="Option">
             <FieldGrid>
               <Field label="Field" required>
-                {(p) => <Select {...p} {...form.register("field")}>{options("option_field").map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>}
+                {(p) => <Select {...p} {...form.register("field")}>{options("option_field").filter((o) => o.value !== "EXHIBITION_TYPE").map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>}
               </Field>
               <Field label="Label" required error={form.formState.errors.label?.message}>{(p) => <Input {...p} {...form.register("label", { required: "Enter a label." })} />}</Field>
               <Field label="Stored value" help="Defaults to the label. Imports match on it; it cannot change later." error={form.formState.errors.value?.message}>{(p) => <Input {...p} {...form.register("value")} />}</Field>

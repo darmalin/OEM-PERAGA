@@ -3,6 +3,8 @@
 Spec §7. Open decisions D1, D2.
 
 ## Registration
+- Owner decision 2026-10-22: every lead is registered when it is created (manual, Excel import, API, website), so it can enter the gate whether or not telemarketing worked it. The channel follows the lead source. No QR email is sent for these, except the public website form; staff send it with Resend QR Email.
+- Leads created before that decision: `python -m app.cli register-backlog` registers them (no email), skipping archived editions.
 - Channels: Website (public API), Admin manual, Telemarketing, API, Excel import.
 - QR issued right after successful registration; does not wait for telemarketing.
 - `visitor_registrations`: `visitor_lead_id`, `edition_id`, `channel`, `status`, `registered_at`, `idempotency_key`. Unique `(edition_id, visitor_lead_id)` for an active registration.

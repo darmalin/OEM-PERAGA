@@ -64,7 +64,7 @@ function NewExport() {
 
   return (
     <Page className="max-w-[960px]">
-      <PageHead title="New Export" meta={`From ${edition.code}. You get what you are allowed to see, nothing more.`} back={{ to: "/app/exports", label: "Exports" }} />
+      <PageHead edition title="New Export" meta={`From ${edition.code}. You get what you are allowed to see, nothing more.`} back={{ to: "/app/exports", label: "Exports" }} />
       <Panel>
         <form onSubmit={onSubmit} noValidate>
           <Section title="What to export">

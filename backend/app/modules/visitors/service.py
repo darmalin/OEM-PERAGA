@@ -155,6 +155,13 @@ async def get_lead_internal(
     return await get_lead_entity(session, full, lead_id, for_update=for_update)
 
 
+async def unregistered_leads(
+    session: AsyncSession, edition_ids: list[uuid.UUID], limit: int
+) -> list[VisitorLead]:
+    """No user scope: for the backfill command only."""
+    return await repo.unregistered_leads(session, edition_ids, limit)
+
+
 def visible_lead_ids(scope: Scope) -> Any:
     """Subquery of lead IDs visible in the scope (for filters in other modules)."""
     return repo.visible_ids(scope)
@@ -380,8 +387,8 @@ async def insert_lead(
     return lead
 
 
-async def create_lead(session: AsyncSession, ctx: AuthContext, data: LeadCreateIn) -> LeadOut:
-    """POST /visitor-leads."""
+async def create_lead(session: AsyncSession, ctx: AuthContext, data: LeadCreateIn) -> VisitorLead:
+    """Create a lead from POST /visitor-leads; registrations.create_lead registers it."""
     scope = ctx.scope_for(data.edition_id)
     if not scope.full_access:
         # Creating unowned leads needs edition-wide access; otherwise the caller could not see it.
@@ -398,7 +405,7 @@ async def create_lead(session: AsyncSession, ctx: AuthContext, data: LeadCreateI
         external_source=data.external_source,
         external_id=data.external_id,
     )
-    return await lead_out(session, lead)
+    return lead
 
 
 async def apply_changes(
@@ -454,13 +461,30 @@ async def get_lead(session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID) 
     return await lead_out(session, await get_lead_entity(session, scope, lead_id))
 
 
+async def _readable_scopes(session: AsyncSession, ctx: AuthContext) -> list[Scope]:
+    """The caller's scope in every edition it may read leads in."""
+    ids = ctx.edition_ids()
+    if ids is None:
+        ids = {e.id for e in await exhibitions_service.edition_summaries(session, None)}
+    scopes = []
+    for edition_id in sorted(ids):
+        try:
+            scopes.append(ctx.scope_for(edition_id))
+        except NotFound:
+            continue
+    return scopes
+
+
 async def list_leads(
     session: AsyncSession, ctx: AuthContext, params: LeadListParams
 ) -> Page[LeadListItem]:
     """Lead list with filters, search, sort, and pagination, inside the caller's scope."""
-    scope = ctx.scope_for(params.edition_id)
+    if params.edition_id is not None:
+        scopes = [ctx.scope_for(params.edition_id)]
+    else:
+        scopes = await _readable_scopes(session, ctx)
     rows, total = await repo.list_leads(
-        session, scope, params, params.sort, params.offset, params.page_size
+        session, scopes, params, params.sort, params.offset, params.page_size
     )
     items = []
     for lead, owner in rows:

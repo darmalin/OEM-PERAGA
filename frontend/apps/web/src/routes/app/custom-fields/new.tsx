@@ -32,7 +32,7 @@ function NewCustomField() {
   });
   return (
     <Page className="max-w-[1000px]">
-      <PageHead title="New Custom Field" meta={`For ${edition.code}.`} back={{ to: "/app/custom-fields", label: "Custom Fields" }} />
+      <PageHead edition title="New Custom Field" meta={`For ${edition.code}.`} back={{ to: "/app/custom-fields", label: "Custom Fields" }} />
       <Panel>
         <form onSubmit={onSubmit} noValidate>
           <CustomFieldFields register={form.register} watch={form.watch} setValue={form.setValue} errors={form.formState.errors} creating />

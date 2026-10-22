@@ -9,6 +9,7 @@ import { formatDateTime, formatPercent } from "@/lib/format";
 import { label } from "@/lib/labels";
 import { EditionBand } from "@/ui/band";
 import { Button } from "@/ui/button";
+import { EditionPicker } from "@/ui/edition-picker";
 import { Indicator } from "@/ui/indicator";
 import { BarList, Metric } from "@/ui/metric";
 import { Page, Panel, PanelHeader } from "@/ui/page";
@@ -28,7 +29,10 @@ function Overview() {
   }
   const reports = can(me, "report.view");
   return (
-    <Page className="pt-6">
+    <Page className="pt-4">
+      <div className="mb-4 flex justify-end">
+        <EditionPicker />
+      </div>
       <EditionBand edition={edition}>{reports ? <BandNumbers editionId={edition.id} /> : null}</EditionBand>
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         {reports ? (

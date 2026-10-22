@@ -8,6 +8,7 @@ from app.core.authorization import AuthContext, require
 from app.core.db import get_session
 from app.core.pagination import Page
 from app.modules.audit.schemas import AuditLogOut
+from app.modules.registrations import service as registrations_service
 from app.modules.visitors import service
 from app.modules.visitors.schemas import (
     CustomFieldIn,
@@ -42,7 +43,9 @@ async def list_leads(
 async def create_lead(
     data: LeadCreateIn, session: Session, ctx: AuthContext = Depends(require("visitor.create"))
 ) -> LeadOut:
-    return await service.create_lead(session, ctx, data)
+    # Every new lead is registered at once (owner decision 2026-10-22). The registrations
+    # module does it, since it already depends on visitors.
+    return await registrations_service.create_lead(session, ctx, data)
 
 
 @router.get("/visitor-leads/{lead_id}", response_model=LeadOut)

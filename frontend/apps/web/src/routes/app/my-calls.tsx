@@ -61,7 +61,7 @@ function MyCalls() {
 
   return (
     <Page>
-      <PageHead
+      <PageHead edition
         title={team ? "Team Calls" : "My Calls"}
         meta="Overdue follow-ups first, then new leads. Open a lead to log the call."
       />

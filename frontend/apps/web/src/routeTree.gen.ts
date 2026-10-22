@@ -53,6 +53,7 @@ import { Route as AppVenuesVenueIdRouteImport } from './routes/app/venues/$venue
 import { Route as AppVenuesNewRouteImport } from './routes/app/venues/new'
 import { Route as AppVisitorLeadsIndexRouteImport } from './routes/app/visitor-leads/index'
 import { Route as AppVisitorLeadsAssignRouteImport } from './routes/app/visitor-leads/assign'
+import { Route as AppVisitorLeadsBoardRouteImport } from './routes/app/visitor-leads/board'
 import { Route as AppVisitorLeadsNewRouteImport } from './routes/app/visitor-leads/new'
 import { Route as SystemEmailTemplatesIndexRouteImport } from './routes/system/email-templates/index'
 import { Route as SystemEmailTemplatesNewRouteImport } from './routes/system/email-templates/new'
@@ -296,6 +297,11 @@ const AppVisitorLeadsAssignRoute = AppVisitorLeadsAssignRouteImport.update({
   path: '/visitor-leads/assign',
   getParentRoute: () => AppRoute,
 } as any)
+const AppVisitorLeadsBoardRoute = AppVisitorLeadsBoardRouteImport.update({
+  id: '/visitor-leads/board',
+  path: '/visitor-leads/board',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppVisitorLeadsNewRoute = AppVisitorLeadsNewRouteImport.update({
   id: '/visitor-leads/new',
   path: '/visitor-leads/new',
@@ -444,6 +450,7 @@ export interface FileRoutesByFullPath {
   '/app/venues/$venueId': typeof AppVenuesVenueIdRoute
   '/app/venues/new': typeof AppVenuesNewRoute
   '/app/visitor-leads/assign': typeof AppVisitorLeadsAssignRoute
+  '/app/visitor-leads/board': typeof AppVisitorLeadsBoardRoute
   '/app/visitor-leads/new': typeof AppVisitorLeadsNewRoute
   '/system/email-templates/new': typeof SystemEmailTemplatesNewRoute
   '/system/roles/$roleId': typeof SystemRolesRoleIdRoute
@@ -509,6 +516,7 @@ export interface FileRoutesByTo {
   '/app/venues/$venueId': typeof AppVenuesVenueIdRoute
   '/app/venues/new': typeof AppVenuesNewRoute
   '/app/visitor-leads/assign': typeof AppVisitorLeadsAssignRoute
+  '/app/visitor-leads/board': typeof AppVisitorLeadsBoardRoute
   '/app/visitor-leads/new': typeof AppVisitorLeadsNewRoute
   '/system/email-templates/new': typeof SystemEmailTemplatesNewRoute
   '/system/roles/$roleId': typeof SystemRolesRoleIdRoute
@@ -577,6 +585,7 @@ export interface FileRoutesById {
   '/app/venues/$venueId': typeof AppVenuesVenueIdRoute
   '/app/venues/new': typeof AppVenuesNewRoute
   '/app/visitor-leads/assign': typeof AppVisitorLeadsAssignRoute
+  '/app/visitor-leads/board': typeof AppVisitorLeadsBoardRoute
   '/app/visitor-leads/new': typeof AppVisitorLeadsNewRoute
   '/system/email-templates/new': typeof SystemEmailTemplatesNewRoute
   '/system/roles/$roleId': typeof SystemRolesRoleIdRoute
@@ -646,6 +655,7 @@ export interface FileRouteTypes {
     | '/app/venues/$venueId'
     | '/app/venues/new'
     | '/app/visitor-leads/assign'
+    | '/app/visitor-leads/board'
     | '/app/visitor-leads/new'
     | '/system/email-templates/new'
     | '/system/roles/$roleId'
@@ -711,6 +721,7 @@ export interface FileRouteTypes {
     | '/app/venues/$venueId'
     | '/app/venues/new'
     | '/app/visitor-leads/assign'
+    | '/app/visitor-leads/board'
     | '/app/visitor-leads/new'
     | '/system/email-templates/new'
     | '/system/roles/$roleId'
@@ -778,6 +789,7 @@ export interface FileRouteTypes {
     | '/app/venues/$venueId'
     | '/app/venues/new'
     | '/app/visitor-leads/assign'
+    | '/app/visitor-leads/board'
     | '/app/visitor-leads/new'
     | '/system/email-templates/new'
     | '/system/roles/$roleId'
@@ -1132,6 +1144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppVisitorLeadsAssignRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/visitor-leads/board': {
+      id: '/app/visitor-leads/board'
+      path: '/visitor-leads/board'
+      fullPath: '/app/visitor-leads/board'
+      preLoaderRoute: typeof AppVisitorLeadsBoardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/visitor-leads/new': {
       id: '/app/visitor-leads/new'
       path: '/visitor-leads/new'
@@ -1307,6 +1326,7 @@ interface AppRouteChildren {
   AppVenuesVenueIdRoute: typeof AppVenuesVenueIdRoute
   AppVenuesNewRoute: typeof AppVenuesNewRoute
   AppVisitorLeadsAssignRoute: typeof AppVisitorLeadsAssignRoute
+  AppVisitorLeadsBoardRoute: typeof AppVisitorLeadsBoardRoute
   AppVisitorLeadsNewRoute: typeof AppVisitorLeadsNewRoute
   AppCustomFieldsIndexRoute: typeof AppCustomFieldsIndexRoute
   AppDevicesIndexRoute: typeof AppDevicesIndexRoute
@@ -1355,6 +1375,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppVenuesVenueIdRoute: AppVenuesVenueIdRoute,
   AppVenuesNewRoute: AppVenuesNewRoute,
   AppVisitorLeadsAssignRoute: AppVisitorLeadsAssignRoute,
+  AppVisitorLeadsBoardRoute: AppVisitorLeadsBoardRoute,
   AppVisitorLeadsNewRoute: AppVisitorLeadsNewRoute,
   AppCustomFieldsIndexRoute: AppCustomFieldsIndexRoute,
   AppDevicesIndexRoute: AppDevicesIndexRoute,

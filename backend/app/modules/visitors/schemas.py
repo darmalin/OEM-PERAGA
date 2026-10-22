@@ -128,6 +128,7 @@ class LeadListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    edition_id: uuid.UUID
     registration_code: str
     lead_date: datetime
     first_name: str
@@ -190,7 +191,8 @@ class LeadFilters(BaseModel):
 
 
 class LeadListParams(PageParams, LeadFilters):
-    edition_id: uuid.UUID
+    # None: every edition the caller may read (the Exhibition Type filter set to All).
+    edition_id: uuid.UUID | None = None
     sort: SortParam = "-updated_at"
 
 

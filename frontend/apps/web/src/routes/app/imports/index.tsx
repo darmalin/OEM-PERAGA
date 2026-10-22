@@ -38,7 +38,7 @@ function Imports() {
   ];
   return (
     <Page>
-      <PageHead title="Imports" meta="Excel files of visitor leads. Each row is checked on its own; one bad row never stops the file." actions={<Button asChild variant="primary"><Link to="/app/imports/new">Import Excel</Link></Button>} />
+      <PageHead edition title="Imports" meta="Excel files of visitor leads. Each row is checked on its own; one bad row never stops the file." actions={<Button asChild variant="primary"><Link to="/app/imports/new">Import Excel</Link></Button>} />
       <Panel>
         <ListBody
           query={query}

@@ -5,7 +5,7 @@ from typing import Any, Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core.pagination import PageParams
-from app.modules.telemarketing.rules import AssignmentMethod, FollowupStatus
+from app.modules.telemarketing.rules import AssignmentMethod, FollowupStatus, LeadQuality
 from app.modules.visitors.rules import Attend, BuyerType
 from app.modules.visitors.schemas import LeadFilters
 
@@ -92,10 +92,22 @@ class AgentParams(BaseModel):
 # --- calls ---------------------------------------------------------------------------------
 
 
+class CallVerificationIn(BaseModel):
+    """Verification sent with every call (kanban move). Answered: Valid + Attend required."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    lead_quality: LeadQuality
+    attend: Attend | None = None
+    b2b_matching: bool | None = None
+    buyer_type: BuyerType | None = None
+
+
 class CallIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     call_result: str = Field(min_length=1, max_length=30)
+    verification: CallVerificationIn
     called_at: datetime | None = None
     duration_seconds: int | None = Field(default=None, ge=0, le=24 * 3600)
     notes: str | None = Field(default=None, max_length=5000)

@@ -40,6 +40,7 @@ from app.modules.importexport.schemas import (
     MappingTarget,
     PreviewOut,
 )
+from app.modules.registrations import service as registrations_service
 from app.modules.visitors import service as visitors_service
 from app.modules.visitors.rules import LeadSource, OptionField
 from app.modules.visitors.schemas import LeadFields
@@ -524,7 +525,7 @@ async def _import_row(
         reason, message = ImportErrorReason.INVALID, "Invalid values."
     else:
         try:
-            await visitors_service.insert_lead(
+            lead = await visitors_service.insert_lead(
                 session,
                 job.edition_id,
                 values,
@@ -533,6 +534,7 @@ async def _import_row(
                 external_id=cell_to_text(raw.get("external_id")),
                 import_job_id=job.id,
             )
+            await registrations_service.register_new_lead(session, lead)
             job.created_count += 1
             return
         except visitors_service.DuplicateVisitor as e:

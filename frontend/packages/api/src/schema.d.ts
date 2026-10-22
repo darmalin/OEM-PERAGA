@@ -1690,6 +1690,7 @@ export interface components {
         CallIn: {
             /** Call Result */
             call_result: string;
+            verification: components["schemas"]["CallVerificationIn"];
             /** Called At */
             called_at?: string | null;
             /** Duration Seconds */
@@ -1746,6 +1747,17 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /**
+         * CallVerificationIn
+         * @description Verification sent with every call (kanban move). Answered: Valid + Attend required.
+         */
+        CallVerificationIn: {
+            lead_quality: components["schemas"]["LeadQuality"];
+            attend?: components["schemas"]["Attend"] | null;
+            /** B2B Matching */
+            b2b_matching?: boolean | null;
+            buyer_type?: components["schemas"]["BuyerType"] | null;
         };
         /** Count */
         Count: {
@@ -2888,6 +2900,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
             /** Registration Code */
             registration_code: string;
             /**
@@ -3025,6 +3042,12 @@ export interface components {
             /** Version */
             version: number;
         };
+        /**
+         * LeadQuality
+         * @description Verification "Lead Quality": whether the phone or email reached a real visitor.
+         * @enum {string}
+         */
+        LeadQuality: "VALID" | "INVALID" | "UNDECIDED";
         /**
          * LeadSource
          * @enum {string}
@@ -5883,7 +5906,7 @@ export interface operations {
     };
     list_leads_api_v1_visitor_leads_get: {
         parameters: {
-            query: {
+            query?: {
                 q?: string | null;
                 telemarketing_status?: components["schemas"]["TelemarketingStatus"][] | null;
                 registration_status?: components["schemas"]["RegistrationStatus"] | null;
@@ -5901,7 +5924,7 @@ export interface operations {
                 lead_date_to?: string | null;
                 page?: number;
                 page_size?: number;
-                edition_id: string;
+                edition_id?: string | null;
                 sort?: "lead_date" | "-lead_date" | "created_at" | "-created_at" | "updated_at" | "-updated_at" | "first_name" | "-first_name" | "registration_code" | "-registration_code" | "company_name" | "-company_name" | "last_call_at" | "-last_call_at" | "next_followup_at" | "-next_followup_at";
             };
             header?: never;

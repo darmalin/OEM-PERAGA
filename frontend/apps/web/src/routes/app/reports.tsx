@@ -66,7 +66,7 @@ function Reports() {
 
   return (
     <Page>
-      <PageHead
+      <PageHead edition
         title="Reports"
         meta={report.data ? `${edition.code} · generated ${formatDateTime(report.data.generated_at, edition.timezone)}` : edition.code}
         actions={can(me, "report.export") ? <Button onClick={() => void exportReport()}><FileDown aria-hidden />Export to Excel</Button> : null}

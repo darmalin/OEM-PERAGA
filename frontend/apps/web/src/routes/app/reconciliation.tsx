@@ -29,7 +29,7 @@ function Reconciliation() {
   if (!edition) return <Page><NoEdition /></Page>;
   return (
     <Page>
-      <PageHead
+      <PageHead edition
         title="Reconciliation"
         meta="Offline scans where the server's final answer differs from what the device showed. The server's answer counts."
       />

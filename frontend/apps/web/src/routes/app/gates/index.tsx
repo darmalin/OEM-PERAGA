@@ -27,7 +27,7 @@ function Gates() {
   ];
   return (
     <Page>
-      <PageHead title="Gates" meta={`Entrances of ${edition.code}. Each scanner device belongs to one gate.`} actions={manage ? <Button asChild variant="primary"><Link to="/app/gates/new">Add Gate</Link></Button> : null} />
+      <PageHead edition title="Gates" meta={`Entrances of ${edition.code}. Each scanner device belongs to one gate.`} actions={manage ? <Button asChild variant="primary"><Link to="/app/gates/new">Add Gate</Link></Button> : null} />
       <Panel>
         <ArrayBody query={q} empty={<EmptyState title="No gates yet. Add a gate, then register scanner devices for it." action={manage ? <Button asChild variant="primary"><Link to="/app/gates/new">Add Gate</Link></Button> : undefined} />}>
           {(rows) => <ListTable caption="Gates" rows={rows} columns={columns} rowKey={(g) => g.id} rowLink={manage ? (g) => ({ to: "/app/gates/$gateId", params: { gateId: g.id } }) : undefined} />}

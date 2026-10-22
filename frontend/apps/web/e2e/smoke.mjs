@@ -10,7 +10,7 @@ const OUT = process.env.OUT ?? "smoke-out";
 mkdirSync(OUT, { recursive: true });
 
 export const PAGES = [
-  "/app", "/app/visitor-leads", "/app/visitor-leads/new", "/app/visitor-leads/assign", "/app/my-calls",
+  "/app", "/app/visitor-leads", "/app/visitor-leads/board", "/app/visitor-leads/new", "/app/visitor-leads/assign", "/app/my-calls",
   "/app/followups", "/app/registrations", "/app/imports", "/app/imports/new", "/app/exports",
   "/app/exports/new", "/app/gates", "/app/gates/new", "/app/devices", "/app/devices/new", "/app/scans",
   "/app/reconciliation", "/app/overrides/new", "/app/reports", "/app/exhibitions", "/app/exhibitions/new",

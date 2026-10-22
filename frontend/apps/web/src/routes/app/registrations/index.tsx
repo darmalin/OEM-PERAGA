@@ -48,7 +48,7 @@ function Registrations() {
   ];
   return (
     <Page>
-      <PageHead title="Registrations" meta={query.data ? `${query.data.total.toLocaleString("en")} in ${edition.code}` : edition.code} />
+      <PageHead edition title="Registrations" meta={query.data ? `${query.data.total.toLocaleString("en")} in ${edition.code}` : edition.code} />
       <Panel>
         <FilterBar active={filtered} onClear={() => void navigate({ search: { page: 1, page_size: s.page_size } })}>
           <SearchFilter value={s.q} onChange={(q) => set({ q })} placeholder="Name or Registration ID" label="Search registrations" />

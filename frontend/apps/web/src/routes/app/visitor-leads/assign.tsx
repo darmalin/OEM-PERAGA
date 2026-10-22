@@ -16,8 +16,11 @@ import { EmptyState, ErrorState, NoEdition, TableSkeleton } from "@/ui/states";
 export const Route = createFileRoute("/app/visitor-leads/assign")({ component: Assign });
 
 function Assign() {
-  const { edition } = useEdition();
+  const { edition: current, editions } = useEdition();
   const leadIds = useRouterState({ select: (s) => s.location.state.leadIds }) ?? [];
+  const editionId = useRouterState({ select: (s) => s.location.state.editionId });
+  // The leads' own edition when the caller passed it; the list can show several editions.
+  const edition = editions.find((e) => e.id === editionId) ?? current;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<"ONE" | "ROUND_ROBIN">("ONE");

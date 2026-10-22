@@ -26,6 +26,8 @@ declare module "@tanstack/react-router" {
   // Data handed to the next page without putting it in the URL.
   interface HistoryState {
     leadIds?: string[];
+    /** Edition of the leads handed to the assign page (the list can span editions). */
+    editionId?: string;
     activationCode?: string;
   }
 }

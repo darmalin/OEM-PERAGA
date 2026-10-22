@@ -59,3 +59,8 @@ export function useEdition(): EditionState {
 export function useEditionId(): string | null {
   return useEdition().edition?.id ?? null;
 }
+
+/** An edition the user can see, by ID (e.g. the edition of a lead); its timezone and code. */
+export function useEditionById(id: string | null | undefined): Edition | undefined {
+  return useEdition().editions.find((e) => e.id === id);
+}

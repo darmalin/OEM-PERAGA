@@ -30,7 +30,7 @@ function CustomFields() {
   ];
   return (
     <Page>
-      <PageHead title="Custom Fields" meta={`Extra visitor fields for ${edition.code}. They appear on the lead form, in imports, and in exports.`} actions={<Button asChild variant="primary"><Link to="/app/custom-fields/new">Add Custom Field</Link></Button>} />
+      <PageHead edition title="Custom Fields" meta={`Extra visitor fields for ${edition.code}. They appear on the lead form, in imports, and in exports.`} actions={<Button asChild variant="primary"><Link to="/app/custom-fields/new">Add Custom Field</Link></Button>} />
       <Panel>
         <ArrayBody query={q} empty={<EmptyState title="No custom fields in this edition." action={<Button asChild variant="primary"><Link to="/app/custom-fields/new">Add Custom Field</Link></Button>} />}>
           {(rows) => <ListTable caption="Custom fields" rows={[...rows].sort((a, b) => a.sort_order - b.sort_order)} columns={columns} rowKey={(f) => f.id} rowLink={(f) => ({ to: "/app/custom-fields/$fieldId", params: { fieldId: f.id } })} />}

@@ -20,7 +20,7 @@ Spec §4, §5. Reference screen: `DEV_DOCS/WhatsApp Image 2026-10-20 at 14.40.58
 | Person | Website | url | Optional |
 | Person | Business Type | configurable select | Optional |
 | Person | Branch | configurable select | Per edition config |
-| Person | Exhibition Type | configurable select | Per edition config |
+| Person | Exhibition Type | edition | The lead's edition, chosen when the lead is created, read-only after (owner decision 2026-10-22). The old `exhibition_type` option column is kept for existing data and no longer shown. |
 | Person | Source | select | Excel, API, Manual, Website, Telemarketing |
 | Person | Lead Owner | user | Optional until assigned |
 | Person | Product Categories Interested In | multi-select | Optional |
@@ -35,6 +35,9 @@ Note: the screenshot marks Email and Phone both with `*`. The spec rule is "at l
 
 System fields: `id` (UUID), `edition_id`, `telemarketing_status`, `registration_status`, `qr_status`, `last_call_at`, `next_followup_at`, `external_source`, `external_id`, `custom_fields` (JSONB), `created_by`, `updated_by`, `created_at`, `updated_at`, `version` (optimistic lock).
 
+## List across editions
+`GET /visitor-leads` without `edition_id` lists every edition the caller may read, each with its own scope (the Exhibition Type filter set to All). Items carry `edition_id`.
+
 ## Registration ID
 - Format: edition code + 6-digit counter, e.g. `IBTE2027000001`.
 - Generated from a per-edition counter row: `UPDATE edition_counters SET last_value = last_value + 1 WHERE edition_id = :id RETURNING last_value` inside the same transaction. Never `COUNT(*)`.
@@ -43,7 +46,7 @@ System fields: `id` (UUID), `edition_id`, `telemarketing_status`, `registration_
 ## Duplicate rules (§5.2)
 - Normalize: email trimmed + lowercased; phone trimmed + E.164 when country known; empty = `NULL`.
 - Partial unique indexes: `(edition_id, email_normalized) WHERE email_normalized IS NOT NULL`, same for phone.
-- Same email or phone in the same edition: reject with `409` and the conflicting field(s). Other editions: allow. Both empty: `422`.
+- Same email or phone in the same edition: reject with `409` and the conflicting field(s). Other editions: allow. Both empty: `422`. (Confirmed by the owner 2026-10-22: unique per edition.)
 - Update re-checks conflicts against other records.
 
 ## Custom fields (§4.5)

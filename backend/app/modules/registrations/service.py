@@ -54,6 +54,7 @@ from app.modules.registrations.schemas import (
 from app.modules.visitors import service as visitors_service
 from app.modules.visitors.models import VisitorLead
 from app.modules.visitors.rules import LeadSource, QrStatus, RegistrationStatus
+from app.modules.visitors.schemas import LeadCreateIn, LeadOut
 
 logger = structlog.get_logger("registrations")
 
@@ -255,7 +256,43 @@ async def register_lead(
     return reg
 
 
+# Registration channel of a lead registered automatically on creation.
+CHANNEL_FOR_SOURCE = {
+    LeadSource.MANUAL: RegistrationChannel.ADMIN,
+    LeadSource.EXCEL: RegistrationChannel.IMPORT,
+    LeadSource.API: RegistrationChannel.API,
+    LeadSource.WEBSITE: RegistrationChannel.WEBSITE,
+    LeadSource.TELEMARKETING: RegistrationChannel.TELEMARKETING,
+}
+
+
+async def register_new_lead(session: AsyncSession, lead: VisitorLead) -> VisitorRegistration:
+    """Owner decision 2026-10-22: every lead that comes in is registered and can enter the gate,
+    whether or not telemarketing worked it. The QR email is sent later (Resend QR Email)."""
+    return await register_lead(
+        session, lead, CHANNEL_FOR_SOURCE[LeadSource(lead.source)], send_email=False
+    )
+
+
+async def register_backlog(session: AsyncSession, limit: int) -> int:
+    """Register leads created before auto-registration (CLI register-backlog). Archived
+    editions are skipped: their data is read-only."""
+    editions = await exhibitions_service.edition_summaries(session, None)
+    writable = [e.id for e in editions if e.status != EditionStatus.ARCHIVED]
+    leads = await visitors_service.unregistered_leads(session, writable, limit)
+    for lead in leads:
+        await register_new_lead(session, lead)
+    return len(leads)
+
+
 # --- staff endpoints -----------------------------------------------------------------------
+
+
+async def create_lead(session: AsyncSession, ctx: AuthContext, data: LeadCreateIn) -> LeadOut:
+    """POST /visitor-leads: create and register in one transaction."""
+    lead = await visitors_service.create_lead(session, ctx, data)
+    await register_new_lead(session, lead)
+    return await visitors_service.lead_out(session, lead)
 
 
 async def create_registration(

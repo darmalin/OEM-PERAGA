@@ -34,7 +34,7 @@ function NewDevice() {
   const open = (gates.data ?? []).filter((g) => g.is_active);
   return (
     <Page className="max-w-[860px]">
-      <PageHead title="Register Scanner Device" meta="You get a one-time activation code to type on the phone." back={{ to: "/app/devices", label: "Devices" }} />
+      <PageHead edition title="Register Scanner Device" meta="You get a one-time activation code to type on the phone." back={{ to: "/app/devices", label: "Devices" }} />
       <Panel>
         {gates.data && open.length === 0 ? (
           <EmptyState title="There is no open gate yet. Add a gate first." action={<Button asChild variant="primary"><Link to="/app/gates/new">Add Gate</Link></Button>} />
