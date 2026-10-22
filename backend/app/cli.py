@@ -37,6 +37,7 @@ def create_superuser() -> None:
 def register_backlog() -> None:
     """Register every lead created before auto-registration (2026-10-22), in batches.
     No QR email is sent; use Resend QR Email per registration."""
+    import app.models  # noqa: F401  # every mapper, so foreign keys to other modules resolve
     from app.core.db import task_session
     from app.modules.registrations import service
 

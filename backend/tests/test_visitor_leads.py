@@ -385,3 +385,35 @@ async def test_register_backlog_registers_old_leads() -> None:
     async with get_sessionmaker()() as session:
         stored = await session.get(VisitorLead, lead.id)
     assert stored is not None and stored.registration_status == "REGISTERED"
+
+
+async def test_register_backlog_cli_runs_in_a_fresh_process() -> None:
+    """The CLI runs without the app loaded; every model must still be mapped."""
+    import sys
+
+    edition = await make_edition()
+    async with get_sessionmaker()() as session, session.begin():
+        lead = VisitorLead(
+            edition_id=edition.id,
+            registration_code=f"{edition.registration_id_prefix}{uuid.uuid4().int % 10**6:06d}",
+            first_name="Visitor",
+            email="visitor-103@example.test",
+            email_normalized="visitor-103@example.test",
+            source="EXCEL",
+            custom_fields={},
+        )
+        session.add(lead)
+    proc = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-m",
+        "app.cli",
+        "register-backlog",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    out, err = await asyncio.wait_for(proc.communicate(), timeout=120)
+    assert proc.returncode == 0, err.decode()[-2000:]
+    assert out.decode().startswith("registered ")
+    async with get_sessionmaker()() as session:
+        stored = await session.get(VisitorLead, lead.id)
+    assert stored is not None and stored.registration_status == "REGISTERED"
