@@ -10,7 +10,7 @@ import { PERSON_FIELDS, personPayload, PersonFields, type PersonValues } from "@
 import { type Lead, leadQuery } from "@/features/leads/queries";
 import { can, useMe } from "@/lib/auth";
 import { useEditionById } from "@/lib/edition";
-import { isFinal } from "@/lib/transitions";
+import { UNREACHED } from "@/lib/transitions";
 import { handleFormError } from "@/lib/forms";
 import { formatDateTime, fromLocalInput, relative, toLocalInput } from "@/lib/format";
 import { label, options } from "@/lib/labels";
@@ -90,7 +90,7 @@ function LeadDetail() {
                 <Link to="/app/visitor-leads/$leadId/register" params={{ leadId }}><Ticket aria-hidden />Register Visitor</Link>
               </Button>
             ) : null}
-            {can(me, "telemarketing.call") && !isFinal(l.telemarketing_status) ? (
+            {can(me, "telemarketing.call") ? (
               <Button asChild variant="primary">
                 <Link to="/app/visitor-leads/$leadId/log-call" params={{ leadId }}><PhoneCall aria-hidden />Log Call</Link>
               </Button>
@@ -285,6 +285,8 @@ function VerificationTab({ lead, timezone }: { lead: Lead; timezone?: string }) 
   const me = useMe();
   const queryClient = useQueryClient();
   const editable = can(me, "visitor.verify");
+  // Never reached by phone: only Lead Quality means something (FEATURES/07).
+  const unreached = UNREACHED.has(lead.telemarketing_status);
   const initial = (l: Lead): VerificationValues => ({
     validity: l.is_valid_lead ? "VALID" : l.is_invalid ? "INVALID" : "UNDECIDED",
     attend: l.attend ?? "",
@@ -306,9 +308,9 @@ function VerificationTab({ lead, timezone }: { lead: Lead; timezone?: string }) 
             version: lead.version,
             is_valid_lead: v.validity === "VALID",
             is_invalid: v.validity === "INVALID",
-            attend: (v.attend || null) as never,
-            buyer_type: (v.buyer_type || null) as never,
-            b2b_matching: v.b2b_matching,
+            ...(unreached
+              ? {}
+              : { attend: (v.attend || null) as never, buyer_type: (v.buyer_type || null) as never, b2b_matching: v.b2b_matching }),
           },
         }),
       );
@@ -335,9 +337,9 @@ function VerificationTab({ lead, timezone }: { lead: Lead; timezone?: string }) 
             ))}
           </fieldset>
           <div className="flex flex-col gap-4">
-            <Field label="Attend" help="What the visitor said on the call.">
+            <Field label="Attend" help={unreached ? "Only after the visitor answers a call." : "What the visitor said on the call."}>
               {(p) => (
-                <Select {...p} disabled={!editable} {...form.register("attend")}>
+                <Select {...p} disabled={!editable || unreached} {...form.register("attend")}>
                   <option value="">Not set</option>
                   {options("attend").map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </Select>
@@ -345,7 +347,7 @@ function VerificationTab({ lead, timezone }: { lead: Lead; timezone?: string }) 
             </Field>
             <Field label="Type of Buyers">
               {(p) => (
-                <Select {...p} disabled={!editable} {...form.register("buyer_type")}>
+                <Select {...p} disabled={!editable || unreached} {...form.register("buyer_type")}>
                   <option value="">Not set</option>
                   {options("buyer_type").map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </Select>
@@ -356,7 +358,7 @@ function VerificationTab({ lead, timezone }: { lead: Lead; timezone?: string }) 
             <label className="flex h-8 items-center gap-2 text-[14px]">
               <Checkbox
                 checked={form.watch("b2b_matching")}
-                disabled={!editable}
+                disabled={!editable || unreached}
                 onCheckedChange={(v) => form.setValue("b2b_matching", v === true, { shouldDirty: true })}
               />
               B2B Matching
@@ -406,7 +408,7 @@ function CallsTab({ lead, timezone }: { lead: Lead; timezone?: string }) {
         empty={
           <EmptyState
             title="No calls logged yet."
-            action={can(me, "telemarketing.call") && !isFinal(lead.telemarketing_status) ? <Button asChild variant="primary"><Link to="/app/visitor-leads/$leadId/log-call" params={{ leadId: lead.id }}>Log Call</Link></Button> : undefined}
+            action={can(me, "telemarketing.call") ? <Button asChild variant="primary"><Link to="/app/visitor-leads/$leadId/log-call" params={{ leadId: lead.id }}>Log Call</Link></Button> : undefined}
           />
         }
       >

@@ -51,12 +51,15 @@ class FollowupAction(StrEnum):
     CANCEL = "CANCEL"
 
 
-# Kanban moves (owner decision 2026-10-22): the status after one more call, by whether it was
-# answered. RECONTACTED and RETRY_NO_ANSWER are final: no further call is accepted.
+# Telemarketing status after one more call, by whether it was answered (owner decisions
+# 2026-10-22, FEATURES/07). Every call is accepted; some leave the status as it is: a visitor
+# who was reached stays reached, and a lead that keeps not answering stays in RETRY_NO_ANSWER.
 TRANSITIONS: dict[str, dict[bool, str]] = {
     "NEW": {True: "ANSWER", False: "NO_ANSWER"},
-    "ANSWER": {True: "RECONTACTED"},
-    "NO_ANSWER": {True: "ANSWER", False: "RETRY_NO_ANSWER"},
+    "ANSWER": {True: "RECONTACTED", False: "ANSWER"},
+    "NO_ANSWER": {True: "RECONTACTED", False: "RETRY_NO_ANSWER"},
+    "RETRY_NO_ANSWER": {True: "RECONTACTED", False: "RETRY_NO_ANSWER"},
+    "RECONTACTED": {True: "RECONTACTED", False: "RECONTACTED"},
 }
 
 
@@ -66,16 +69,12 @@ def is_answered(call_result: str) -> bool:
 
 
 def next_status(current: str, answered: bool) -> str | None:
-    """Status after one more call, or None when the move is not allowed."""
+    """Status after one more call; None only for a status outside the table."""
     return TRANSITIONS.get(current, {}).get(answered)
 
 
 def telemarketing_status(results: list[str]) -> str:
-    """Derive the status from the attempt history (oldest first) by replaying the transitions.
-
-    History written before the 2026-10-22 rules may contain moves that are no longer allowed;
-    such a step leaves the status unchanged, so the result is defined for every history.
-    """
+    """Derive the status from the attempt history (oldest first) by replaying the table."""
     status = "NEW"
     for result in results:
         status = next_status(status, is_answered(result)) or status
@@ -98,15 +97,35 @@ def quality_flags(quality: LeadQuality) -> dict[str, bool]:
     }
 
 
+# Verification fields that only mean something after a conversation.
+ANSWERED_ONLY_FIELDS = ("attend", "b2b_matching", "buyer_type")
+# Statuses where the visitor has never been reached: only Lead Quality may be set.
+UNREACHED = frozenset({"NO_ANSWER", "RETRY_NO_ANSWER"})
+
+
 def call_verification_errors(
-    answered: bool, quality: LeadQuality, attend: str | None
+    answered: bool,
+    moves: bool,
+    quality: LeadQuality | None,
+    attend: str | None,
+    answered_only_sent: list[str],
 ) -> dict[str, str]:
-    """Verification required with every call: an answered call needs Valid and Attend."""
+    """Verification sent with a call (FEATURES/07).
+
+    Answered: Lead Quality Valid and Attend are required. Not answered: only Lead Quality, and
+    only required when the call moves the lead to another status.
+    """
     errors: dict[str, str] = {}
-    if answered and quality != LeadQuality.VALID:
-        errors["lead_quality"] = "An answered call needs Lead Quality Valid."
-    if answered and attend is None:
-        errors["attend"] = "Attend is required for an answered call."
+    if answered:
+        if quality != LeadQuality.VALID:
+            errors["lead_quality"] = "An answered call needs Lead Quality Valid."
+        if attend is None:
+            errors["attend"] = "Attend is required for an answered call."
+        return errors
+    if moves and quality is None:
+        errors["lead_quality"] = "Lead Quality is required."
+    for field in answered_only_sent:
+        errors[field] = "Not used when the call was not answered."
     return errors
 
 

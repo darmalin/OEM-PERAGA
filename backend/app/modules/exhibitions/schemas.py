@@ -120,6 +120,15 @@ class EditionIn(BaseModel):
     email_reply_to: Email | None = None
     public_registration_open: bool = False
     scanner_cache_ttl_minutes: int | None = Field(default=None, ge=5, le=7 * 24 * 60)
+    remarks: str | None = Field(default=None, max_length=2000)
+    price_regular_from: date | None = None
+    price_regular_to: date | None = None
+    price_surcharge_from: date | None = None
+    price_surcharge_to: date | None = None
+    price_onsite_from: date | None = None
+    price_onsite_to: date | None = None
+    order_expired_on: date | None = None
+    catalog_expired_on: date | None = None
 
     @model_validator(mode="after")
     def _dates(self) -> Self:
@@ -143,6 +152,15 @@ class EditionUpdateIn(BaseModel):
     email_reply_to: Email | None = None
     public_registration_open: bool | None = None
     scanner_cache_ttl_minutes: int | None = Field(default=None, ge=5, le=7 * 24 * 60)
+    remarks: str | None = Field(default=None, max_length=2000)
+    price_regular_from: date | None = None
+    price_regular_to: date | None = None
+    price_surcharge_from: date | None = None
+    price_surcharge_to: date | None = None
+    price_onsite_from: date | None = None
+    price_onsite_to: date | None = None
+    order_expired_on: date | None = None
+    catalog_expired_on: date | None = None
 
 
 class EditionOut(BaseModel):
@@ -167,6 +185,15 @@ class EditionOut(BaseModel):
     email_reply_to: str | None
     public_registration_open: bool
     scanner_cache_ttl_minutes: int | None
+    remarks: str | None
+    price_regular_from: date | None
+    price_regular_to: date | None
+    price_surcharge_from: date | None
+    price_surcharge_to: date | None
+    price_onsite_from: date | None
+    price_onsite_to: date | None
+    order_expired_on: date | None
+    catalog_expired_on: date | None
     created_at: datetime
     updated_at: datetime
     version: int

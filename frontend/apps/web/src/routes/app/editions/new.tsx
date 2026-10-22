@@ -4,7 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { EditionFields, editionPayload, type EditionValues } from "@/features/edition-form";
+import { EditionFields, editionPayload, type EditionValues, EXHIBITOR_FIELDS, exhibitorValues } from "@/features/edition-form";
 import { meQuery } from "@/lib/auth";
 import { handleFormError } from "@/lib/forms";
 import { notifySuccess } from "@/lib/notify";
@@ -24,7 +24,7 @@ function NewEdition() {
     defaultValues: {
       exhibition_id: exhibition_id ?? "", year: String(new Date().getFullYear() + 1), name: "", start_date: "", end_date: "", venue_id: "", country: "",
       city: "", timezone: "Asia/Jakarta", default_currency: "IDR", status: "DRAFT", email_sender_name: "", email_reply_to: "",
-      public_registration_open: false, scanner_cache_ttl_minutes: "",
+      public_registration_open: false, scanner_cache_ttl_minutes: "", ...exhibitorValues(),
     },
   });
   const onSubmit = form.handleSubmit(async (v) => {
@@ -36,7 +36,7 @@ function NewEdition() {
       notifySuccess("Edition added", `${ed.code} starts as Draft.`);
       await navigate({ to: "/app/editions/$editionId", params: { editionId: ed.id } });
     } catch (e) {
-      handleFormError(e, form.setError, ["exhibition_id", "year", "name", "start_date", "end_date", "timezone", "default_currency", "email_reply_to", "scanner_cache_ttl_minutes"]);
+      handleFormError(e, form.setError, ["exhibition_id", "year", "name", "start_date", "end_date", "timezone", "default_currency", "email_reply_to", "scanner_cache_ttl_minutes", ...EXHIBITOR_FIELDS]);
     }
   });
   return (

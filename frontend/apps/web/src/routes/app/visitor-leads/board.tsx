@@ -61,14 +61,14 @@ function LeadBoard() {
   if (editions.length === 0) return <Page><NoEdition /></Page>;
   const filtered = Boolean(s.q || s.edition || s.mine);
   const canMove = can(me, "telemarketing.call");
-  const onMove = (leadId: string, to: TmStatus) =>
+  const onMove = (leadId: string, to?: TmStatus) =>
     void navigate({ to: "/app/visitor-leads/$leadId/log-call", params: { leadId }, search: { to, from: "board" } });
 
   return (
     <Page className="max-w-none">
       <PageHead
         title="Visitor Leads"
-        meta={canMove ? "Drag a card to the next status, or use its Move menu. Each move logs a call with its verification." : "Leads by telemarketing status."}
+        meta={canMove ? "Drag a card to the next status, or use its menu. Each move logs a call with its verification; calls that keep the status go through Log Call." : "Leads by telemarketing status."}
         actions={
           <>
             <LeadViewSwitch current="board" />

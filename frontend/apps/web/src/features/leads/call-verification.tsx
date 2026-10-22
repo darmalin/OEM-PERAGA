@@ -20,16 +20,18 @@ export interface MoveValues {
 }
 
 /**
- * Verification sent with every move (owner decision 2026-10-22). Answered: Lead Quality must be
- * Valid and Attend is required. Not answered: any Lead Quality, Attend optional.
+ * Verification sent with a call (FEATURES/07). Answered: Lead Quality Valid and Attend required.
+ * Not answered: Lead Quality only (required when the lead moves); the rest is disabled.
  */
 export function CallVerificationFields({
   answered,
+  qualityRequired,
   register,
   control,
   errors,
 }: {
   answered: boolean;
+  qualityRequired: boolean;
   register: UseFormRegister<MoveValues>;
   control: Control<MoveValues>;
   errors: FieldErrors<MoveValues>;
@@ -39,7 +41,7 @@ export function CallVerificationFields({
       <FieldGrid>
         <fieldset className="flex flex-col gap-2" aria-describedby={errors.lead_quality ? "lead-quality-error" : undefined}>
           <legend className="mb-1.5 text-[13px] text-label">
-            Lead Quality<span className="text-required" aria-hidden> *</span>
+            Lead Quality{qualityRequired ? <span className="text-required" aria-hidden> *</span> : null}
           </legend>
           {(["VALID", "INVALID", "UNDECIDED"] as const).map((v) => (
             <label key={v} className="flex items-center gap-2 text-[14px] has-[:disabled]:text-label">
@@ -50,19 +52,21 @@ export function CallVerificationFields({
                 className="size-4 accent-[var(--primary)]"
                 {...register("lead_quality", {
                   validate: (q) =>
-                    !q ? "Choose the Lead Quality." : answered && q !== "VALID" ? "An answered call needs Valid." : true,
+                    !q && qualityRequired ? "Choose the Lead Quality." : answered && q && q !== "VALID" ? "An answered call needs Valid." : true,
                 })}
               />
               {label("validity", v)}
             </label>
           ))}
-          <p className="text-[12px] text-label">Whether the phone or email reached the visitor.</p>
+          <p className="text-[12px] text-label">
+            Whether the phone or email reached the visitor.{qualityRequired ? "" : " Optional: the status stays as it is."}
+          </p>
           {errors.lead_quality ? <p id="lead-quality-error" className="text-[12px] text-required">{errors.lead_quality.message}</p> : null}
         </fieldset>
         <div className="flex flex-col gap-4">
-          <Field label="Attend" required={answered} error={errors.attend?.message} help={answered ? undefined : "Optional when the call was not answered."}>
+          <Field label="Attend" required={answered} error={errors.attend?.message} help={answered ? undefined : "Only after the visitor answers."}>
             {(p) => (
-              <Select {...p} {...register("attend", { validate: (a) => (answered && !a ? "Attend is required for an answered call." : true) })}>
+              <Select {...p} disabled={!answered} {...register("attend", { validate: (a) => (answered && !a ? "Attend is required for an answered call." : true) })}>
                 <option value="">Not set</option>
                 {options("attend").map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </Select>
@@ -70,7 +74,7 @@ export function CallVerificationFields({
           </Field>
           <Field label="Type of Buyers">
             {(p) => (
-              <Select {...p} {...register("buyer_type")}>
+              <Select {...p} disabled={!answered} {...register("buyer_type")}>
                 <option value="">Not set</option>
                 {options("buyer_type").map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </Select>
@@ -81,8 +85,8 @@ export function CallVerificationFields({
           control={control}
           name="b2b_matching"
           render={({ field }) => (
-            <label className="flex h-8 items-center gap-2 text-[14px]">
-              <Checkbox checked={field.value === true} onCheckedChange={(v) => field.onChange(v === true)} />
+            <label className="flex h-8 items-center gap-2 text-[14px] has-[:disabled]:text-label">
+              <Checkbox checked={field.value === true} disabled={!answered} onCheckedChange={(v) => field.onChange(v === true)} />
               B2B Matching
             </label>
           )}

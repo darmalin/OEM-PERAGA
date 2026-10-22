@@ -1,8 +1,10 @@
 """Pure edition rules: status lifecycle and reference validation."""
 
 import re
+from collections.abc import Mapping
 from enum import StrEnum
 from functools import lru_cache
+from typing import Any
 from zoneinfo import available_timezones
 
 import phonenumbers
@@ -25,6 +27,30 @@ _TRANSITIONS: dict[EditionStatus, set[EditionStatus]] = {
 
 CODE_RE = re.compile(r"^[A-Z0-9]{2,20}$")
 CURRENCY_RE = re.compile(r"^[A-Z]{3}$")
+
+
+# Exhibitor dates (owner request 2026-10-22, from the old system's Exhibition form). Stored and
+# shown only; the Exhibitor Portal phase (FEATURES/11) will give them meaning and fuller rules.
+PRICE_PERIODS = (
+    ("price_regular_from", "price_regular_to"),
+    ("price_surcharge_from", "price_surcharge_to"),
+    ("price_onsite_from", "price_onsite_to"),
+)
+EXHIBITOR_DATE_FIELDS = (
+    *(f for pair in PRICE_PERIODS for f in pair),
+    "order_expired_on",
+    "catalog_expired_on",
+)
+
+
+def period_errors(values: Mapping[str, Any]) -> dict[str, str]:
+    """Only checked now: a price period does not end before it starts."""
+    errors: dict[str, str] = {}
+    for start, end in PRICE_PERIODS:
+        a, b = values.get(start), values.get(end)
+        if a is not None and b is not None and b < a:
+            errors[end] = "Must not be before the start of the period."
+    return errors
 
 
 def can_transition(current: EditionStatus, target: EditionStatus) -> bool:

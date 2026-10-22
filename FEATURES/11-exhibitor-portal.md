@@ -8,6 +8,10 @@ between exhibitors and visitors. Nothing here is built until the decisions below
 The web app reserves the URL prefix `/exhibitor` for this panel. No navigation points to it
 until it exists (antislop R-24).
 
+## Already stored (2026-10-22)
+
+The edition already holds the old Exhibition form's remarks, price periods (Regular, Surcharge, Onsite), Order Expired, and Catalog Expired, display only. See FEATURES/02 "Remarks and exhibitor dates" for the field list and the open rules.
+
 ## Decisions needed (owner / business)
 
 | # | Question | Why it matters |

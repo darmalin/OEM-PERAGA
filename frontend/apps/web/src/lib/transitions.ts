@@ -3,29 +3,35 @@ import type { Schemas } from "@ems/api";
 export type TmStatus = Schemas["LeadOut"]["telemarketing_status"];
 
 /**
- * Kanban moves (owner decision 2026-10-22), mirrored from backend telemarketing/rules.py for the
- * UI only: the API refuses any other move. RECONTACTED and RETRY_NO_ANSWER are final.
+ * Status after one more call (FEATURES/07, owner decisions 2026-10-22), mirrored from backend
+ * telemarketing/rules.py for the UI only. Every call is accepted; some leave the status as is.
  */
-const TRANSITIONS: Partial<Record<TmStatus, Partial<Record<"answered" | "unanswered", TmStatus>>>> = {
+const TRANSITIONS: Record<TmStatus, { answered: TmStatus; unanswered: TmStatus }> = {
   NEW: { answered: "ANSWER", unanswered: "NO_ANSWER" },
-  ANSWER: { answered: "RECONTACTED" },
-  NO_ANSWER: { answered: "ANSWER", unanswered: "RETRY_NO_ANSWER" },
+  ANSWER: { answered: "RECONTACTED", unanswered: "ANSWER" },
+  NO_ANSWER: { answered: "RECONTACTED", unanswered: "RETRY_NO_ANSWER" },
+  RETRY_NO_ANSWER: { answered: "RECONTACTED", unanswered: "RETRY_NO_ANSWER" },
+  RECONTACTED: { answered: "RECONTACTED", unanswered: "RECONTACTED" },
 };
+
+/** Never reached: verification takes Lead Quality only (Attend, B2B, buyer type disabled). */
+export const UNREACHED: ReadonlySet<TmStatus> = new Set(["NO_ANSWER", "RETRY_NO_ANSWER"]);
 
 export const BOARD_COLUMNS: TmStatus[] = ["NEW", "ANSWER", "NO_ANSWER", "RECONTACTED", "RETRY_NO_ANSWER"];
 
-export function nextStatus(current: TmStatus, answered: boolean): TmStatus | undefined {
-  return TRANSITIONS[current]?.[answered ? "answered" : "unanswered"];
+export function nextStatus(current: TmStatus, answered: boolean): TmStatus {
+  return TRANSITIONS[current][answered ? "answered" : "unanswered"];
 }
 
-/** Columns a card in `current` may move to, with whether the call was answered. */
-export function moves(current: TmStatus): { to: TmStatus; answered: boolean }[] {
-  return ([true, false] as const).flatMap((answered) => {
+/** Both outcomes of a call on a lead in `current`; `moves` is false when the status stays. */
+export function outcomes(current: TmStatus): { answered: boolean; to: TmStatus; moves: boolean }[] {
+  return ([true, false] as const).map((answered) => {
     const to = nextStatus(current, answered);
-    return to ? [{ to, answered }] : [];
+    return { answered, to, moves: to !== current };
   });
 }
 
-export function isFinal(status: TmStatus): boolean {
-  return moves(status).length === 0;
+/** Columns a card in `current` can be moved to on the board. */
+export function moves(current: TmStatus): { to: TmStatus; answered: boolean }[] {
+  return outcomes(current).filter((o) => o.moves);
 }

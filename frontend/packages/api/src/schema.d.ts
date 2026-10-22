@@ -1690,7 +1690,7 @@ export interface components {
         CallIn: {
             /** Call Result */
             call_result: string;
-            verification: components["schemas"]["CallVerificationIn"];
+            verification?: components["schemas"]["CallVerificationIn"] | null;
             /** Called At */
             called_at?: string | null;
             /** Duration Seconds */
@@ -1750,10 +1750,10 @@ export interface components {
         };
         /**
          * CallVerificationIn
-         * @description Verification sent with every call (kanban move). Answered: Valid + Attend required.
+         * @description Verification sent with a call. Rules: telemarketing.rules.call_verification_errors.
          */
         CallVerificationIn: {
-            lead_quality: components["schemas"]["LeadQuality"];
+            lead_quality?: components["schemas"]["LeadQuality"] | null;
             attend?: components["schemas"]["Attend"] | null;
             /** B2B Matching */
             b2b_matching?: boolean | null;
@@ -2102,6 +2102,24 @@ export interface components {
             public_registration_open: boolean;
             /** Scanner Cache Ttl Minutes */
             scanner_cache_ttl_minutes?: number | null;
+            /** Remarks */
+            remarks?: string | null;
+            /** Price Regular From */
+            price_regular_from?: string | null;
+            /** Price Regular To */
+            price_regular_to?: string | null;
+            /** Price Surcharge From */
+            price_surcharge_from?: string | null;
+            /** Price Surcharge To */
+            price_surcharge_to?: string | null;
+            /** Price Onsite From */
+            price_onsite_from?: string | null;
+            /** Price Onsite To */
+            price_onsite_to?: string | null;
+            /** Order Expired On */
+            order_expired_on?: string | null;
+            /** Catalog Expired On */
+            catalog_expired_on?: string | null;
         };
         /** EditionOut */
         EditionOut: {
@@ -2154,6 +2172,24 @@ export interface components {
             public_registration_open: boolean;
             /** Scanner Cache Ttl Minutes */
             scanner_cache_ttl_minutes: number | null;
+            /** Remarks */
+            remarks: string | null;
+            /** Price Regular From */
+            price_regular_from: string | null;
+            /** Price Regular To */
+            price_regular_to: string | null;
+            /** Price Surcharge From */
+            price_surcharge_from: string | null;
+            /** Price Surcharge To */
+            price_surcharge_to: string | null;
+            /** Price Onsite From */
+            price_onsite_from: string | null;
+            /** Price Onsite To */
+            price_onsite_to: string | null;
+            /** Order Expired On */
+            order_expired_on: string | null;
+            /** Catalog Expired On */
+            catalog_expired_on: string | null;
             /**
              * Created At
              * Format: date-time
@@ -2201,6 +2237,24 @@ export interface components {
             public_registration_open?: boolean | null;
             /** Scanner Cache Ttl Minutes */
             scanner_cache_ttl_minutes?: number | null;
+            /** Remarks */
+            remarks?: string | null;
+            /** Price Regular From */
+            price_regular_from?: string | null;
+            /** Price Regular To */
+            price_regular_to?: string | null;
+            /** Price Surcharge From */
+            price_surcharge_from?: string | null;
+            /** Price Surcharge To */
+            price_surcharge_to?: string | null;
+            /** Price Onsite From */
+            price_onsite_from?: string | null;
+            /** Price Onsite To */
+            price_onsite_to?: string | null;
+            /** Order Expired On */
+            order_expired_on?: string | null;
+            /** Catalog Expired On */
+            catalog_expired_on?: string | null;
         };
         /**
          * EmailEvent

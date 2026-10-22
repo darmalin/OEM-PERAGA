@@ -17,7 +17,13 @@ from app.core.errors import (
 from app.core.pagination import Page
 from app.modules.exhibitions import repository as repo
 from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition, Venue
-from app.modules.exhibitions.rules import EditionStatus, can_transition, default_edition_code
+from app.modules.exhibitions.rules import (
+    EXHIBITOR_DATE_FIELDS,
+    EditionStatus,
+    can_transition,
+    default_edition_code,
+    period_errors,
+)
 from app.modules.exhibitions.schemas import (
     EditionIn,
     EditionListParams,
@@ -52,6 +58,8 @@ _EDITION_FIELDS = (
     "email_reply_to",
     "public_registration_open",
     "scanner_cache_ttl_minutes",
+    "remarks",
+    *EXHIBITOR_DATE_FIELDS,
 )
 
 
@@ -251,6 +259,8 @@ async def create_edition(session: AsyncSession, ctx: AuthContext, data: EditionI
     if ex_code is None:
         raise ValidationFailed(fields={"exhibition_id": "Unknown exhibition."})
     await _check_venue(session, data.venue_id)
+    if errors := period_errors(data.model_dump()):
+        raise ValidationFailed(fields=errors)
     code = data.code or default_edition_code(ex_code, data.year)
     values = data.model_dump(exclude={"code", "name", "registration_id_prefix"})
     edition = Edition(
@@ -316,6 +326,9 @@ async def update_edition(
     end = changes.get("end_date", edition.end_date)
     if end < start:
         raise ValidationFailed(fields={"end_date": "Must not be before start date."})
+    merged = {f: changes.get(f, getattr(edition, f)) for f in EXHIBITOR_DATE_FIELDS}
+    if errors := period_errors(merged):
+        raise ValidationFailed(fields=errors)
     before = audit.snapshot(edition, _EDITION_FIELDS)
     _apply(edition, changes)
     edition.updated_by = current_actor_id()

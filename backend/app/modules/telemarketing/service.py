@@ -24,6 +24,8 @@ from app.modules.telemarketing.models import (
     VisitorVerification,
 )
 from app.modules.telemarketing.rules import (
+    ANSWERED_ONLY_FIELDS,
+    UNREACHED,
     AssignmentMethod,
     FollowupAction,
     FollowupStatus,
@@ -47,6 +49,7 @@ from app.modules.telemarketing.schemas import (
     CallIn,
     CallLoggedOut,
     CallOut,
+    CallVerificationIn,
     FollowupChangeOut,
     FollowupIn,
     FollowupListParams,
@@ -373,16 +376,24 @@ async def log_call(
     scope = await visitors_service.scope_for_lead(session, ctx, lead_id)
     lead = await visitors_service.get_lead_entity(session, scope, lead_id, for_update=True)
     await exhibitions_service.ensure_writable(session, lead.edition_id)
-    # Checked under the lead lock, so two agents cannot both move the same card.
+    # Decided under the lead lock, so two agents logging at once see each other's call.
     answered = is_answered(data.call_result)
-    if next_status(lead.telemarketing_status, answered) is None:
+    target = next_status(lead.telemarketing_status, answered)
+    if target is None:
         raise Conflict(
-            f"A lead in {lead.telemarketing_status} cannot take "
-            f"{'an answered' if answered else 'an unanswered'} call.",
+            f"A lead in {lead.telemarketing_status} cannot take a call.",
             code="STATUS_TRANSITION_NOT_ALLOWED",
         )
-    v = data.verification
-    errors = call_verification_errors(answered, v.lead_quality, v.attend)
+    moves = target != lead.telemarketing_status
+    v = data.verification or CallVerificationIn()
+    sent = v.model_dump(exclude_none=True)
+    errors = call_verification_errors(
+        answered,
+        moves,
+        v.lead_quality,
+        v.attend,
+        [f for f in ANSWERED_ONLY_FIELDS if f in sent],
+    )
     if errors:
         raise ValidationFailed(fields=errors)
     called_at = data.called_at or datetime.now(UTC)
@@ -433,11 +444,14 @@ async def log_call(
         "next_followup_at": await repo.earliest_open_followup(session, lead.id),
     }
     lead = await visitors_service.apply_changes(session, lead, summary, action="call")
-    verification = {
-        **quality_flags(v.lead_quality),
-        **v.model_dump(exclude={"lead_quality"}, exclude_none=True),
-    }
-    lead = await _record_verification(session, ctx, lead, verification)
+    verification: dict[str, object] = {k: val for k, val in sent.items() if k != "lead_quality"}
+    if v.lead_quality is not None:
+        verification.update(quality_flags(v.lead_quality))
+    if moves and not answered:
+        # Moved to a status where the visitor was never reached: nothing to say about attending.
+        verification.update(attend=None, b2b_matching=False, buyer_type=None)
+    if verification:
+        lead = await _record_verification(session, ctx, lead, verification)
     return CallLoggedOut(
         call=CallOut.model_validate(call),
         telemarketing_status=lead.telemarketing_status,
@@ -464,6 +478,13 @@ async def update_verification(
     check_version(lead.version, data.version)
     await exhibitions_service.ensure_writable(session, lead.edition_id)
     changes = data.model_dump(exclude_unset=True, exclude={"version"})
+    if lead.telemarketing_status in UNREACHED:
+        blocked = [f for f in ANSWERED_ONLY_FIELDS if changes.get(f) not in (None, False)]
+        if blocked:
+            raise ValidationFailed(
+                "This visitor has not been reached yet; only Lead Quality can be set.",
+                fields=dict.fromkeys(blocked, "Not used until the visitor answers a call."),
+            )
     if changes.get("is_valid_lead") and changes.get("is_invalid"):
         raise ValidationFailed(
             fields={"is_valid_lead": "Valid Lead and Invalid cannot both be set."}

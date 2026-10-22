@@ -4,19 +4,30 @@ Spec §6.2 to §6.5. Open decisions D3, D4, D7.
 
 ## Telemarketing status (derived, never typed in)
 
-Owner decision 2026-10-22: the status is a kanban with fixed moves. Each move is one call.
+Owner decisions 2026-10-22 (second round, replaces the first table of the same day). Every call is
+accepted; some leave the status as it is.
 
 | From | Answered call | Not answered call |
 |---|---|---|
 | `NEW` | `ANSWER` | `NO_ANSWER` |
-| `ANSWER` | `RECONTACTED` | not allowed |
-| `NO_ANSWER` | `ANSWER` | `RETRY_NO_ANSWER` |
-| `RECONTACTED` | final | final |
-| `RETRY_NO_ANSWER` | final | final |
+| `ANSWER` | `RECONTACTED` | stays `ANSWER` |
+| `NO_ANSWER` | `RECONTACTED` | `RETRY_NO_ANSWER` |
+| `RETRY_NO_ANSWER` | `RECONTACTED` | stays `RETRY_NO_ANSWER` |
+| `RECONTACTED` | stays `RECONTACTED` | stays `RECONTACTED` |
 
-- Stored on the lead, recomputed from `visitor_call_activities` by replaying the moves (`telemarketing.rules.telemarketing_status`). A move refused by the rules writes nothing and answers `409 STATUS_TRANSITION_NOT_ALLOWED`, checked under the lead row lock.
-- History written before 2026-10-22 may hold moves that are no longer allowed; replaying skips them. Migration `0012` recomputed every stored status.
-- Board: `/app/visitor-leads/board` (drag a card, or its Move menu). Both open the Log Call page with the target column.
+Scenarios (owner-validated):
+1. Answered first: New → Answer.
+2. Not answered, then answered: New → No Answer → Recontacted.
+3. Two misses, then answered: New → No Answer → Retry No Answer → Recontacted.
+4. Answered, then not answered: New → Answer; the second call is logged and the lead stays Answer with its verification. Answered later: Recontacted.
+5. Never answered: New → No Answer → Retry No Answer, and every later miss is logged while the status stays.
+6. Recontacted and called again: stays Recontacted; an answered call may update the verification.
+
+- Stored on the lead, recomputed from `visitor_call_activities` by replaying the table (`telemarketing.rules.telemarketing_status`), under the lead row lock. Migrations `0012` (first table) and `0014` (this table) recomputed every stored status; leads moved No Answer → Answer under the first table became Recontacted.
+- A visitor who was reached stays reached; a miss never moves a lead back.
+- Board: `/app/visitor-leads/board`. A card moves by drag or its menu (both open Log Call with the target); the menu's Log Call covers calls that keep the status.
+
+Change log: first table (2026-10-22, morning) had Answer → only Recontacted, No Answer → Answer, and Recontacted / Retry No Answer final with no further calls.
 
 ## Call activity
 `visitor_call_activities`: `id`, `visitor_lead_id`, `agent_id`, `attempt_number`, `call_result`, `called_at`, `duration_seconds`, `notes`, `next_followup_at`, `created_at`. No VoIP; agents log manually. `attempt_number` assigned under row lock on the lead.
@@ -26,11 +37,12 @@ Call results: `ANSWER`, `NO_ANSWER` by default; extra values only through config
 ## Verification
 - Fields: Lead Quality (Valid / Invalid / Undecided, stored as the two mutually exclusive flags `is_valid_lead` / `is_invalid`), Attend (5 fixed values), B2B Matching, Type of Buyers (B-Side / C-Side).
 - Lead Quality says whether the phone or email reached a real visitor.
-- Every call (every kanban move) carries `verification` (owner decision 2026-10-22):
-  - Answered (to `ANSWER` or `RECONTACTED`): Lead Quality must be Valid, Attend is required.
-  - Not answered (to `NO_ANSWER` or `RETRY_NO_ANSWER`): any Lead Quality, Attend optional.
-- The Verification tab still allows a partial save between calls (`PATCH /visitor-leads/{id}/verification`).
-- `visitor_verifications` keeps history rows; lead holds the current values.
+- Sent with a call as `verification` (owner decisions 2026-10-22), rules in `telemarketing.rules.call_verification_errors`:
+  - Answered: Lead Quality must be Valid and Attend is required; B2B Matching and Type of Buyers optional.
+  - Not answered and the lead moves (to No Answer or Retry No Answer): Lead Quality required. Attend, B2B Matching, and Type of Buyers are not accepted (422) and are cleared on the lead.
+  - Not answered and the status stays (scenarios 4 to 6): verification optional; the stored values are kept.
+- Verification tab (`PATCH /visitor-leads/{id}/verification`): partial save between calls. While the lead is No Answer or Retry No Answer (never reached), only Lead Quality is accepted.
+- `visitor_verifications` keeps history rows (one per save or call that carried verification); the lead holds the current values.
 - `Hang Up Immediately` in Attend does not mean "not attending"; the call result is recorded separately.
 
 ## Follow-up

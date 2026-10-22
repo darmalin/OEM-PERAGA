@@ -93,11 +93,11 @@ class AgentParams(BaseModel):
 
 
 class CallVerificationIn(BaseModel):
-    """Verification sent with every call (kanban move). Answered: Valid + Attend required."""
+    """Verification sent with a call. Rules: telemarketing.rules.call_verification_errors."""
 
     model_config = ConfigDict(extra="forbid")
 
-    lead_quality: LeadQuality
+    lead_quality: LeadQuality | None = None
     attend: Attend | None = None
     b2b_matching: bool | None = None
     buyer_type: BuyerType | None = None
@@ -107,7 +107,7 @@ class CallIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     call_result: str = Field(min_length=1, max_length=30)
-    verification: CallVerificationIn
+    verification: CallVerificationIn | None = None
     called_at: datetime | None = None
     duration_seconds: int | None = Field(default=None, ge=0, le=24 * 3600)
     notes: str | None = Field(default=None, max_length=5000)

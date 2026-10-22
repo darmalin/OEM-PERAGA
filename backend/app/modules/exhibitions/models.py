@@ -72,6 +72,17 @@ class Edition(UUIDPk, Timestamps, Versioned, Base):
     public_registration_open: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Gate settings: offline cache lifetime override (D6), NULL = system default.
     scanner_cache_ttl_minutes: Mapped[int | None] = mapped_column(Integer)
+    # Free text shown with the edition (old system "Remarks").
+    remarks: Mapped[str | None] = mapped_column(Text)
+    # Exhibitor dates: display only until the Exhibitor Portal phase (rules.EXHIBITOR_DATE_FIELDS).
+    price_regular_from: Mapped[date | None] = mapped_column(Date)
+    price_regular_to: Mapped[date | None] = mapped_column(Date)
+    price_surcharge_from: Mapped[date | None] = mapped_column(Date)
+    price_surcharge_to: Mapped[date | None] = mapped_column(Date)
+    price_onsite_from: Mapped[date | None] = mapped_column(Date)
+    price_onsite_to: Mapped[date | None] = mapped_column(Date)
+    order_expired_on: Mapped[date | None] = mapped_column(Date)
+    catalog_expired_on: Mapped[date | None] = mapped_column(Date)
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 

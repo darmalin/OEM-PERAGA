@@ -1,7 +1,7 @@
 import { api, ApiError, call } from "@ems/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -11,14 +11,14 @@ import { useEditionById } from "@/lib/edition";
 import { fromLocalInput, toLocalInput } from "@/lib/format";
 import { label } from "@/lib/labels";
 import { notifyError, notifySuccess } from "@/lib/notify";
-import { moves, type TmStatus } from "@/lib/transitions";
+import { outcomes, type TmStatus } from "@/lib/transitions";
 import { Button } from "@/ui/button";
 import { Field, FieldGrid, Section } from "@/ui/field";
 import { Input, Select, Textarea } from "@/ui/input";
 import { FormActions, Page, PageHead, Panel } from "@/ui/page";
-import { EmptyState, ErrorState, FormSkeleton } from "@/ui/states";
+import { ErrorState, FormSkeleton } from "@/ui/states";
 
-/** `to`: the column a card was dropped on; `from`: return to the board after saving. */
+/** `to`: the column a card was dropped on (preselects that outcome); `from`: return to the board. */
 export const Route = createFileRoute("/app/visitor-leads/$leadId/log-call")({
   validateSearch: z.object({ to: z.string().optional(), from: z.enum(["board"]).optional() }),
   component: LogCall,
@@ -41,13 +41,30 @@ function LogCall() {
   });
   const form = useForm<MoveValues>({
     defaultValues: {
-      target: to ?? "", call_result: "", called_at: toLocalInput(new Date().toISOString(), tz), duration_minutes: "",
+      target: "", call_result: "", called_at: toLocalInput(new Date().toISOString(), tz), duration_minutes: "",
       notes: "", next_followup_at: "", lead_quality: "", attend: "", buyer_type: "", b2b_matching: false,
     },
   });
-  const allowed = lead.data ? moves(lead.data.telemarketing_status) : [];
-  const move = allowed.find((m) => m.to === form.watch("target"));
+  const status = lead.data?.telemarketing_status;
+  const choices = useMemo(() => (status ? outcomes(status) : []), [status]);
+  const move = choices.find((c) => (c.answered ? "answered" : "unanswered") === form.watch("target"));
   const answered = move?.answered ?? false;
+
+  // Show the stored Attend, buyer type, and B2B: kept on a call that is not answered, and the
+  // starting point when it is. Lead Quality stays empty so it is always a conscious choice.
+  const stored = lead.data;
+  useEffect(() => {
+    if (!stored) return;
+    form.setValue("attend", stored.attend ?? "");
+    form.setValue("buyer_type", stored.buyer_type ?? "");
+    form.setValue("b2b_matching", stored.b2b_matching);
+  }, [stored, form]);
+
+  // A card dropped on a column preselects the outcome that leads there.
+  useEffect(() => {
+    const dropped = choices.find((c) => c.moves && c.to === to);
+    if (dropped && !form.getValues("target")) form.setValue("target", dropped.answered ? "answered" : "unanswered");
+  }, [choices, to, form]);
   const unansweredResults = (results.data ?? []).filter((r) => r !== "ANSWER");
 
   // An answered call is always Valid; preselect it so the agent only picks Attend.
@@ -60,7 +77,13 @@ function LogCall() {
     : ({ to: "/app/visitor-leads/$leadId", params: { leadId } } as const);
 
   const onSubmit = form.handleSubmit(async (v) => {
-    if (!move) return form.setError("target", { message: "Choose where the lead moves." });
+    if (!move) return form.setError("target", { message: "Choose whether the call was answered." });
+    // Not answered: Lead Quality only, and none at all when the status stays and it is empty.
+    const verification = move.answered
+      ? { lead_quality: v.lead_quality as "VALID", attend: (v.attend || null) as never, buyer_type: (v.buyer_type || null) as never, b2b_matching: v.b2b_matching }
+      : v.lead_quality
+        ? { lead_quality: v.lead_quality }
+        : undefined;
     try {
       const res = await call(
         api.POST("/api/v1/visitor-leads/{lead_id}/calls", {
@@ -71,18 +94,15 @@ function LogCall() {
             duration_seconds: v.duration_minutes ? Math.round(Number(v.duration_minutes) * 60) : null,
             notes: v.notes.trim() || null,
             next_followup_at: fromLocalInput(v.next_followup_at, tz),
-            verification: {
-              lead_quality: v.lead_quality as "VALID",
-              attend: (v.attend || null) as never,
-              buyer_type: (v.buyer_type || null) as never,
-              b2b_matching: v.b2b_matching,
-            },
+            verification,
           },
         }),
       );
       await queryClient.invalidateQueries({ predicate: (q) => ["lead", "leads", "calls", "verifications", "my-queue"].includes(String(q.queryKey[0])) });
       notifySuccess(
-        `${lead.data?.first_name ?? "Lead"} moved to ${label("telemarketing_status", res.telemarketing_status)}`,
+        move.moves
+          ? `${lead.data?.first_name ?? "Lead"} moved to ${label("telemarketing_status", res.telemarketing_status)}`
+          : `Call saved, ${lead.data?.first_name ?? "lead"} stays in ${label("telemarketing_status", res.telemarketing_status)}`,
         `Call #${res.call.attempt_number} saved${res.followup_id ? ", follow-up scheduled" : ""}.`,
       );
       await navigate(backTo);
@@ -112,15 +132,10 @@ function LogCall() {
           <FormSkeleton />
         ) : lead.isError || results.isError ? (
           <ErrorState error={lead.error ?? results.error} />
-        ) : allowed.length === 0 ? (
-          <EmptyState
-            title={`${label("telemarketing_status", lead.data.telemarketing_status)} is a final status. No more calls can be logged for this lead.`}
-            action={<Button asChild><Link {...backTo}>Back</Link></Button>}
-          />
         ) : (
           <form onSubmit={onSubmit} noValidate>
             <Section title="Call">
-              <MoveChoice current={lead.data.telemarketing_status} allowed={allowed} register={form.register} error={form.formState.errors.target?.message} />
+              <OutcomeChoice current={lead.data.telemarketing_status} choices={choices} register={form.register} error={form.formState.errors.target?.message} />
               <FieldGrid>
                 {move && !move.answered && unansweredResults.length > 1 ? (
                   <Field label="Call Result" help="Why the call was not answered.">
@@ -145,10 +160,12 @@ function LogCall() {
                 </Field>
               </FieldGrid>
             </Section>
-            <CallVerificationFields answered={answered} register={form.register} control={form.control} errors={form.formState.errors} />
+            {move ? (
+              <CallVerificationFields answered={answered} qualityRequired={answered || move.moves} register={form.register} control={form.control} errors={form.formState.errors} />
+            ) : null}
             <FormActions>
               <Button asChild variant="ghost"><Link {...backTo}>Cancel</Link></Button>
-              <Button type="submit" variant="primary" loading={form.formState.isSubmitting}>Save and Move</Button>
+              <Button type="submit" variant="primary" loading={form.formState.isSubmitting}>{move && !move.moves ? "Save Call" : "Save and Move"}</Button>
             </FormActions>
           </form>
         )}
@@ -157,23 +174,25 @@ function LogCall() {
   );
 }
 
-function MoveChoice({ current, allowed, register, error }: {
+function OutcomeChoice({ current, choices, register, error }: {
   current: TmStatus;
-  allowed: { to: TmStatus; answered: boolean }[];
+  choices: { answered: boolean; to: TmStatus; moves: boolean }[];
   register: ReturnType<typeof useForm<MoveValues>>["register"];
   error?: string;
 }) {
   return (
     <fieldset className="mb-5">
       <legend className="mb-2 text-[13px] text-label">
-        Move from {label("telemarketing_status", current)} to<span className="text-required" aria-hidden> *</span>
+        Was the call answered? Now {label("telemarketing_status", current)}<span className="text-required" aria-hidden> *</span>
       </legend>
       <div className="flex flex-wrap gap-2">
-        {allowed.map((m) => (
-          <label key={m.to} className="flex h-9 cursor-pointer items-center gap-2 rounded-[8px] bg-input px-3 text-[14px] has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus pointer-coarse:h-11">
-            <input type="radio" value={m.to} className="sr-only" {...register("target", { required: "Choose where the lead moves." })} />
-            {label("telemarketing_status", m.to)}
-            <span className="text-[12px] opacity-70">{m.answered ? "answered" : "not answered"}</span>
+        {choices.map((c) => (
+          <label key={String(c.answered)} className="flex h-9 cursor-pointer items-center gap-2 rounded-[8px] bg-input px-3 text-[14px] has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus pointer-coarse:h-11">
+            <input type="radio" value={c.answered ? "answered" : "unanswered"} className="sr-only" {...register("target", { required: "Choose whether the call was answered." })} />
+            {c.answered ? "Answered" : "Not answered"}
+            <span className="text-[12px] opacity-70">
+              {c.moves ? `to ${label("telemarketing_status", c.to)}` : `stays ${label("telemarketing_status", c.to)}`}
+            </span>
           </label>
         ))}
       </div>

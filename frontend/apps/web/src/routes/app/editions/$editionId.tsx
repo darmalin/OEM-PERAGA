@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 
-import { EditionFields, editionPayload, type EditionValues } from "@/features/edition-form";
+import { EditionFields, editionPayload, type EditionValues, EXHIBITOR_FIELDS, exhibitorValues } from "@/features/edition-form";
 import { can, meQuery, useMe } from "@/lib/auth";
 import { handleFormError } from "@/lib/forms";
 import { notifySuccess } from "@/lib/notify";
@@ -21,6 +21,7 @@ function values(e: Schemas["EditionOut"]): EditionValues {
     default_currency: e.default_currency, status: e.status, email_sender_name: e.email_sender_name ?? "",
     email_reply_to: e.email_reply_to ?? "", public_registration_open: e.public_registration_open,
     scanner_cache_ttl_minutes: e.scanner_cache_ttl_minutes ? String(e.scanner_cache_ttl_minutes) : "",
+    ...exhibitorValues(e),
   };
 }
 
@@ -43,7 +44,7 @@ function Edition() {
       void queryClient.invalidateQueries({ queryKey: ["editions"] });
       notifySuccess("Edition saved", updated.code);
     } catch (e) {
-      handleFormError(e, form.setError, ["name", "start_date", "end_date", "timezone", "default_currency", "email_reply_to", "scanner_cache_ttl_minutes", "status"]);
+      handleFormError(e, form.setError, ["name", "start_date", "end_date", "timezone", "default_currency", "email_reply_to", "scanner_cache_ttl_minutes", "status", ...EXHIBITOR_FIELDS]);
     }
   });
   return (

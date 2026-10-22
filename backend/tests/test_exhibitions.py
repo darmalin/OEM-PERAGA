@@ -192,3 +192,41 @@ async def test_venue_crud() -> None:
         "/api/v1/editions", json=edition_body(ex["id"], venue_id=str(uuid.uuid4()))
     )
     assert r.status_code == 422
+
+
+async def test_edition_remarks_and_exhibitor_dates_are_stored() -> None:
+    """Display-only fields from the old Exhibition form (FEATURES/02 "Exhibitor dates")."""
+    _, admin = await actor(RoleGrant("SUPER_ADMIN"))
+    ex = await _create_exhibition(admin)
+    body = edition_body(
+        ex["id"],
+        remarks="The 23rd Indonesia International Textile and Garment Machinery Exhibition",
+        price_regular_from="2026-09-01",
+        price_regular_to="2027-03-01",
+        price_onsite_from="2027-04-01",
+        price_onsite_to="2027-04-17",
+        catalog_expired_on="2027-02-23",
+    )
+    r = await admin.post("/api/v1/editions", json=body)
+    assert r.status_code == 201, r.text
+    edition = r.json()
+    assert edition["price_regular_to"] == "2027-03-01" and edition["order_expired_on"] is None
+    assert edition["remarks"].startswith("The 23rd")
+    url = f"/api/v1/editions/{edition['id']}"
+    r = await admin.patch(
+        url,
+        json={
+            "version": edition["version"],
+            "price_surcharge_from": "2027-03-31",
+            "price_surcharge_to": "2027-03-02",
+        },
+    )
+    assert r.status_code == 422 and "price_surcharge_to" in r.json()["error"]["fields"]
+    r = await admin.patch(
+        url, json={"version": edition["version"], "price_regular_to": "2026-08-01"}
+    )
+    assert r.status_code == 422 and "price_regular_to" in r.json()["error"]["fields"]
+    r = await admin.patch(
+        url, json={"version": edition["version"], "order_expired_on": "2027-04-01"}
+    )
+    assert r.status_code == 200 and r.json()["order_expired_on"] == "2027-04-01"

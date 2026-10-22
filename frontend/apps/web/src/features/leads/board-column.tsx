@@ -9,7 +9,7 @@ import { label } from "@/lib/labels";
 import { moves, type TmStatus } from "@/lib/transitions";
 import { Button } from "@/ui/button";
 import { Indicator } from "@/ui/indicator";
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from "@/ui/menu";
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/ui/menu";
 import { ErrorState, Skeleton } from "@/ui/states";
 
 import type { LeadItem } from "./queries";
@@ -33,7 +33,8 @@ export function BoardColumn({
   query: UseQueryResult<Page>;
   editions: Edition[];
   canMove: boolean;
-  onMove: (leadId: string, to: TmStatus) => void;
+  /** `to` undefined: open Log Call without a target (the status may stay). */
+  onMove: (leadId: string, to?: TmStatus) => void;
   moreLink: { to: "/app/visitor-leads"; search: Record<string, unknown> };
 }) {
   const [over, setOver] = useState<"ok" | "no" | null>(null);
@@ -95,7 +96,7 @@ export function BoardColumn({
   );
 }
 
-function Card({ lead, edition, canMove, onMove }: { lead: LeadItem; edition?: Edition; canMove: boolean; onMove: (leadId: string, to: TmStatus) => void }) {
+function Card({ lead, edition, canMove, onMove }: { lead: LeadItem; edition?: Edition; canMove: boolean; onMove: (leadId: string, to?: TmStatus) => void }) {
   const targets = canMove ? moves(lead.telemarketing_status) : [];
   return (
     <article
@@ -114,21 +115,24 @@ function Card({ lead, edition, canMove, onMove }: { lead: LeadItem; edition?: Ed
         <Link to="/app/visitor-leads/$leadId" params={{ leadId: lead.id }} className="min-w-0 font-medium text-ink hover:underline">
           <span className="block truncate">{lead.first_name}</span>
         </Link>
-        {targets.length > 0 ? (
+        {canMove ? (
           <Menu>
             <MenuTrigger asChild>
-              <Button size="icon" variant="ghost" className="-mt-1 -mr-1 size-7" aria-label={`Move ${lead.first_name}`}>
+              <Button size="icon" variant="ghost" className="-mt-1 -mr-1 size-7" aria-label={`Move or log a call for ${lead.first_name}`}>
                 <MoveRight aria-hidden />
               </Button>
             </MenuTrigger>
             <MenuContent>
-              <MenuLabel>Move to</MenuLabel>
+              {targets.length > 0 ? <MenuLabel>Move to</MenuLabel> : null}
               {targets.map((m) => (
                 <MenuItem key={m.to} onSelect={() => onMove(lead.id, m.to)}>
                   {label("telemarketing_status", m.to)}
                   <span className="ml-auto text-[12px] text-label">{m.answered ? "answered" : "not answered"}</span>
                 </MenuItem>
               ))}
+              {targets.length > 0 ? <MenuSeparator /> : null}
+              {/* Calls that leave the status as it is (e.g. Answer, then not answered). */}
+              <MenuItem onSelect={() => onMove(lead.id)}>Log Call</MenuItem>
             </MenuContent>
           </Menu>
         ) : null}

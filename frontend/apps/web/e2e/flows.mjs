@@ -100,7 +100,7 @@ await step("Edit lead + Ctrl+S -> Not Saved, then saved toast", async () => {
 await step("Log Call (New -> Answer) needs Attend, then moves + toast", async () => {
   await page.getByRole("link", { name: "Log Call" }).click();
   await page.getByRole("heading", { name: /Log Call for/ }).waitFor();
-  await page.locator("label", { hasText: /^Answer/ }).click();
+  await page.locator("label", { hasText: /^Answered/ }).click();
   const next = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 16);
   await page.getByLabel("Next Follow-up").fill(next);
   await page.getByLabel("Notes").fill("Interested in sourcing");
@@ -114,6 +114,14 @@ await step("Log Call (New -> Answer) needs Attend, then moves + toast", async ()
 await step("Status indicator updated to Answer", async () => {
   await page.locator("header").getByText("Answer", { exact: true }).first().waitFor();
   return "indicator Answer";
+});
+await step("Log Call not answered on an Answer lead -> status stays, Attend locked", async () => {
+  await page.getByRole("link", { name: "Log Call" }).click();
+  await page.locator("label", { hasText: /^Not answered/ }).click();
+  if (!(await page.getByLabel("Attend").isDisabled())) throw new Error("Attend should be disabled");
+  await page.getByRole("button", { name: "Save Call" }).click();
+  await page.waitForURL((u) => u.href.split("?")[0] === leadUrl);
+  return await toast("stays in Answer");
 });
 await step("Add Follow-up page -> toast", async () => {
   await page.getByRole("link", { name: "Add Follow-up" }).click();

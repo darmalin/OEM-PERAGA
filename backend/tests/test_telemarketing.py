@@ -26,7 +26,7 @@ from app.modules.visitors.models import VisitorLead
 from tests.factories import RoleGrant, actor, login_client, make_edition, make_user
 
 
-# Kanban status table (owner decision 2026-10-22), row for row.
+# Status table v2 (owner decisions 2026-10-22, FEATURES/07), row for row.
 @pytest.mark.parametrize(
     ("results", "status"),
     [
@@ -35,12 +35,12 @@ from tests.factories import RoleGrant, actor, login_client, make_edition, make_u
         (["NO_ANSWER"], "NO_ANSWER"),
         (["BUSY"], "NO_ANSWER"),
         (["ANSWER", "ANSWER"], "RECONTACTED"),
-        (["NO_ANSWER", "ANSWER"], "ANSWER"),
+        (["ANSWER", "NO_ANSWER"], "ANSWER"),  # reached once stays reached
+        (["NO_ANSWER", "ANSWER"], "RECONTACTED"),
         (["NO_ANSWER", "NO_ANSWER"], "RETRY_NO_ANSWER"),
-        (["NO_ANSWER", "ANSWER", "ANSWER"], "RECONTACTED"),
-        # History from before the rules: a move no longer allowed leaves the status as it was.
-        (["ANSWER", "NO_ANSWER"], "ANSWER"),
-        (["NO_ANSWER", "NO_ANSWER", "ANSWER"], "RETRY_NO_ANSWER"),
+        (["NO_ANSWER", "NO_ANSWER", "NO_ANSWER"], "RETRY_NO_ANSWER"),
+        (["NO_ANSWER", "NO_ANSWER", "ANSWER"], "RECONTACTED"),
+        (["ANSWER", "ANSWER", "NO_ANSWER", "ANSWER"], "RECONTACTED"),
     ],
 )
 def test_status_function(results: list[str], status: str) -> None:
@@ -53,35 +53,48 @@ def test_status_function(results: list[str], status: str) -> None:
         ("NEW", True, "ANSWER"),
         ("NEW", False, "NO_ANSWER"),
         ("ANSWER", True, "RECONTACTED"),
-        ("ANSWER", False, None),
-        ("NO_ANSWER", True, "ANSWER"),
+        ("ANSWER", False, "ANSWER"),
+        ("NO_ANSWER", True, "RECONTACTED"),
         ("NO_ANSWER", False, "RETRY_NO_ANSWER"),
-        ("RECONTACTED", True, None),
-        ("RECONTACTED", False, None),
-        ("RETRY_NO_ANSWER", True, None),
-        ("RETRY_NO_ANSWER", False, None),
+        ("RETRY_NO_ANSWER", True, "RECONTACTED"),
+        ("RETRY_NO_ANSWER", False, "RETRY_NO_ANSWER"),
+        ("RECONTACTED", True, "RECONTACTED"),
+        ("RECONTACTED", False, "RECONTACTED"),
     ],
 )
-def test_next_status(current: str, answered: bool, expected: str | None) -> None:
+def test_next_status(current: str, answered: bool, expected: str) -> None:
     assert next_status(current, answered) == expected
 
 
+VAL, INV, UND = LeadQuality.VALID, LeadQuality.INVALID, LeadQuality.UNDECIDED
+
+
 @pytest.mark.parametrize(
-    ("answered", "quality", "attend", "fields"),
+    ("answered", "moves", "quality", "attend", "extra", "fields"),
     [
-        (True, LeadQuality.VALID, "ATTEND", set()),
-        (True, LeadQuality.VALID, None, {"attend"}),
-        (True, LeadQuality.INVALID, "ATTEND", {"lead_quality"}),
-        (True, LeadQuality.UNDECIDED, None, {"lead_quality", "attend"}),
-        (False, LeadQuality.INVALID, None, set()),
-        (False, LeadQuality.UNDECIDED, None, set()),
-        (False, LeadQuality.VALID, "NOT_ATTEND", set()),
+        (True, True, VAL, "ATTEND", [], set()),
+        (True, True, VAL, None, [], {"attend"}),
+        (True, True, INV, "ATTEND", [], {"lead_quality"}),
+        (True, True, None, None, [], {"lead_quality", "attend"}),
+        (True, False, VAL, None, [], {"attend"}),  # answered again: still Valid + Attend
+        (False, True, INV, None, [], set()),
+        (False, True, UND, None, [], set()),
+        (False, True, None, None, [], {"lead_quality"}),
+        (False, True, VAL, "ATTEND", ["attend"], {"attend"}),
+        (False, True, VAL, None, ["b2b_matching", "buyer_type"], {"b2b_matching", "buyer_type"}),
+        (False, False, None, None, [], set()),  # unanswered, status stays: nothing required
+        (False, False, INV, None, [], set()),
     ],
 )
 def test_call_verification_rules(
-    answered: bool, quality: LeadQuality, attend: str | None, fields: set[str]
+    answered: bool,
+    moves: bool,
+    quality: LeadQuality | None,
+    attend: str | None,
+    extra: list[str],
+    fields: set[str],
 ) -> None:
-    assert set(call_verification_errors(answered, quality, attend)) == fields
+    assert set(call_verification_errors(answered, moves, quality, attend, extra)) == fields
 
 
 async def setup() -> tuple[Edition, User, AsyncClient, str]:
@@ -110,6 +123,8 @@ UNANSWERED = {"lead_quality": "UNDECIDED"}
 async def call(client: AsyncClient, lead_id: str, result: str, **kw: Any) -> Any:
     """Log a call; verification defaults to the minimum the result needs."""
     kw.setdefault("verification", ANSWERED if result == "ANSWER" else UNANSWERED)
+    if kw["verification"] is None:
+        del kw["verification"]
     return await client.post(
         f"/api/v1/visitor-leads/{lead_id}/calls", json={"call_result": result, **kw}
     )
@@ -117,7 +132,7 @@ async def call(client: AsyncClient, lead_id: str, result: str, **kw: Any) -> Any
 
 async def test_status_follows_call_history() -> None:
     _, _, client, lead_id = await setup()
-    expected = ["NO_ANSWER", "ANSWER", "RECONTACTED"]
+    expected = ["NO_ANSWER", "RECONTACTED", "RECONTACTED"]
     for result, status in zip(["NO_ANSWER", "ANSWER", "ANSWER"], expected, strict=True):
         r = await call(client, lead_id, result, notes="rang twice")
         assert r.status_code == 201, r.text
@@ -130,22 +145,40 @@ async def test_status_follows_call_history() -> None:
     actions = [
         a["action"] for a in (await client.get(f"/api/v1/visitor-leads/{lead_id}/activity")).json()
     ]
-    assert actions.count("call") == 3
+    # The lead timeline records changes; the third call left the status as it was. Every call
+    # is still in the call history above.
+    assert actions.count("call") == 2
 
 
-async def test_final_statuses_and_answer_cannot_go_unanswered() -> None:
+async def test_reached_lead_stays_reached_and_every_call_is_logged() -> None:
+    """Scenario 4: answered, then not answered: stays ANSWER, the call is still recorded."""
     _, _, client, lead_id = await setup()
-    assert (await call(client, lead_id, "ANSWER")).status_code == 201
-    r = await call(client, lead_id, "NO_ANSWER")
-    assert r.status_code == 409 and r.json()["error"]["code"] == "STATUS_TRANSITION_NOT_ALLOWED"
+    assert (await call(client, lead_id, "ANSWER")).json()["telemarketing_status"] == "ANSWER"
+    r = await call(client, lead_id, "NO_ANSWER", verification=None)
+    assert r.status_code == 201, r.text
+    assert r.json()["telemarketing_status"] == "ANSWER"
+    lead = (await client.get(f"/api/v1/visitor-leads/{lead_id}")).json()
+    assert lead["attend"] == "ATTEND" and lead["is_valid_lead"]  # verification kept
     assert (await call(client, lead_id, "ANSWER")).json()["telemarketing_status"] == "RECONTACTED"
     for result in ("ANSWER", "NO_ANSWER"):
-        assert (await call(client, lead_id, result)).status_code == 409
+        r = await call(client, lead_id, result)
+        assert r.status_code == 201 and r.json()["telemarketing_status"] == "RECONTACTED"
     calls = (await client.get(f"/api/v1/visitor-leads/{lead_id}/calls")).json()
-    assert len(calls) == 2  # refused moves write nothing
+    assert len(calls) == 5
 
 
-async def test_call_requires_verification() -> None:
+async def test_retry_no_answer_reaches_recontacted() -> None:
+    """Scenarios 3 and 5: misses stay RETRY_NO_ANSWER until a call is answered."""
+    _, _, client, lead_id = await setup()
+    for expected in ("NO_ANSWER", "RETRY_NO_ANSWER", "RETRY_NO_ANSWER"):
+        r = await call(client, lead_id, "NO_ANSWER")
+        assert r.json()["telemarketing_status"] == expected
+    r = await call(client, lead_id, "ANSWER")
+    assert r.json()["telemarketing_status"] == "RECONTACTED"
+    assert r.json()["call_attempts"] == 4
+
+
+async def test_call_verification_rules_over_the_api() -> None:
     _, _, client, lead_id = await setup()
     url = f"/api/v1/visitor-leads/{lead_id}/calls"
     assert (await client.post(url, json={"call_result": "ANSWER"})).status_code == 422
@@ -155,7 +188,13 @@ async def test_call_requires_verification() -> None:
         client, lead_id, "ANSWER", verification={"lead_quality": "INVALID", "attend": "ATTEND"}
     )
     assert r.status_code == 422 and "lead_quality" in r.json()["error"]["fields"]
-    assert (await client.get(f"/api/v1/visitor-leads/{lead_id}/calls")).json() == []
+    r = await call(client, lead_id, "NO_ANSWER", verification=None)
+    assert r.status_code == 422 and "lead_quality" in r.json()["error"]["fields"]
+    r = await call(
+        client, lead_id, "NO_ANSWER", verification={"lead_quality": "INVALID", "attend": "ATTEND"}
+    )
+    assert r.status_code == 422 and "attend" in r.json()["error"]["fields"]
+    assert (await client.get(url)).json() == []
 
     r = await call(client, lead_id, "NO_ANSWER", verification={"lead_quality": "INVALID"})
     assert r.status_code == 201, r.text
@@ -170,9 +209,20 @@ async def test_call_requires_verification() -> None:
     assert r.status_code == 201, r.text
     lead = (await client.get(f"/api/v1/visitor-leads/{lead_id}")).json()
     assert lead["is_valid_lead"] and lead["attend"] == "ATTEND_SOURCING"
-    assert lead["buyer_type"] == "B_SIDE" and lead["telemarketing_status"] == "ANSWER"
+    assert lead["buyer_type"] == "B_SIDE" and lead["telemarketing_status"] == "RECONTACTED"
     history = (await client.get(f"/api/v1/visitor-leads/{lead_id}/verifications")).json()
-    assert len(history) == 2  # one history row per call
+    assert len(history) == 2  # one history row per call that carried verification
+
+
+async def test_unreached_lead_verification_tab_takes_lead_quality_only() -> None:
+    _, _, client, lead_id = await setup()
+    await call(client, lead_id, "NO_ANSWER")
+    lead = (await client.get(f"/api/v1/visitor-leads/{lead_id}")).json()
+    url = f"/api/v1/visitor-leads/{lead_id}/verification"
+    r = await client.patch(url, json={"version": lead["version"], "attend": "ATTEND"})
+    assert r.status_code == 422 and "attend" in r.json()["error"]["fields"]
+    r = await client.patch(url, json={"version": lead["version"], "is_valid_lead": True})
+    assert r.status_code == 200 and r.json()["is_valid_lead"]
 
 
 async def test_parallel_calls_get_distinct_attempt_numbers() -> None:

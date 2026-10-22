@@ -6,7 +6,7 @@ import { COUNTRIES } from "@/lib/countries";
 import { options } from "@/lib/labels";
 import { Checkbox } from "@/ui/checkbox";
 import { Field, FieldGrid, Section } from "@/ui/field";
-import { Input, Select } from "@/ui/input";
+import { Input, Select, Textarea } from "@/ui/input";
 
 export interface EditionValues {
   exhibition_id: string;
@@ -24,6 +24,35 @@ export interface EditionValues {
   email_reply_to: string;
   public_registration_open: boolean;
   scanner_cache_ttl_minutes: string;
+  remarks: string;
+  price_regular_from: string;
+  price_regular_to: string;
+  price_surcharge_from: string;
+  price_surcharge_to: string;
+  price_onsite_from: string;
+  price_onsite_to: string;
+  order_expired_on: string;
+  catalog_expired_on: string;
+}
+
+/**
+ * From the old system's Exhibition form (owner request 2026-10-22). Stored and shown only; the
+ * Exhibitor Portal phase gives them meaning (FEATURES/02 "Exhibitor dates").
+ */
+const PRICE_PERIODS = [
+  ["Price Regular", "price_regular_from", "price_regular_to"],
+  ["Price Surcharge", "price_surcharge_from", "price_surcharge_to"],
+  ["Price Onsite", "price_onsite_from", "price_onsite_to"],
+] as const;
+export const EXHIBITOR_FIELDS = [
+  "remarks", "price_regular_from", "price_regular_to", "price_surcharge_from", "price_surcharge_to",
+  "price_onsite_from", "price_onsite_to", "order_expired_on", "catalog_expired_on",
+] as const;
+type ExhibitorField = (typeof EXHIBITOR_FIELDS)[number];
+
+/** Form values of the exhibitor fields from an edition (or empty for a new one). */
+export function exhibitorValues(e?: Partial<Record<ExhibitorField, string | null>>): Record<ExhibitorField, string> {
+  return Object.fromEntries(EXHIBITOR_FIELDS.map((f) => [f, e?.[f] ?? ""])) as Record<ExhibitorField, string>;
 }
 
 const TIMEZONES: string[] = (() => {
@@ -49,6 +78,7 @@ export function editionPayload(v: EditionValues) {
     email_reply_to: blank(v.email_reply_to),
     public_registration_open: v.public_registration_open,
     scanner_cache_ttl_minutes: v.scanner_cache_ttl_minutes ? Number(v.scanner_cache_ttl_minutes) : null,
+    ...Object.fromEntries(EXHIBITOR_FIELDS.map((f) => [f, blank(v[f])])),
   };
 }
 
@@ -116,6 +146,30 @@ export function EditionFields({
                 {TIMEZONES.map((t) => <option key={t} value={t}>{t}</option>)}
               </Select>
             )}
+          </Field>
+          <Field label="Remarks" className="md:col-span-2 lg:col-span-3" error={errors.remarks?.message}>
+            {(p) => <Textarea {...p} readOnly={readOnly} maxLength={2000} {...register("remarks")} />}
+          </Field>
+        </FieldGrid>
+      </Section>
+      <Section title="Exhibitor dates">
+        <p className="mb-4 text-[13px] text-label">Kept with the edition for now; the Exhibitor Portal will use them for prices and order deadlines.</p>
+        <FieldGrid>
+          {PRICE_PERIODS.map(([title, from, to]) => (
+            <div key={from} className="grid grid-cols-2 gap-x-6 md:col-span-2 lg:col-start-1">
+              <Field label={`${title} From`}>
+                {(p) => <Input {...p} type="date" readOnly={readOnly} {...register(from)} />}
+              </Field>
+              <Field label="To" error={errors[to]?.message}>
+                {(p) => <Input {...p} type="date" readOnly={readOnly} {...register(to, { validate: (v) => !v || !watch(from) || v >= watch(from) || "Must not be before the start of the period." })} />}
+              </Field>
+            </div>
+          ))}
+          <Field label="Order Expired" className="lg:col-start-1">
+            {(p) => <Input {...p} type="date" readOnly={readOnly} {...register("order_expired_on")} />}
+          </Field>
+          <Field label="Catalog Expired">
+            {(p) => <Input {...p} type="date" readOnly={readOnly} {...register("catalog_expired_on")} />}
           </Field>
         </FieldGrid>
       </Section>
