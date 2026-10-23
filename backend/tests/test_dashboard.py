@@ -142,3 +142,55 @@ async def test_dashboard_validation_and_permission() -> None:
         "/api/v1/reports/dashboard", params={"date_from": d, "date_to": "2000-01-01"}
     )
     assert r.status_code == 422
+
+
+async def test_email_report_counts_lead_emails(mailbox: Any) -> None:
+    from sqlalchemy import select
+
+    from app.core.outbox import OutboxEvent
+    from app.modules.registrations.tasks import send_qr_email_event
+
+    edition = await make_edition()
+    _, client = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", edition.id))
+    leads = [await lead(client, edition, n) for n in (21, 22, 23)]
+    for lead_id in leads:
+        regs = (
+            await client.get(
+                "/api/v1/visitor-registrations",
+                params={"edition_id": str(edition.id), "visitor_lead_id": lead_id},
+            )
+        ).json()["items"]
+        r = await client.post(
+            f"/api/v1/visitor-registrations/{regs[0]['id']}/resend-qr",
+            headers={"Idempotency-Key": uuid.uuid4().hex},
+        )
+        assert r.status_code == 202, r.text
+    async with get_sessionmaker()() as session:
+        events = list(
+            await session.scalars(
+                select(OutboxEvent.id)
+                .where(OutboxEvent.event_type == "mail.qr_confirmation")
+                .order_by(OutboxEvent.created_at)
+            )
+        )
+    assert await send_qr_email_event(events[0]) == "SENT"
+    assert await send_qr_email_event(events[1], final_attempt=True) == "SENT"
+    # The third stays queued: waiting.
+    # A password reset (system email) never shows here.
+    await client.post("/api/v1/auth/password-reset/request", json={"email": "nobody@example.test"})
+
+    d = str(today())
+    r = await client.get("/api/v1/reports/dashboard/email", params={"date_from": d, "date_to": d})
+    assert r.status_code == 200, r.text
+    out = r.json()
+    t = out["totals"]
+    assert (t["queued"], t["sent"], t["waiting"], t["failed"]) == (3, 2, 1, 0)
+    assert (t["sent_today"], t["waiting_now"], t["all_time"]) == (2, 1, 3)
+    assert out["days"] == [{"day": d, "queued": 3, "sent": 2, "failed": 0, "waiting": 1}]
+    assert [w["lead_name"] for w in out["waiting"]] == ["Visitor 023"]
+    assert {c["key"]: c["count"] for c in out["by_status"]} == {"SENT": 2, "QUEUED": 1}
+
+    other = await make_edition()
+    _, stranger = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", other.id))
+    r = await stranger.get("/api/v1/reports/dashboard/email", params={"date_from": d, "date_to": d})
+    assert r.json()["totals"]["all_time"] == 0

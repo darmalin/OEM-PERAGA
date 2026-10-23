@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { dashboardQuery, type DashboardSearch } from "@/features/dashboard/api";
 import { Breakdown, MetricCards } from "@/features/dashboard/cards";
+import { EmailReport } from "@/features/dashboard/email-report";
 import { DashboardFilters } from "@/features/dashboard/filters";
 import { dayLabel, daysBetween, emptyRow, type Row } from "@/features/dashboard/metrics";
 import { RecapTable } from "@/features/dashboard/recap-table";
@@ -14,7 +15,7 @@ import { Page, PageHead, Panel } from "@/ui/page";
 import { ErrorState, Skeleton } from "@/ui/states";
 import { TabList, TabPanel, Tabs } from "@/ui/tabs";
 
-const TABS = ["dashboard", "today", "daily", "edition", "source", "user"] as const;
+const TABS = ["dashboard", "today", "daily", "edition", "source", "user", "email"] as const;
 type Tab = (typeof TABS)[number];
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -62,12 +63,14 @@ function Dashboard() {
               { value: "edition", label: "Recap By Exhibition Type" },
               { value: "source", label: "Recap By Source" },
               { value: "user", label: "Recap By User" },
+              { value: "email", label: "Email Report" },
             ]}
           />
           <DashboardFilters
             s={filters}
             set={set}
             showDates={s.tab !== "today"}
+            emailOnly={s.tab === "email"}
             onClear={() => void navigate({ search: { tab: s.tab, from: s.from, to: s.to }, replace: true })}
           />
           <div className="bg-subtle p-4">
@@ -77,6 +80,7 @@ function Dashboard() {
             <TabPanel value="edition"><Recap s={range} group="day_edition" title="Recap By Exhibition Type" keyHeader="Exhibition Type" /></TabPanel>
             <TabPanel value="source"><Recap s={range} group="day_source" title="Recap By Source" keyHeader="Source" /></TabPanel>
             <TabPanel value="user"><Recap s={range} group="day_user" title="Recap By User" keyHeader="User" /></TabPanel>
+            <TabPanel value="email"><EmailReport s={range} /></TabPanel>
           </div>
         </Tabs>
       </Panel>
@@ -102,6 +106,9 @@ function Loading() {
   );
 }
 
+const parts = (row: Row, list: { key: keyof Row; label: string }[]) =>
+  list.map((p) => ({ key: String(p.key), label: p.label, value: Number(row[p.key]) }));
+
 const period = (s: DashboardSearch) => (s.from === s.to ? dayLabel(s.from) : `${dayLabel(s.from)} to ${dayLabel(s.to)}`);
 
 function Overview({ s }: { s: DashboardSearch }) {
@@ -116,9 +123,9 @@ function Overview({ s }: { s: DashboardSearch }) {
     <div className="flex flex-col gap-4">
       <MetricCards row={row} period={period(s)} />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Breakdown title="Answer Breakdown" row={row} parts={[{ key: "answer", label: "Answer" }, { key: "non_answer", label: "Non Answer" }, { key: "recontacted", label: "Recontacted" }, { key: "retry_no_answer", label: "Retry No Answer" }]} />
-        <Breakdown title="Attendance Breakdown" row={row} parts={[{ key: "attend", label: "Attend" }, { key: "attend_sourcing", label: "Attend Sourcing" }, { key: "under_consideration", label: "Under Consideration" }, { key: "not_attend", label: "Not Attend" }, { key: "hang_up_immediately", label: "Hang Up Immediately" }]} />
-        <Breakdown title="Buyer Type Breakdown" row={row} parts={[{ key: "b_side", label: "B-Side" }, { key: "c_side", label: "C-Side" }]} />
+        <Breakdown title="Answer Breakdown" values={parts(row, [{ key: "answer", label: "Answer" }, { key: "non_answer", label: "Non Answer" }, { key: "recontacted", label: "Recontacted" }, { key: "retry_no_answer", label: "Retry No Answer" }])} />
+        <Breakdown title="Attendance Breakdown" values={parts(row, [{ key: "attend", label: "Attend" }, { key: "attend_sourcing", label: "Attend Sourcing" }, { key: "under_consideration", label: "Under Consideration" }, { key: "not_attend", label: "Not Attend" }, { key: "hang_up_immediately", label: "Hang Up Immediately" }])} />
+        <Breakdown title="Buyer Type Breakdown" values={parts(row, [{ key: "b_side", label: "B-Side" }, { key: "c_side", label: "C-Side" }])} />
       </div>
       <section className="rounded-[12px] border border-line bg-bg p-5" aria-label="Daily trend">
         <h2 className="mb-3 text-[14px] font-semibold">Daily Trend · Calls per day</h2>

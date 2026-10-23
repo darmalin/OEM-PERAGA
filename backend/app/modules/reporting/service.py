@@ -26,6 +26,10 @@ from app.modules.reporting.schemas import (
     DashboardOut,
     DashboardParams,
     DashboardRow,
+    EmailReportDay,
+    EmailReportJob,
+    EmailReportOut,
+    EmailReportTotals,
     EmailsReport,
     GateRow,
     GatesReport,
@@ -369,4 +373,58 @@ async def dashboard_options(session: AsyncSession, ctx: AuthContext) -> Dashboar
         countries=await repo.dashboard_countries(session, visible),
         users=[DashboardOption(id=str(i), label=n) for i, n, _, _ in agents],
         teams=[DashboardOption(id=str(i), label=n) for i, n in await repo.dashboard_teams(session)],
+    )
+
+
+async def email_report(
+    session: AsyncSession, ctx: AuthContext, params: DashboardParams
+) -> EmailReportOut:
+    """GET /reports/dashboard/email: the Email Report tab."""
+    scopes, timezone = await _dashboard_scopes(session, ctx, params.edition_id)
+    visible = visitors_service.lead_visibility(scopes)
+    window = local_window(params.date_from, params.date_to, timezone)
+    today = datetime.now(ZoneInfo(timezone)).date()
+    f = repo.DashFilters(**params.model_dump(exclude={"date_from", "date_to", "group_by"}))
+    totals = await repo.email_report_totals(
+        session, visible, f, window, local_window(today, today, timezone)
+    )
+    by_day = {
+        r["day"]: r for r in await repo.email_report_days(session, visible, f, window, timezone)
+    }
+
+    def job(row: Any) -> EmailReportJob:
+        j, name = row
+        return EmailReportJob(
+            id=j.id,
+            kind=j.kind,
+            recipient=j.recipient,
+            lead_name=name,
+            visitor_lead_id=j.visitor_lead_id,
+            status=j.status,
+            attempts=j.attempts,
+            queued_at=j.queued_at,
+            error_summary=j.error_summary,
+        )
+
+    return EmailReportOut(
+        timezone=timezone,
+        today=today,
+        totals=EmailReportTotals(**totals),
+        days=[
+            EmailReportDay(day=d, **{k: int(v) for k, v in by_day.get(d, {}).items() if k != "day"})
+            for d in _days(params.date_from, params.date_to)
+        ],
+        by_status=_counts(await repo.email_report_by_status(session, visible, f, window)),
+        waiting=[
+            job(r)
+            for r in await repo.email_report_jobs(
+                session, visible, f, ("QUEUED", "SENDING"), newest_first=False, limit=20
+            )
+        ],
+        recent_failed=[
+            job(r)
+            for r in await repo.email_report_jobs(
+                session, visible, f, ("FAILED",), newest_first=True, limit=10
+            )
+        ],
     )

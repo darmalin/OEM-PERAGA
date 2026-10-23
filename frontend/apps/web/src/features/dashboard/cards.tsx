@@ -20,8 +20,7 @@ export function MetricCards({ row, period }: { row: Row; period: string }) {
 }
 
 /** Breakdown as a bar list: the bar is the share, the number is exact (no donut). */
-export function Breakdown({ title, parts, row }: { title: string; parts: { key: keyof Row; label: string }[]; row: Row }) {
-  const values = parts.map((p) => ({ ...p, value: Number(row[p.key]) }));
+export function Breakdown({ title, values }: { title: string; values: { key: string; label: string; value: number }[] }) {
   const total = values.reduce((a, b) => a + b.value, 0);
   return (
     <section className="rounded-[12px] border border-line bg-bg p-5" aria-label={title}>

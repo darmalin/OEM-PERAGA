@@ -655,3 +655,103 @@ async def dashboard_teams(session: AsyncSession) -> list[tuple[uuid.UUID, str]]:
     return [
         (i, n) for i, n in await session.execute(select(Team.id, Team.name).order_by(Team.name))
     ]
+
+
+# --- dashboard: email report -----------------------------------------------------------------
+
+_WAITING = ("QUEUED", "SENDING")
+
+
+def _email_where(visible: ColumnElement[bool], f: DashFilters) -> list[ColumnElement[bool]]:
+    """Emails about leads the caller may see, narrowed by the lead filters (owner for people)."""
+    return [visible, *_lead_conds(f), *_people(VisitorLead.lead_owner_id, f)]
+
+
+async def email_report_totals(
+    session: AsyncSession,
+    visible: ColumnElement[bool],
+    f: DashFilters,
+    window: Window,
+    today: Window,
+) -> dict[str, int]:
+    job = EmailJob
+    in_range = _in_window(job.queued_at, window)
+    stmt = (
+        select(
+            _count_if(in_range).label("queued"),
+            _count_if(in_range & (job.status == "SENT")).label("sent"),
+            _count_if(in_range & (job.status == "FAILED")).label("failed"),
+            _count_if(in_range & (job.status == "CANCELLED")).label("cancelled"),
+            _count_if(in_range & job.status.in_(_WAITING)).label("waiting"),
+            _count_if(in_range & (job.attempts > 1)).label("retried"),
+            _count_if(in_range & (VisitorRegistration.channel == "API")).label("by_api"),
+            _count_if((job.status == "SENT") & _in_window(job.sent_at, today)).label("sent_today"),
+            _count_if(job.status == "QUEUED").label("waiting_now"),
+            _count_if(job.status == "SENDING").label("sending_now"),
+            func.count().label("all_time"),
+        )
+        .select_from(job)
+        .join(VisitorLead, VisitorLead.id == job.visitor_lead_id)
+        .outerjoin(VisitorRegistration, VisitorRegistration.id == job.registration_id)
+        .where(*_email_where(visible, f))
+    )
+    return {k: int(v) for k, v in (await session.execute(stmt)).one()._mapping.items()}
+
+
+async def email_report_days(
+    session: AsyncSession,
+    visible: ColumnElement[bool],
+    f: DashFilters,
+    window: Window,
+    timezone: str,
+) -> list[dict[str, Any]]:
+    job = EmailJob
+    day = local_day(job.queued_at, timezone).label("day")
+    stmt = (
+        select(
+            day,
+            func.count().label("queued"),
+            _count_if(job.status == "SENT").label("sent"),
+            _count_if(job.status == "FAILED").label("failed"),
+            _count_if(job.status.in_(_WAITING)).label("waiting"),
+        )
+        .select_from(job)
+        .join(VisitorLead, VisitorLead.id == job.visitor_lead_id)
+        .where(*_email_where(visible, f), _in_window(job.queued_at, window))
+        .group_by(day)
+    )
+    return [dict(r._mapping) for r in await session.execute(stmt)]
+
+
+async def email_report_by_status(
+    session: AsyncSession, visible: ColumnElement[bool], f: DashFilters, window: Window
+) -> list[tuple[Any, int]]:
+    return await _breakdown(
+        session,
+        select(EmailJob.status, func.count())
+        .select_from(EmailJob)
+        .join(VisitorLead, VisitorLead.id == EmailJob.visitor_lead_id)
+        .where(*_email_where(visible, f), _in_window(EmailJob.queued_at, window))
+        .group_by(EmailJob.status)
+        .order_by(func.count().desc()),
+    )
+
+
+async def email_report_jobs(
+    session: AsyncSession,
+    visible: ColumnElement[bool],
+    f: DashFilters,
+    statuses: tuple[str, ...],
+    newest_first: bool,
+    limit: int,
+) -> Sequence[Any]:
+    """Waiting (oldest first: the next to go) or failed (newest first) emails, with the lead."""
+    order = EmailJob.queued_at.desc() if newest_first else EmailJob.queued_at.asc()
+    stmt = (
+        select(EmailJob, VisitorLead.first_name)
+        .join(VisitorLead, VisitorLead.id == EmailJob.visitor_lead_id)
+        .where(*_email_where(visible, f), EmailJob.status.in_(statuses))
+        .order_by(order, EmailJob.id)
+        .limit(limit)
+    )
+    return (await session.execute(stmt)).all()

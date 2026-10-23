@@ -284,3 +284,52 @@ class DashboardOptions(BaseModel):
     countries: list[str]
     users: list[DashboardOption]
     teams: list[DashboardOption]
+
+
+# --- dashboard: email report ---------------------------------------------------------------
+
+
+class EmailReportTotals(BaseModel):
+    """Emails about leads (QR, reminders) in the caller's scope. System email is not here."""
+
+    queued: int = 0  # queued in the range
+    sent: int = 0  # of those, sent
+    failed: int = 0
+    cancelled: int = 0
+    waiting: int = 0  # of those, still queued or sending
+    retried: int = 0  # of those, needed more than one attempt
+    by_api: int = 0  # of those, for registrations made through the API
+    sent_today: int = 0
+    waiting_now: int = 0  # all time, queued now
+    sending_now: int = 0  # all time, being sent now
+    all_time: int = 0
+
+
+class EmailReportDay(BaseModel):
+    day: date
+    queued: int = 0
+    sent: int = 0
+    failed: int = 0
+    waiting: int = 0
+
+
+class EmailReportJob(BaseModel):
+    id: uuid.UUID
+    kind: str
+    recipient: str
+    lead_name: str | None
+    visitor_lead_id: uuid.UUID | None
+    status: str
+    attempts: int
+    queued_at: datetime
+    error_summary: str | None
+
+
+class EmailReportOut(BaseModel):
+    timezone: str
+    today: date
+    totals: EmailReportTotals
+    days: list[EmailReportDay]
+    by_status: list[Count]
+    waiting: list[EmailReportJob]
+    recent_failed: list[EmailReportJob]

@@ -19,7 +19,7 @@ Filters: edition, date range, country, source, lead owner / team, telemarketing 
 
 ## Dashboard (2026-10-23, like the old system)
 
-Admin > Dashboard (`report.view`), `GET /reports/dashboard?group_by=total|day|day_edition|day_source|day_user`. Tabs: Dashboard (tiles, breakdowns, daily trend), Today, Daily Comparison, Recap By Exhibition Type, Recap By Source, Recap By User. Email Report follows in phase 3.
+Admin > Dashboard (`report.view`), `GET /reports/dashboard?group_by=total|day|day_edition|day_source|day_user`. Tabs: Dashboard (tiles, breakdowns, daily trend), Today, Daily Comparison, Recap By Exhibition Type, Recap By Source, Recap By User, Email Report.
 
 Counts are **per call** in the date range (as the old dashboard), with the verification sent with that call (`visitor_verifications.call_id`, migration 0018):
 
@@ -38,6 +38,8 @@ Counts are **per call** in the date range (as the old dashboard), with the verif
 - Across editions, only editions the user may view reports in, each with its own scope. Days use the edition's timezone when one edition is filtered, else `EMS_REPORT_TIMEZONE` (default Asia/Jakarta; Vietnam is the same offset).
 - Recap By User lists users with `telemarketing.call` in those editions; Group = their teams, Exhibition Type = editions of that grant ("All" for a global one). Leads without an owner show as Unassigned.
 - Tables download as CSV (opens in Excel). Ranges up to 366 days.
+
+**Email Report** (`GET /reports/dashboard/email`): emails about leads (QR, reminders) in the caller's editions; system email (password reset, tests) is on System > Email Log instead. Filters: dates, Country, User/Team (lead owner), Exhibition Type, Source. Tiles: Queued in Period, Sent (success rate = sent / queued), Failed, Waiting to Send (now), Sending Now, Sent Today, Retried (more than one attempt), Cancelled (QR revoked before sending), Email by API (registrations through the API), All Time. Plus emails per day, a status breakdown, the 20 next waiting emails, and the 10 latest failures with their safe error. No "Scheduled" tile: there is no send-after scheduling (FEATURES/08).
 
 ## Rules
 - Every report query goes through the same scope filter as list endpoints.

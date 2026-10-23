@@ -1413,6 +1413,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/dashboard/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Email Report
+         * @description Email Report tab: emails about leads (QR, reminders) in the caller's editions.
+         */
+        get: operations["email_report_api_v1_reports_dashboard_email_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/dashboard/options": {
         parameters: {
             query?: never;
@@ -2800,6 +2820,141 @@ export interface components {
              * Format: date-time
              */
             occurred_at: string;
+        };
+        /** EmailReportDay */
+        EmailReportDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Queued
+             * @default 0
+             */
+            queued: number;
+            /**
+             * Sent
+             * @default 0
+             */
+            sent: number;
+            /**
+             * Failed
+             * @default 0
+             */
+            failed: number;
+            /**
+             * Waiting
+             * @default 0
+             */
+            waiting: number;
+        };
+        /** EmailReportJob */
+        EmailReportJob: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Recipient */
+            recipient: string;
+            /** Lead Name */
+            lead_name: string | null;
+            /** Visitor Lead Id */
+            visitor_lead_id: string | null;
+            /** Status */
+            status: string;
+            /** Attempts */
+            attempts: number;
+            /**
+             * Queued At
+             * Format: date-time
+             */
+            queued_at: string;
+            /** Error Summary */
+            error_summary: string | null;
+        };
+        /** EmailReportOut */
+        EmailReportOut: {
+            /** Timezone */
+            timezone: string;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            totals: components["schemas"]["EmailReportTotals"];
+            /** Days */
+            days: components["schemas"]["EmailReportDay"][];
+            /** By Status */
+            by_status: components["schemas"]["Count"][];
+            /** Waiting */
+            waiting: components["schemas"]["EmailReportJob"][];
+            /** Recent Failed */
+            recent_failed: components["schemas"]["EmailReportJob"][];
+        };
+        /**
+         * EmailReportTotals
+         * @description Emails about leads (QR, reminders) in the caller's scope. System email is not here.
+         */
+        EmailReportTotals: {
+            /**
+             * Queued
+             * @default 0
+             */
+            queued: number;
+            /**
+             * Sent
+             * @default 0
+             */
+            sent: number;
+            /**
+             * Failed
+             * @default 0
+             */
+            failed: number;
+            /**
+             * Cancelled
+             * @default 0
+             */
+            cancelled: number;
+            /**
+             * Waiting
+             * @default 0
+             */
+            waiting: number;
+            /**
+             * Retried
+             * @default 0
+             */
+            retried: number;
+            /**
+             * By Api
+             * @default 0
+             */
+            by_api: number;
+            /**
+             * Sent Today
+             * @default 0
+             */
+            sent_today: number;
+            /**
+             * Waiting Now
+             * @default 0
+             */
+            waiting_now: number;
+            /**
+             * Sending Now
+             * @default 0
+             */
+            sending_now: number;
+            /**
+             * All Time
+             * @default 0
+             */
+            all_time: number;
         };
         /** EmailTemplateIn */
         EmailTemplateIn: {
@@ -8116,6 +8271,49 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    email_report_api_v1_reports_dashboard_email_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                group_by?: "total" | "day" | "day_edition" | "day_source" | "day_user";
+                edition_id?: string | null;
+                country?: string | null;
+                user_id?: string | null;
+                team_id?: string | null;
+                lead_source_id?: string | null;
+                telemarketing_status?: components["schemas"]["TelemarketingStatus"] | null;
+                lead_quality?: ("VALID" | "INVALID" | "UNDECIDED") | null;
+                buyer_type?: components["schemas"]["BuyerType"] | null;
+                attend?: components["schemas"]["Attend"] | null;
+                b2b_matching?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailReportOut"];
                 };
             };
             /** @description Validation Error */

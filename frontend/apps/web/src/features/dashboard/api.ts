@@ -56,3 +56,27 @@ export const dashboardOptionsQuery = queryOptions({
   staleTime: 5 * 60_000,
   queryFn: () => call(api.GET("/api/v1/reports/dashboard/options")),
 });
+
+export function emailReportQuery(s: DashboardSearch) {
+  return queryOptions({
+    queryKey: ["dashboard", "email", s.from, s.to, s.edition, s.country, s.user, s.team, s.source],
+    placeholderData: keepPreviousData,
+    refetchInterval: 30_000,
+    queryFn: () =>
+      call(
+        api.GET("/api/v1/reports/dashboard/email", {
+          params: {
+            query: {
+              date_from: s.from,
+              date_to: s.to,
+              edition_id: s.edition,
+              country: s.country,
+              user_id: s.user,
+              team_id: s.team,
+              lead_source_id: s.source,
+            },
+          },
+        }),
+      ),
+  });
+}

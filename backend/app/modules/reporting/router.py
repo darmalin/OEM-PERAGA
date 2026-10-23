@@ -10,6 +10,7 @@ from app.modules.reporting.schemas import (
     DashboardOptions,
     DashboardOut,
     DashboardParams,
+    EmailReportOut,
     Report,
     ReportParams,
 )
@@ -35,6 +36,16 @@ async def dashboard(
 ) -> DashboardOut:
     """Dashboard tabs: totals, per day, and per day by edition, source, or user."""
     return await service.dashboard(session, ctx, params)
+
+
+@router.get("/reports/dashboard/email", response_model=EmailReportOut)
+async def email_report(
+    params: Annotated[DashboardParams, Query()],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    ctx: AuthContext = Depends(require("report.view")),
+) -> EmailReportOut:
+    """Email Report tab: emails about leads (QR, reminders) in the caller's editions."""
+    return await service.email_report(session, ctx, params)
 
 
 @router.get("/reports/dashboard/options", response_model=DashboardOptions)
