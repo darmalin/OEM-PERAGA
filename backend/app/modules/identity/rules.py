@@ -39,6 +39,8 @@ PERMISSIONS: dict[str, str] = {
     "user.manage": "Manage users, teams, and role assignments",
     "role.manage": "Edit role permissions",
     "audit_log.read": "Read the audit log",
+    "email_account.manage": "Manage email sending accounts",
+    "email_log.read": "View the email log",
 }
 
 _TM_MANAGER = [
@@ -66,7 +68,11 @@ BASELINE_ROLES: dict[str, tuple[str, list[str]]] = {
     "SUPER_ADMIN": ("Super Admin", list(PERMISSIONS)),
     "EXHIBITION_ADMIN": (
         "Exhibition Admin",
-        [p for p in PERMISSIONS if p not in ("exhibition.manage", "role.manage")],
+        [
+            p
+            for p in PERMISSIONS
+            if p not in ("exhibition.manage", "role.manage", "email_account.manage")
+        ],
     ),
     "TELEMARKETING_MANAGER": ("Telemarketing Manager", _TM_MANAGER),
     "TELEMARKETING_AGENT": (

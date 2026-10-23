@@ -22,6 +22,8 @@ export interface EditionValues {
   status: string;
   email_sender_name: string;
   email_reply_to: string;
+  /** Account QR emails go out through; empty = the default account. */
+  email_account_id: string;
   public_registration_open: boolean;
   scanner_cache_ttl_minutes: string;
   remarks: string;
@@ -76,6 +78,7 @@ export function editionPayload(v: EditionValues) {
     default_currency: v.default_currency.trim().toUpperCase(),
     email_sender_name: blank(v.email_sender_name),
     email_reply_to: blank(v.email_reply_to),
+    email_account_id: blank(v.email_account_id),
     public_registration_open: v.public_registration_open,
     scanner_cache_ttl_minutes: v.scanner_cache_ttl_minutes ? Number(v.scanner_cache_ttl_minutes) : null,
     ...Object.fromEntries(EXHIBITOR_FIELDS.map((f) => [f, blank(v[f])])),
@@ -103,6 +106,7 @@ export function EditionFields({
     queryFn: () => call(api.GET("/api/v1/exhibitions", { params: { query: { page_size: 500 } } })),
   });
   const venues = useQuery({ queryKey: ["venues"], queryFn: () => call(api.GET("/api/v1/venues")) });
+  const accounts = useQuery({ queryKey: ["email-accounts", "choices"], queryFn: () => call(api.GET("/api/v1/email-accounts/choices")) });
   return (
     <>
       <Section title="Edition">
@@ -199,6 +203,16 @@ export function EditionFields({
       </Section>
       <Section title="Registration and email">
         <FieldGrid>
+          <Field label="Email Account" help="QR emails go out through it. Not set uses the default account.">
+            {(p) => (
+              <Select {...p} disabled={readOnly} {...register("email_account_id")}>
+                <option value="">Default account</option>
+                {(accounts.data ?? []).map((a) => (
+                  <option key={a.id} value={a.id}>{a.name} · {a.from_address}{a.is_default ? " (default)" : ""}</option>
+                ))}
+              </Select>
+            )}
+          </Field>
           <Field label="Email Sender Name" help="Shown as the sender of QR emails.">
             {(p) => <Input {...p} readOnly={readOnly} {...register("email_sender_name")} />}
           </Field>

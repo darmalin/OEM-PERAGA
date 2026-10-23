@@ -6,9 +6,8 @@ from sqlalchemy import Select, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import Scope
+from app.modules.mail import service as mail_service
 from app.modules.registrations.models import (
-    EmailJob,
-    EmailLog,
     EmailTemplate,
     QrCredential,
     VisitorRegistration,
@@ -19,14 +18,7 @@ from app.modules.visitors.models import VisitorLead
 
 
 def _latest_email_status() -> Any:
-    return (
-        select(EmailJob.status)
-        .where(EmailJob.registration_id == VisitorRegistration.id)
-        .order_by(EmailJob.queued_at.desc(), EmailJob.id.desc())
-        .limit(1)
-        .correlate(VisitorRegistration)
-        .scalar_subquery()
-    )
+    return mail_service.latest_status_for(VisitorRegistration.id)
 
 
 def _base(scope: Scope) -> Select[Any]:
@@ -115,29 +107,6 @@ async def credentials(session: AsyncSession, registration_id: uuid.UUID) -> list
         .order_by(QrCredential.issued_at.desc())
     )
     return list(rows)
-
-
-async def email_jobs(
-    session: AsyncSession, registration_id: uuid.UUID
-) -> list[tuple[EmailJob, list[EmailLog]]]:
-    jobs = list(
-        await session.scalars(
-            select(EmailJob)
-            .where(EmailJob.registration_id == registration_id)
-            .order_by(EmailJob.queued_at.desc(), EmailJob.id.desc())
-        )
-    )
-    if not jobs:
-        return []
-    logs = await session.scalars(
-        select(EmailLog)
-        .where(EmailLog.email_job_id.in_([j.id for j in jobs]))
-        .order_by(EmailLog.occurred_at, EmailLog.id)
-    )
-    by_job: dict[uuid.UUID, list[EmailLog]] = {j.id: [] for j in jobs}
-    for log in logs:
-        by_job[log.email_job_id].append(log)
-    return [(j, by_job[j.id]) for j in jobs]
 
 
 async def latest_template(

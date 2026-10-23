@@ -19,7 +19,7 @@ function values(e: Schemas["EditionOut"]): EditionValues {
     exhibition_id: e.exhibition_id, year: String(e.year), name: e.name, start_date: e.start_date, end_date: e.end_date,
     venue_id: e.venue_id ?? "", country: e.country ?? "", city: e.city ?? "", timezone: e.timezone,
     default_currency: e.default_currency, status: e.status, email_sender_name: e.email_sender_name ?? "",
-    email_reply_to: e.email_reply_to ?? "", public_registration_open: e.public_registration_open,
+    email_reply_to: e.email_reply_to ?? "", email_account_id: e.email_account_id ?? "", public_registration_open: e.public_registration_open,
     scanner_cache_ttl_minutes: e.scanner_cache_ttl_minutes ? String(e.scanner_cache_ttl_minutes) : "",
     ...exhibitorValues(e),
   };
@@ -44,7 +44,7 @@ function Edition() {
       void queryClient.invalidateQueries({ queryKey: ["editions"] });
       notifySuccess("Edition saved", updated.code);
     } catch (e) {
-      handleFormError(e, form.setError, ["name", "start_date", "end_date", "timezone", "default_currency", "email_reply_to", "scanner_cache_ttl_minutes", "status", ...EXHIBITOR_FIELDS]);
+      handleFormError(e, form.setError, ["name", "start_date", "end_date", "timezone", "default_currency", "email_reply_to", "email_account_id", "scanner_cache_ttl_minutes", "status", ...EXHIBITOR_FIELDS]);
     }
   });
   return (

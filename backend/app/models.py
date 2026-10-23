@@ -22,9 +22,8 @@ from app.modules.importexport.models import (
     ImportMappingPreset,
     ImportRowError,
 )
+from app.modules.mail.models import EmailAccount, EmailJob, EmailLog
 from app.modules.registrations.models import (
-    EmailJob,
-    EmailLog,
     EmailTemplate,
     QrCredential,
     VisitorRegistration,
@@ -53,6 +52,7 @@ __all__ = [
     "Edition",
     "EditionCounter",
     "EditionFieldOption",
+    "EmailAccount",
     "EmailJob",
     "EmailLog",
     "EmailTemplate",

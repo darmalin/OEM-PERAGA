@@ -34,33 +34,6 @@ class CredentialStatus(StrEnum):
     REVOKED = "REVOKED"
 
 
-class EmailKind(StrEnum):
-    QR_CONFIRMATION = "QR_CONFIRMATION"
-
-
-class EmailJobStatus(StrEnum):
-    QUEUED = "QUEUED"
-    SENDING = "SENDING"
-    SENT = "SENT"
-    FAILED = "FAILED"
-    # The credential was revoked before the email went out.
-    CANCELLED = "CANCELLED"
-
-
-FINAL_EMAIL_STATUSES = frozenset(
-    {EmailJobStatus.SENT, EmailJobStatus.FAILED, EmailJobStatus.CANCELLED}
-)
-
-
-class EmailEvent(StrEnum):
-    QUEUED = "QUEUED"
-    ATTEMPT = "ATTEMPT"
-    SENT = "SENT"
-    RETRY = "RETRY"
-    FAILED = "FAILED"
-    CANCELLED = "CANCELLED"
-
-
 def new_qr_token() -> tuple[str, str]:
     """(token, sha256 hex). spec 7.2: random, hard to guess, no PII."""
     token = new_token(32)

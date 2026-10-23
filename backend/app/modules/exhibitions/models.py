@@ -68,6 +68,8 @@ class Edition(UUIDPk, Timestamps, Versioned, Base):
     # Email settings (spec 3): sender shown on QR and reminder emails.
     email_sender_name: Mapped[str | None] = mapped_column(String(200))
     email_reply_to: Mapped[str | None] = mapped_column(String(320))
+    # Account QR emails go out through (mail module); NULL or inactive means the default account.
+    email_account_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("email_accounts.id"))
     # Registration settings.
     public_registration_open: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Gate settings: offline cache lifetime override (D6), NULL = system default.

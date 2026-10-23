@@ -10,11 +10,18 @@ from sqlalchemy import select, text
 from app.core.config import get_settings
 from app.core.crypto import decrypt, sha256_hex
 from app.core.db import get_sessionmaker
-from app.core.email import MemorySender, OutgoingEmail, TransientEmailError, set_email_sender
+from app.core.email import (
+    MemorySender,
+    OutgoingEmail,
+    SmtpAccount,
+    TransientEmailError,
+    set_email_sender,
+)
 from app.core.outbox import OutboxEvent
 from app.modules.exhibitions.models import Edition
+from app.modules.mail.models import EmailJob
 from app.modules.registrations import templates
-from app.modules.registrations.models import EmailJob, QrCredential, VisitorRegistration
+from app.modules.registrations.models import QrCredential, VisitorRegistration
 from app.modules.registrations.tasks import send_qr_email_event
 from app.modules.visitors.models import VisitorLead
 from tests.factories import RoleGrant, actor, login_client, make_edition, make_user
@@ -61,7 +68,7 @@ async def run_email_events() -> list[str | None]:
         ids = list(
             await session.scalars(
                 select(OutboxEvent.id)
-                .where(OutboxEvent.event_type == "registration.qr_email")
+                .where(OutboxEvent.event_type == "mail.qr_confirmation")
                 .order_by(OutboxEvent.created_at)
             )
         )
@@ -288,7 +295,7 @@ class FlakySender:
         self.failures = failures
         self.sent: list[OutgoingEmail] = []
 
-    def send(self, email: OutgoingEmail) -> str:
+    def send(self, email: OutgoingEmail, account: SmtpAccount | None = None) -> str:
         if self.failures:
             self.failures -= 1
             raise TransientEmailError("SMTPServerDisconnected")

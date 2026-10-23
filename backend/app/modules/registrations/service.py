@@ -9,7 +9,7 @@ import structlog
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core import audit, idempotency, outbox, ratelimit
+from app.core import audit, idempotency, ratelimit
 from app.core.authorization import AuthContext, Scope
 from app.core.config import get_settings
 from app.core.context import current_actor_id
@@ -19,28 +19,25 @@ from app.core.logging import mask_email
 from app.core.pagination import Page
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitions.rules import EditionStatus
+from app.modules.mail import service as mail_service
+from app.modules.mail.models import EmailJob
+from app.modules.mail.rules import EmailKind
+from app.modules.mail.schemas import EmailJobOut
 from app.modules.registrations import repository as repo
 from app.modules.registrations import templates
 from app.modules.registrations.models import (
-    EmailJob,
-    EmailLog,
     EmailTemplate,
     QrCredential,
     VisitorRegistration,
 )
 from app.modules.registrations.rules import (
     CredentialStatus,
-    EmailEvent,
-    EmailJobStatus,
-    EmailKind,
     RegistrationChannel,
     RegistrationState,
     new_qr_token,
 )
 from app.modules.registrations.schemas import (
     CredentialOut,
-    EmailJobOut,
-    EmailLogOut,
     EmailTemplateIn,
     EmailTemplateOut,
     PublicRegistrationAccepted,
@@ -83,12 +80,6 @@ def _out(row: Any) -> RegistrationOut:
         email_status=email_status,
         version=reg.version,
     )
-
-
-def _job_out(job: EmailJob, logs: list[EmailLog]) -> EmailJobOut:
-    out = EmailJobOut.model_validate(job)
-    out.logs = [EmailLogOut.model_validate(log) for log in logs]
-    return out
 
 
 async def _registration_out(
@@ -171,35 +162,24 @@ async def _template_for(session: AsyncSession, edition_id: uuid.UUID) -> EmailTe
     return template
 
 
-def add_log(
-    session: AsyncSession, job: EmailJob, event: EmailEvent, detail: str | None = None
-) -> None:
-    session.add(EmailLog(email_job_id=job.id, event=event, detail=detail))
-
-
 async def _queue_email(
     session: AsyncSession, reg: VisitorRegistration, cred: QrCredential, recipient: str
 ) -> EmailJob:
-    """Email job + outbox event in the caller's transaction; the worker sends it after commit."""
+    """QR email through the shared queue (mail module); the worker sends it after commit."""
     template = await _template_for(session, reg.edition_id)
-    job = EmailJob(
-        edition_id=reg.edition_id,
+    return await mail_service.queue_email(
+        session,
         kind=EmailKind.QR_CONFIRMATION,
+        recipient=recipient,
+        task=SEND_TASK,
+        edition_id=reg.edition_id,
         registration_id=reg.id,
         qr_credential_id=cred.id,
-        recipient=recipient,
+        visitor_lead_id=reg.visitor_lead_id,
         template_id=template.id,
         template_version=template.version,
-        status=EmailJobStatus.QUEUED,
-        triggered_by=current_actor_id(),
+        subject=template.subject,
     )
-    session.add(job)
-    await session.flush()
-    add_log(session, job, EmailEvent.QUEUED)
-    await outbox.enqueue(
-        session, "registration.qr_email", SEND_TASK, {"email_job_id": str(job.id)}, queue="email"
-    )
-    return job
 
 
 async def register_lead(
@@ -339,9 +319,7 @@ async def get_registration(
             CredentialOut.model_validate(c)
             for c in await repo.credentials(session, registration_id)
         ],
-        email_jobs=[
-            _job_out(j, logs) for j, logs in await repo.email_jobs(session, registration_id)
-        ],
+        email_jobs=[*await mail_service.jobs_for_registration(session, registration_id)],
     )
 
 
@@ -377,7 +355,7 @@ async def resend_qr(
         edition_id=reg.edition_id,
     )
     await session.refresh(job)
-    out = _job_out(job, [])
+    out = EmailJobOut.model_validate(job)
     assert claim_id is not None  # noqa: S101 - claim() returns one of the two
     await idempotency.store(session, claim_id, 202, out.model_dump(mode="json"))
     return out
@@ -434,7 +412,7 @@ def _check_template_access(ctx: AuthContext, edition_id: uuid.UUID | None) -> No
 
 
 async def list_templates(
-    session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID | None, key: EmailKind
+    session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID | None, key: str
 ) -> list[EmailTemplateOut]:
     _check_template_access(ctx, edition_id)
     return [

@@ -1,4 +1,6 @@
 import {
+  AtSign,
+  Inbox,
   BarChart3,
   Building2,
   CalendarClock,
@@ -121,7 +123,14 @@ export const PANELS: PanelDef[] = [
         label: "Records",
         items: [
           { label: "Audit Log", to: "/system/audit-log", icon: ScrollText, perms: ["audit_log.read"] },
+        ],
+      },
+      {
+        label: "Email",
+        items: [
+          { label: "Email Accounts", to: "/system/email-accounts", icon: AtSign, perms: ["email_account.manage"] },
           { label: "Email Templates", to: "/system/email-templates", icon: Mail, perms: ["edition.manage"] },
+          { label: "Email Log", to: "/system/email-log", icon: Inbox, perms: ["email_log.read", "email_account.manage"] },
         ],
       },
     ],

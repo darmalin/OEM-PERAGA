@@ -58,6 +58,11 @@ import { Route as AppVisitorLeadsIndexRouteImport } from './routes/app/visitor-l
 import { Route as AppVisitorLeadsAssignRouteImport } from './routes/app/visitor-leads/assign'
 import { Route as AppVisitorLeadsBoardRouteImport } from './routes/app/visitor-leads/board'
 import { Route as AppVisitorLeadsNewRouteImport } from './routes/app/visitor-leads/new'
+import { Route as SystemEmailAccountsIndexRouteImport } from './routes/system/email-accounts/index'
+import { Route as SystemEmailAccountsAccountIdRouteImport } from './routes/system/email-accounts/$accountId'
+import { Route as SystemEmailAccountsNewRouteImport } from './routes/system/email-accounts/new'
+import { Route as SystemEmailLogIndexRouteImport } from './routes/system/email-log/index'
+import { Route as SystemEmailLogJobIdRouteImport } from './routes/system/email-log/$jobId'
 import { Route as SystemEmailTemplatesIndexRouteImport } from './routes/system/email-templates/index'
 import { Route as SystemEmailTemplatesNewRouteImport } from './routes/system/email-templates/new'
 import { Route as SystemRolesIndexRouteImport } from './routes/system/roles/index'
@@ -325,6 +330,33 @@ const AppVisitorLeadsNewRoute = AppVisitorLeadsNewRouteImport.update({
   path: '/visitor-leads/new',
   getParentRoute: () => AppRoute,
 } as any)
+const SystemEmailAccountsIndexRoute =
+  SystemEmailAccountsIndexRouteImport.update({
+    id: '/email-accounts/',
+    path: '/email-accounts/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemEmailAccountsAccountIdRoute =
+  SystemEmailAccountsAccountIdRouteImport.update({
+    id: '/email-accounts/$accountId',
+    path: '/email-accounts/$accountId',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemEmailAccountsNewRoute = SystemEmailAccountsNewRouteImport.update({
+  id: '/email-accounts/new',
+  path: '/email-accounts/new',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemEmailLogIndexRoute = SystemEmailLogIndexRouteImport.update({
+  id: '/email-log/',
+  path: '/email-log/',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemEmailLogJobIdRoute = SystemEmailLogJobIdRouteImport.update({
+  id: '/email-log/$jobId',
+  path: '/email-log/$jobId',
+  getParentRoute: () => SystemRoute,
+} as any)
 const SystemEmailTemplatesIndexRoute =
   SystemEmailTemplatesIndexRouteImport.update({
     id: '/email-templates/',
@@ -472,6 +504,9 @@ export interface FileRoutesByFullPath {
   '/app/visitor-leads/assign': typeof AppVisitorLeadsAssignRoute
   '/app/visitor-leads/board': typeof AppVisitorLeadsBoardRoute
   '/app/visitor-leads/new': typeof AppVisitorLeadsNewRoute
+  '/system/email-accounts/$accountId': typeof SystemEmailAccountsAccountIdRoute
+  '/system/email-accounts/new': typeof SystemEmailAccountsNewRoute
+  '/system/email-log/$jobId': typeof SystemEmailLogJobIdRoute
   '/system/email-templates/new': typeof SystemEmailTemplatesNewRoute
   '/system/roles/$roleId': typeof SystemRolesRoleIdRoute
   '/system/roles/new': typeof SystemRolesNewRoute
@@ -491,6 +526,8 @@ export interface FileRoutesByFullPath {
   '/app/registrations/': typeof AppRegistrationsIndexRoute
   '/app/venues/': typeof AppVenuesIndexRoute
   '/app/visitor-leads/': typeof AppVisitorLeadsIndexRoute
+  '/system/email-accounts/': typeof SystemEmailAccountsIndexRoute
+  '/system/email-log/': typeof SystemEmailLogIndexRoute
   '/system/email-templates/': typeof SystemEmailTemplatesIndexRoute
   '/system/roles/': typeof SystemRolesIndexRoute
   '/system/teams/': typeof SystemTeamsIndexRoute
@@ -541,6 +578,9 @@ export interface FileRoutesByTo {
   '/app/visitor-leads/assign': typeof AppVisitorLeadsAssignRoute
   '/app/visitor-leads/board': typeof AppVisitorLeadsBoardRoute
   '/app/visitor-leads/new': typeof AppVisitorLeadsNewRoute
+  '/system/email-accounts/$accountId': typeof SystemEmailAccountsAccountIdRoute
+  '/system/email-accounts/new': typeof SystemEmailAccountsNewRoute
+  '/system/email-log/$jobId': typeof SystemEmailLogJobIdRoute
   '/system/email-templates/new': typeof SystemEmailTemplatesNewRoute
   '/system/roles/$roleId': typeof SystemRolesRoleIdRoute
   '/system/roles/new': typeof SystemRolesNewRoute
@@ -560,6 +600,8 @@ export interface FileRoutesByTo {
   '/app/registrations': typeof AppRegistrationsIndexRoute
   '/app/venues': typeof AppVenuesIndexRoute
   '/app/visitor-leads': typeof AppVisitorLeadsIndexRoute
+  '/system/email-accounts': typeof SystemEmailAccountsIndexRoute
+  '/system/email-log': typeof SystemEmailLogIndexRoute
   '/system/email-templates': typeof SystemEmailTemplatesIndexRoute
   '/system/roles': typeof SystemRolesIndexRoute
   '/system/teams': typeof SystemTeamsIndexRoute
@@ -613,6 +655,9 @@ export interface FileRoutesById {
   '/app/visitor-leads/assign': typeof AppVisitorLeadsAssignRoute
   '/app/visitor-leads/board': typeof AppVisitorLeadsBoardRoute
   '/app/visitor-leads/new': typeof AppVisitorLeadsNewRoute
+  '/system/email-accounts/$accountId': typeof SystemEmailAccountsAccountIdRoute
+  '/system/email-accounts/new': typeof SystemEmailAccountsNewRoute
+  '/system/email-log/$jobId': typeof SystemEmailLogJobIdRoute
   '/system/email-templates/new': typeof SystemEmailTemplatesNewRoute
   '/system/roles/$roleId': typeof SystemRolesRoleIdRoute
   '/system/roles/new': typeof SystemRolesNewRoute
@@ -632,6 +677,8 @@ export interface FileRoutesById {
   '/app/registrations/': typeof AppRegistrationsIndexRoute
   '/app/venues/': typeof AppVenuesIndexRoute
   '/app/visitor-leads/': typeof AppVisitorLeadsIndexRoute
+  '/system/email-accounts/': typeof SystemEmailAccountsIndexRoute
+  '/system/email-log/': typeof SystemEmailLogIndexRoute
   '/system/email-templates/': typeof SystemEmailTemplatesIndexRoute
   '/system/roles/': typeof SystemRolesIndexRoute
   '/system/teams/': typeof SystemTeamsIndexRoute
@@ -686,6 +733,9 @@ export interface FileRouteTypes {
     | '/app/visitor-leads/assign'
     | '/app/visitor-leads/board'
     | '/app/visitor-leads/new'
+    | '/system/email-accounts/$accountId'
+    | '/system/email-accounts/new'
+    | '/system/email-log/$jobId'
     | '/system/email-templates/new'
     | '/system/roles/$roleId'
     | '/system/roles/new'
@@ -705,6 +755,8 @@ export interface FileRouteTypes {
     | '/app/registrations/'
     | '/app/venues/'
     | '/app/visitor-leads/'
+    | '/system/email-accounts/'
+    | '/system/email-log/'
     | '/system/email-templates/'
     | '/system/roles/'
     | '/system/teams/'
@@ -755,6 +807,9 @@ export interface FileRouteTypes {
     | '/app/visitor-leads/assign'
     | '/app/visitor-leads/board'
     | '/app/visitor-leads/new'
+    | '/system/email-accounts/$accountId'
+    | '/system/email-accounts/new'
+    | '/system/email-log/$jobId'
     | '/system/email-templates/new'
     | '/system/roles/$roleId'
     | '/system/roles/new'
@@ -774,6 +829,8 @@ export interface FileRouteTypes {
     | '/app/registrations'
     | '/app/venues'
     | '/app/visitor-leads'
+    | '/system/email-accounts'
+    | '/system/email-log'
     | '/system/email-templates'
     | '/system/roles'
     | '/system/teams'
@@ -826,6 +883,9 @@ export interface FileRouteTypes {
     | '/app/visitor-leads/assign'
     | '/app/visitor-leads/board'
     | '/app/visitor-leads/new'
+    | '/system/email-accounts/$accountId'
+    | '/system/email-accounts/new'
+    | '/system/email-log/$jobId'
     | '/system/email-templates/new'
     | '/system/roles/$roleId'
     | '/system/roles/new'
@@ -845,6 +905,8 @@ export interface FileRouteTypes {
     | '/app/registrations/'
     | '/app/venues/'
     | '/app/visitor-leads/'
+    | '/system/email-accounts/'
+    | '/system/email-log/'
     | '/system/email-templates/'
     | '/system/roles/'
     | '/system/teams/'
@@ -1215,6 +1277,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppVisitorLeadsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/system/email-accounts/': {
+      id: '/system/email-accounts/'
+      path: '/email-accounts'
+      fullPath: '/system/email-accounts/'
+      preLoaderRoute: typeof SystemEmailAccountsIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/email-accounts/$accountId': {
+      id: '/system/email-accounts/$accountId'
+      path: '/email-accounts/$accountId'
+      fullPath: '/system/email-accounts/$accountId'
+      preLoaderRoute: typeof SystemEmailAccountsAccountIdRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/email-accounts/new': {
+      id: '/system/email-accounts/new'
+      path: '/email-accounts/new'
+      fullPath: '/system/email-accounts/new'
+      preLoaderRoute: typeof SystemEmailAccountsNewRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/email-log/': {
+      id: '/system/email-log/'
+      path: '/email-log'
+      fullPath: '/system/email-log/'
+      preLoaderRoute: typeof SystemEmailLogIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/email-log/$jobId': {
+      id: '/system/email-log/$jobId'
+      path: '/email-log/$jobId'
+      fullPath: '/system/email-log/$jobId'
+      preLoaderRoute: typeof SystemEmailLogJobIdRouteImport
+      parentRoute: typeof SystemRoute
+    }
     '/system/email-templates/': {
       id: '/system/email-templates/'
       path: '/email-templates'
@@ -1469,12 +1566,17 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 interface SystemRouteChildren {
   SystemAuditLogRoute: typeof SystemAuditLogRoute
   SystemIndexRoute: typeof SystemIndexRoute
+  SystemEmailAccountsAccountIdRoute: typeof SystemEmailAccountsAccountIdRoute
+  SystemEmailAccountsNewRoute: typeof SystemEmailAccountsNewRoute
+  SystemEmailLogJobIdRoute: typeof SystemEmailLogJobIdRoute
   SystemEmailTemplatesNewRoute: typeof SystemEmailTemplatesNewRoute
   SystemRolesRoleIdRoute: typeof SystemRolesRoleIdRoute
   SystemRolesNewRoute: typeof SystemRolesNewRoute
   SystemTeamsTeamIdRoute: typeof SystemTeamsTeamIdRoute
   SystemTeamsNewRoute: typeof SystemTeamsNewRoute
   SystemUsersNewRoute: typeof SystemUsersNewRoute
+  SystemEmailAccountsIndexRoute: typeof SystemEmailAccountsIndexRoute
+  SystemEmailLogIndexRoute: typeof SystemEmailLogIndexRoute
   SystemEmailTemplatesIndexRoute: typeof SystemEmailTemplatesIndexRoute
   SystemRolesIndexRoute: typeof SystemRolesIndexRoute
   SystemTeamsIndexRoute: typeof SystemTeamsIndexRoute
@@ -1486,12 +1588,17 @@ interface SystemRouteChildren {
 const SystemRouteChildren: SystemRouteChildren = {
   SystemAuditLogRoute: SystemAuditLogRoute,
   SystemIndexRoute: SystemIndexRoute,
+  SystemEmailAccountsAccountIdRoute: SystemEmailAccountsAccountIdRoute,
+  SystemEmailAccountsNewRoute: SystemEmailAccountsNewRoute,
+  SystemEmailLogJobIdRoute: SystemEmailLogJobIdRoute,
   SystemEmailTemplatesNewRoute: SystemEmailTemplatesNewRoute,
   SystemRolesRoleIdRoute: SystemRolesRoleIdRoute,
   SystemRolesNewRoute: SystemRolesNewRoute,
   SystemTeamsTeamIdRoute: SystemTeamsTeamIdRoute,
   SystemTeamsNewRoute: SystemTeamsNewRoute,
   SystemUsersNewRoute: SystemUsersNewRoute,
+  SystemEmailAccountsIndexRoute: SystemEmailAccountsIndexRoute,
+  SystemEmailLogIndexRoute: SystemEmailLogIndexRoute,
   SystemEmailTemplatesIndexRoute: SystemEmailTemplatesIndexRoute,
   SystemRolesIndexRoute: SystemRolesIndexRoute,
   SystemTeamsIndexRoute: SystemTeamsIndexRoute,

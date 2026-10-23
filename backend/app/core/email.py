@@ -27,9 +27,38 @@ class OutgoingEmail:
     reply_to: str | None = None
 
 
+@dataclass(frozen=True)
+class SmtpAccount:
+    """One sending account (mail module "Email Accounts"); None means the .env settings."""
+
+    host: str
+    port: int
+    security: str  # NONE, STARTTLS, SSL
+    username: str | None
+    password: str
+    from_address: str
+    from_name: str | None = None
+    reply_to: str | None = None
+
+
+def env_account() -> SmtpAccount:
+    """The .env SMTP settings, used while no account is configured in the app."""
+    s = get_settings()
+    name, address = parseaddr(s.email_from)
+    return SmtpAccount(
+        host=s.smtp_host,
+        port=s.smtp_port,
+        security="STARTTLS" if s.smtp_use_tls else "NONE",
+        username=s.smtp_username,
+        password=s.smtp_password.get_secret_value(),
+        from_address=address,
+        from_name=name or None,
+    )
+
+
 class EmailSender(Protocol):
-    def send(self, email: OutgoingEmail) -> str:
-        """Send and return the provider message ID."""
+    def send(self, email: OutgoingEmail, account: SmtpAccount | None = None) -> str:
+        """Send through `account` (default: .env settings) and return the provider message ID."""
         ...
 
 
@@ -37,20 +66,23 @@ class TransientEmailError(Exception):
     """Retriable failure (timeouts, 4xx SMTP)."""
 
 
+class PermanentEmailError(Exception):
+    """Final failure (5xx SMTP: authentication, recipient refused). Message is safe to show."""
+
+
 class SmtpSender:
-    def send(self, email: OutgoingEmail) -> str:
-        s = get_settings()
+    def send(self, email: OutgoingEmail, account: SmtpAccount | None = None) -> str:
+        acc = account or env_account()
         msg = EmailMessage()
-        msg["From"] = (
-            formataddr((email.from_name, parseaddr(s.email_from)[1]))
-            if email.from_name
-            else s.email_from
-        )
+        # The edition's sender name wins over the account's own display name.
+        msg["From"] = formataddr((email.from_name or acc.from_name or "", acc.from_address))
         msg["To"] = email.to
-        if email.reply_to:
-            msg["Reply-To"] = email.reply_to
+        reply_to = email.reply_to or acc.reply_to
+        if reply_to:
+            msg["Reply-To"] = reply_to
         msg["Subject"] = email.subject
-        message_id = make_msgid(domain="ems.local")
+        domain = acc.from_address.rpartition("@")[2] or "ems.local"
+        message_id = make_msgid(domain=domain)
         msg["Message-ID"] = message_id
         msg.set_content(email.text)
         msg.add_alternative(email.html, subtype="html")
@@ -67,20 +99,37 @@ class SmtpSender:
                     att.content, maintype=maintype, subtype=subtype, filename=att.filename
                 )
         try:
-            with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=30) as smtp:
-                if s.smtp_use_tls:
+            smtp_cls = smtplib.SMTP_SSL if acc.security == "SSL" else smtplib.SMTP
+            with smtp_cls(acc.host, acc.port, timeout=30) as smtp:
+                if acc.security == "STARTTLS":
                     smtp.starttls()
-                if s.smtp_username:
-                    smtp.login(s.smtp_username, s.smtp_password.get_secret_value())
+                if acc.username:
+                    smtp.login(acc.username, acc.password)
                 smtp.send_message(msg)
         except (
             smtplib.SMTPServerDisconnected,
             smtplib.SMTPConnectError,
             TimeoutError,
-            OSError,
         ) as e:
             raise TransientEmailError(type(e).__name__) from e
+        except smtplib.SMTPResponseException as e:
+            # 4xx is temporary (greylisting, rate limit); 5xx is final (auth, bad recipient).
+            detail = f"{e.smtp_code} {safe_smtp_text(e.smtp_error)}"
+            if 400 <= e.smtp_code < 500:
+                raise TransientEmailError(detail) from e
+            raise PermanentEmailError(detail) from e
+        except smtplib.SMTPRecipientsRefused as e:
+            codes = sorted({code for code, _ in e.recipients.values()})
+            raise PermanentEmailError(f"Recipient refused ({', '.join(map(str, codes))})") from e
+        except OSError as e:
+            raise TransientEmailError(type(e).__name__) from e
         return message_id
+
+
+def safe_smtp_text(raw: bytes | str) -> str:
+    """First line of an SMTP reply, short: shown in the email log, never a traceback."""
+    text = raw.decode(errors="replace") if isinstance(raw, bytes) else raw
+    return text.splitlines()[0][:200] if text else ""
 
 
 class MemorySender:
@@ -88,9 +137,11 @@ class MemorySender:
 
     def __init__(self) -> None:
         self.outbox: list[OutgoingEmail] = []
+        self.accounts: list[SmtpAccount | None] = []
 
-    def send(self, email: OutgoingEmail) -> str:
+    def send(self, email: OutgoingEmail, account: SmtpAccount | None = None) -> str:
         self.outbox.append(email)
+        self.accounts.append(account)
         return f"<memory-{len(self.outbox)}@ems.test>"
 
 

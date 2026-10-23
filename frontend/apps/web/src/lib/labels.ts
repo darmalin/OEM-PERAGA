@@ -36,6 +36,17 @@ const LABELS: Record<string, Record<string, string>> = {
     API: "API",
     IMPORT: "Import",
   },
+  email_kind: {
+    QR_CONFIRMATION: "QR Confirmation",
+    PASSWORD_RESET: "Password Reset",
+    FOLLOWUP_REMINDER: "Follow-up Reminder",
+    TEST: "Test",
+  },
+  smtp_security: {
+    STARTTLS: "STARTTLS (port 587)",
+    SSL: "SSL/TLS (port 465)",
+    NONE: "None",
+  },
   email_status: {
     QUEUED: "Queued",
     SENDING: "Sending",

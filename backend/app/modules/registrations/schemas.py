@@ -6,11 +6,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.pagination import PageParams
 from app.modules.exhibitions.schemas import Country
+from app.modules.mail.rules import EmailJobStatus
+from app.modules.mail.schemas import EmailJobOut
 from app.modules.registrations.rules import (
     CredentialStatus,
-    EmailEvent,
-    EmailJobStatus,
-    EmailKind,
     RegistrationChannel,
     RegistrationState,
 )
@@ -18,6 +17,8 @@ from app.modules.visitors.rules import QrStatus
 from app.modules.visitors.schemas import Website
 
 StaffChannel = Literal["ADMIN", "TELEMARKETING", "API"]
+# Only the QR email has an editable template; system emails are written in code.
+TemplateKey = Literal["QR_CONFIRMATION"]
 
 
 class RegistrationIn(BaseModel):
@@ -27,30 +28,6 @@ class RegistrationIn(BaseModel):
     channel: StaffChannel = "ADMIN"
     # False registers and issues the QR without emailing it (e.g. printed on site).
     send_email: bool = True
-
-
-class EmailLogOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    event: EmailEvent
-    detail: str | None
-    occurred_at: datetime
-
-
-class EmailJobOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
-    kind: EmailKind
-    recipient: str
-    status: EmailJobStatus
-    attempts: int
-    template_version: int
-    queued_at: datetime
-    sent_at: datetime | None
-    provider_message_id: str | None
-    error_summary: str | None
-    logs: list[EmailLogOut] = []
 
 
 class CredentialOut(BaseModel):
@@ -110,7 +87,7 @@ class EmailTemplateIn(BaseModel):
 
     # None = system default (needs global edition.manage).
     edition_id: uuid.UUID | None = None
-    template_key: EmailKind = EmailKind.QR_CONFIRMATION
+    template_key: TemplateKey = "QR_CONFIRMATION"
     subject: str = Field(min_length=1, max_length=300)
     body_text: str = Field(min_length=1, max_length=20_000)
     body_html: str = Field(min_length=1, max_length=50_000)
@@ -121,7 +98,7 @@ class EmailTemplateOut(BaseModel):
 
     id: uuid.UUID
     edition_id: uuid.UUID | None
-    template_key: EmailKind
+    template_key: TemplateKey
     version: int
     subject: str
     body_text: str
@@ -134,7 +111,7 @@ class EmailTemplateParams(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     edition_id: uuid.UUID | None = None
-    template_key: EmailKind = EmailKind.QR_CONFIRMATION
+    template_key: TemplateKey = "QR_CONFIRMATION"
 
 
 class PublicRegistrationIn(BaseModel):

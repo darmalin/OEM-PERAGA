@@ -8,7 +8,7 @@ from pwdlib import PasswordHash
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core import audit, outbox, ratelimit, sessions
+from app.core import audit, ratelimit, sessions
 from app.core.authorization import AuthContext, CurrentUser, Grant
 from app.core.config import get_settings
 from app.core.context import current_actor_id
@@ -52,6 +52,8 @@ from app.modules.identity.schemas import (
     UserOut,
     UserUpdateIn,
 )
+from app.modules.mail import service as mail_service
+from app.modules.mail.rules import EmailKind
 
 USER_AUDIT_FIELDS = ("email", "full_name", "is_active")
 
@@ -174,6 +176,8 @@ async def logout(ctx: AuthContext) -> None:
 
 # --- password reset ------------------------------------------------------------------------
 
+RESET_SUBJECT = "Reset your EMS password"
+
 
 async def request_password_reset(session: AsyncSession, email: str, client_ip: str) -> None:
     """Always succeeds from the caller's view; never reveals whether the email exists."""
@@ -191,12 +195,16 @@ async def request_password_reset(session: AsyncSession, email: str, client_ip: s
     )
     session.add(record)
     await session.flush()
-    await outbox.enqueue(
+    # Through the shared email queue so it shows in the email log; the token stays encrypted
+    # in the outbox payload and never reaches the log.
+    await mail_service.queue_email(
         session,
-        "identity.password_reset_requested",
-        "identity.send_password_reset",
-        {"reset_id": str(record.id), "token_enc": encrypt(token)},
-        queue="email",
+        kind=EmailKind.PASSWORD_RESET,
+        recipient=user.email,
+        task="identity.send_password_reset",
+        payload={"reset_id": str(record.id), "token_enc": encrypt(token)},
+        user_id=user.id,
+        subject=RESET_SUBJECT,
     )
 
 

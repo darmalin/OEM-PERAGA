@@ -56,6 +56,7 @@ _EDITION_FIELDS = (
     "status",
     "email_sender_name",
     "email_reply_to",
+    "email_account_id",
     "public_registration_open",
     "scanner_cache_ttl_minutes",
     "remarks",
@@ -277,6 +278,8 @@ async def create_edition(session: AsyncSession, ctx: AuthContext, data: EditionI
         await session.flush()
     except IntegrityError as e:
         msg = str(e.orig)
+        if "email_account" in msg:
+            raise ValidationFailed(fields={"email_account_id": "Unknown email account."}) from e
         if "exhibition_id_year" in msg:
             raise Conflict(
                 "This exhibition already has an edition for that year.",
@@ -332,7 +335,12 @@ async def update_edition(
     before = audit.snapshot(edition, _EDITION_FIELDS)
     _apply(edition, changes)
     edition.updated_by = current_actor_id()
-    await session.flush()
+    try:
+        async with session.begin_nested():
+            await session.flush()
+    except IntegrityError as e:
+        # The only foreign keys a PATCH can break: venue (checked above) and email account.
+        raise ValidationFailed(fields={"email_account_id": "Unknown email account."}) from e
     await audit.record(
         session,
         entity_type="edition",

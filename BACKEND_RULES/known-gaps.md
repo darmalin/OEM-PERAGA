@@ -64,6 +64,8 @@ Measured baselines are in `FEATURES/10-reporting-export.md`. Targets are not set
 
 | # | Pri | Gap | Fix |
 |---|---|---|---|
+| E1 | P2 | Email account passwords are encrypted with `EMS_APP_ENCRYPTION_KEY`; there is no key rotation, and a lost key means re-entering every account password (QR tokens: revoke and reissue). | Keep the key in a password manager; add a rotation command if the key must ever change. |
+| E2 | P3 | Email accounts support SMTP with a password only; no OAuth (Google, Microsoft 365). | Use app passwords; add OAuth if the providers require it. |
 | O1 | P1 | Backups are scripts only; nothing schedules them or copies them off the host. | Cron/systemd timer for `deployments/backup/backup.sh` + off-host copy. |
 | O2 | P2 | The drill restores the database only; restoring the storage tarball has not been tested. Storage is copied while running (not a consistent snapshot). | Add a file restore step to `drill.sh`; snapshot or `aws s3 sync` for production storage. |
 | O3 | P3 | The dev database holds test data: edition `E2EQR2027`, `LOADTEST2027`/`2028`/`2029` (~100k leads), user `e2e-admin@example.test`. Append-only triggers block deleting their scans. | Reset the dev database (`docker compose down -v`, then migrate) when it gets in the way. |

@@ -17,7 +17,7 @@ export const PAGES = [
   "/app/editions", "/app/editions/new", "/app/venues", "/app/venues/new", "/app/custom-fields",
   "/app/custom-fields/new", "/app/field-options", "/app/field-options/new", "/app/lead-sources", "/app/lead-sources/new", "/system", "/system/users",
   "/system/users/new", "/system/roles", "/system/roles/new", "/system/teams", "/system/teams/new",
-  "/system/audit-log", "/system/email-templates", "/system/email-templates/new",
+  "/system/audit-log", "/system/email-templates", "/system/email-templates/new", "/system/email-accounts", "/system/email-accounts/new", "/system/email-log",
 ];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? "/snap/bin/chromium", headless: true });

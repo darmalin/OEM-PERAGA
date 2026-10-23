@@ -23,7 +23,7 @@ function NewEdition() {
   const form = useForm<EditionValues>({
     defaultValues: {
       exhibition_id: exhibition_id ?? "", year: String(new Date().getFullYear() + 1), name: "", start_date: "", end_date: "", venue_id: "", country: "",
-      city: "", timezone: "Asia/Jakarta", default_currency: "IDR", status: "DRAFT", email_sender_name: "", email_reply_to: "",
+      city: "", timezone: "Asia/Jakarta", default_currency: "IDR", status: "DRAFT", email_sender_name: "", email_reply_to: "", email_account_id: "",
       public_registration_open: false, scanner_cache_ttl_minutes: "", ...exhibitorValues(),
     },
   });
@@ -36,7 +36,7 @@ function NewEdition() {
       notifySuccess("Edition added", `${ed.code} starts as Draft.`);
       await navigate({ to: "/app/editions/$editionId", params: { editionId: ed.id } });
     } catch (e) {
-      handleFormError(e, form.setError, ["exhibition_id", "year", "name", "start_date", "end_date", "timezone", "default_currency", "email_reply_to", "scanner_cache_ttl_minutes", ...EXHIBITOR_FIELDS]);
+      handleFormError(e, form.setError, ["exhibition_id", "year", "name", "start_date", "end_date", "timezone", "default_currency", "email_reply_to", "email_account_id", "scanner_cache_ttl_minutes", ...EXHIBITOR_FIELDS]);
     }
   });
   return (

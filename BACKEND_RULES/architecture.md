@@ -31,7 +31,9 @@ backend/app/
         └── rules.py        # pure functions (normalization, status derivation)
 ```
 
-Modules: `identity`, `exhibitions`, `visitors`, `telemarketing`, `registrations`, `checkin`, `importexport`, `reporting`.
+Modules: `identity`, `exhibitions`, `visitors`, `telemarketing`, `registrations`, `checkin`, `importexport`, `reporting`, `mail`.
+
+`mail` owns email accounts and the email queue/log (`email_jobs`). Every module that sends email queues it with `mail.service.queue_email` and delivers it in its task through `mail.tasks.deliver`, so every email is logged and goes through the right account.
 
 ## Layer rules
 

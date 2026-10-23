@@ -1,14 +1,21 @@
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from app.core import outbox
 from app.core.config import get_settings
 from app.core.context import Source, source_var
 from app.core.db import task_session
-from app.core.email import OutgoingEmail, TransientEmailError, get_email_sender
-from app.modules.identity import service as identity_service
+from app.core.email import OutgoingEmail, TransientEmailError
+from app.modules.mail import service as mail_service
+from app.modules.mail import tasks as mail_tasks
+from app.modules.mail.rules import EmailEvent, EmailJobStatus
 from app.modules.telemarketing.models import FollowupReminder, VisitorFollowup
-from app.modules.telemarketing.service import queue_followup_reminders, run_assignment_job
+from app.modules.telemarketing.service import (
+    REMINDER_SUBJECT,
+    queue_followup_reminders,
+    run_assignment_job,
+)
 from app.worker import celery_app, run_async
 
 
@@ -35,41 +42,53 @@ async def queue_reminders_once() -> int:
         return count
 
 
-async def send_reminder_event(event_id: uuid.UUID) -> bool:
-    """At-most-once: sent_at is committed before sending, cleared again on a retriable error."""
+async def send_reminder_event(event_id: uuid.UUID, *, final_attempt: bool = False) -> bool:
+    """Send one follow-up reminder through the shared email queue (mail.tasks)."""
     async with task_session() as session:
-        event = await outbox.get_event(session, event_id)
-        if event is None:
+        found = await mail_tasks.job_for_event(session, event_id)
+        if found is None:
             return False
-        reminder = await session.get(FollowupReminder, uuid.UUID(event.payload["reminder_id"]))
-        if reminder is None or reminder.sent_at is not None:
-            return False
-        followup = await session.get(VisitorFollowup, reminder.followup_id)
-        if followup is None or followup.status != "OPEN":
-            return False
-        assignee = await identity_service.get_user(session, followup.assigned_to)
-        reminder.sent_at = datetime.now(UTC)
-        await session.commit()
-        email = OutgoingEmail(
-            to=assignee.email,
-            subject="Follow-up due soon",
-            text=(
-                f"A follow-up is due at {followup.due_at.isoformat()}.\n"
-                f"{get_settings().public_base_url}/visitor-leads/{followup.visitor_lead_id}\n"
-            ),
-            html=(
-                f"<p>A follow-up is due at {followup.due_at.isoformat()}.</p>"
-                f'<p><a href="{get_settings().public_base_url}/visitor-leads/'
-                f'{followup.visitor_lead_id}">Open lead</a></p>'
-            ),
-        )
-        try:
-            get_email_sender().send(email)
-        except TransientEmailError:
-            reminder.sent_at = None
+        job, payload = found
+        reminder = await session.get(FollowupReminder, uuid.UUID(payload["reminder_id"]))
+        followup = await session.get(VisitorFollowup, reminder.followup_id) if reminder else None
+        if (
+            reminder is None
+            or reminder.sent_at is not None
+            or followup is None
+            or (followup.status != "OPEN")
+        ):
+            await mail_service.record_result(
+                session,
+                job,
+                EmailJobStatus.CANCELLED,
+                EmailEvent.CANCELLED,
+                detail="The follow-up is no longer open.",
+            )
             await session.commit()
-            raise
-        return True
+            return False
+        account = await mail_service.begin_attempt(session, job)
+        await session.commit()
+        job_id, recipient, reminder_id = job.id, job.recipient, reminder.id
+        due_at, lead_id = followup.due_at, followup.visitor_lead_id
+    base = get_settings().public_base_url
+    email = OutgoingEmail(
+        to=recipient,
+        subject=REMINDER_SUBJECT,
+        text=f"A follow-up is due at {due_at.isoformat()}.\n{base}/app/visitor-leads/{lead_id}\n",
+        html=(
+            f"<p>A follow-up is due at {due_at.isoformat()}.</p>"
+            f'<p><a href="{base}/app/visitor-leads/{lead_id}">Open lead</a></p>'
+        ),
+    )
+    status = await mail_tasks.deliver(job_id, email, account, final_attempt=final_attempt)
+    if status != EmailJobStatus.SENT:
+        return False
+    async with task_session() as session:
+        sent = await session.get(FollowupReminder, reminder_id, with_for_update=True)
+        if sent is not None and sent.sent_at is None:
+            sent.sent_at = datetime.now(UTC)
+            await session.commit()
+    return True
 
 
 @celery_app.task(name="telemarketing.queue_followup_reminders")
@@ -78,11 +97,11 @@ def queue_followup_reminders_task() -> int:
 
 
 @celery_app.task(
-    name="telemarketing.send_followup_reminder",
-    autoretry_for=(TransientEmailError,),
-    retry_backoff=True,
-    retry_jitter=True,
-    max_retries=5,
+    bind=True, name="telemarketing.send_followup_reminder", max_retries=mail_tasks.MAX_RETRIES
 )
-def send_followup_reminder(event_id: str) -> bool:
-    return run_async(send_reminder_event(uuid.UUID(event_id)))
+def send_followup_reminder(self: Any, event_id: str) -> bool:
+    final = self.request.retries >= mail_tasks.MAX_RETRIES
+    try:
+        return run_async(send_reminder_event(uuid.UUID(event_id), final_attempt=final))
+    except TransientEmailError as e:
+        raise self.retry(exc=e, countdown=mail_tasks.retry_countdown(self.request.retries)) from e

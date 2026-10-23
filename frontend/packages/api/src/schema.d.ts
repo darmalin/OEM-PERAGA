@@ -1009,6 +1009,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/email-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Accounts */
+        get: operations["list_accounts_api_v1_email_accounts_get"];
+        put?: never;
+        /** Create Account */
+        post: operations["create_account_api_v1_email_accounts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-accounts/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Account Choices */
+        get: operations["account_choices_api_v1_email_accounts_choices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-accounts/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account */
+        get: operations["get_account_api_v1_email_accounts__account_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Account */
+        patch: operations["update_account_api_v1_email_accounts__account_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/email-accounts/{account_id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Default */
+        post: operations["set_default_api_v1_email_accounts__account_id__default_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-accounts/{account_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Test */
+        post: operations["send_test_api_v1_email_accounts__account_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Jobs */
+        get: operations["list_jobs_api_v1_email_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Job */
+        get: operations["get_job_api_v1_email_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/editions/{edition_code}/registrations": {
         parameters: {
             query?: never;
@@ -2130,6 +2251,8 @@ export interface components {
             email_sender_name?: string | null;
             /** Email Reply To */
             email_reply_to?: string | null;
+            /** Email Account Id */
+            email_account_id?: string | null;
             /**
              * Public Registration Open
              * @default false
@@ -2203,6 +2326,8 @@ export interface components {
             email_sender_name: string | null;
             /** Email Reply To */
             email_reply_to: string | null;
+            /** Email Account Id */
+            email_account_id: string | null;
             /** Public Registration Open */
             public_registration_open: boolean;
             /** Scanner Cache Ttl Minutes */
@@ -2268,6 +2393,8 @@ export interface components {
             email_sender_name?: string | null;
             /** Email Reply To */
             email_reply_to?: string | null;
+            /** Email Account Id */
+            email_account_id?: string | null;
             /** Public Registration Open */
             public_registration_open?: boolean | null;
             /** Scanner Cache Ttl Minutes */
@@ -2292,6 +2419,119 @@ export interface components {
             catalog_expired_on?: string | null;
         };
         /**
+         * EmailAccountBrief
+         * @description For pickers (edition email account): no SMTP details.
+         */
+        EmailAccountBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** From Address */
+            from_address: string;
+            /** Is Default */
+            is_default: boolean;
+        };
+        /** EmailAccountIn */
+        EmailAccountIn: {
+            /** Name */
+            name: string;
+            /** From Name */
+            from_name?: string | null;
+            /** From Address */
+            from_address: string;
+            /** Reply To */
+            reply_to?: string | null;
+            /** Host */
+            host: string;
+            /** Port */
+            port: number;
+            /** @default STARTTLS */
+            security: components["schemas"]["SmtpSecurity"];
+            /** Username */
+            username?: string | null;
+            /** Password */
+            password?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+        };
+        /**
+         * EmailAccountOut
+         * @description No password, ever: only whether one is stored.
+         */
+        EmailAccountOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** From Name */
+            from_name: string | null;
+            /** From Address */
+            from_address: string;
+            /** Reply To */
+            reply_to: string | null;
+            /** Host */
+            host: string;
+            /** Port */
+            port: number;
+            security: components["schemas"]["SmtpSecurity"];
+            /** Username */
+            username: string | null;
+            /**
+             * Has Password
+             * @default false
+             */
+            has_password: boolean;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Default */
+            is_default: boolean;
+            /** Last Test At */
+            last_test_at: string | null;
+            /** Last Test Ok */
+            last_test_ok: boolean | null;
+            /** Last Test Detail */
+            last_test_detail: string | null;
+            /** Version */
+            version: number;
+        };
+        /**
+         * EmailAccountUpdateIn
+         * @description Omit `password` (or send null) to keep the stored one; send a value to replace it.
+         */
+        EmailAccountUpdateIn: {
+            /** Version */
+            version: number;
+            /** Name */
+            name?: string | null;
+            /** From Name */
+            from_name?: string | null;
+            /** From Address */
+            from_address?: string | null;
+            /** Reply To */
+            reply_to?: string | null;
+            /** Host */
+            host?: string | null;
+            /** Port */
+            port?: number | null;
+            security?: components["schemas"]["SmtpSecurity"] | null;
+            /** Username */
+            username?: string | null;
+            /** Password */
+            password?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
+        /**
          * EmailEvent
          * @enum {string}
          */
@@ -2304,13 +2544,27 @@ export interface components {
              */
             id: string;
             kind: components["schemas"]["EmailKind"];
+            /** Edition Id */
+            edition_id?: string | null;
             /** Recipient */
             recipient: string;
+            /** Subject */
+            subject?: string | null;
             status: components["schemas"]["EmailJobStatus"];
             /** Attempts */
             attempts: number;
             /** Template Version */
-            template_version: number;
+            template_version: number | null;
+            /** Account Id */
+            account_id?: string | null;
+            /** Account Name */
+            account_name?: string | null;
+            /** From Address */
+            from_address?: string | null;
+            /** Registration Id */
+            registration_id?: string | null;
+            /** Visitor Lead Id */
+            visitor_lead_id?: string | null;
             /**
              * Queued At
              * Format: date-time
@@ -2337,7 +2591,7 @@ export interface components {
          * EmailKind
          * @enum {string}
          */
-        EmailKind: "QR_CONFIRMATION";
+        EmailKind: "QR_CONFIRMATION" | "PASSWORD_RESET" | "FOLLOWUP_REMINDER" | "TEST";
         /** EmailLogOut */
         EmailLogOut: {
             event: components["schemas"]["EmailEvent"];
@@ -2353,8 +2607,12 @@ export interface components {
         EmailTemplateIn: {
             /** Edition Id */
             edition_id?: string | null;
-            /** @default QR_CONFIRMATION */
-            template_key: components["schemas"]["EmailKind"];
+            /**
+             * Template Key
+             * @default QR_CONFIRMATION
+             * @constant
+             */
+            template_key: "QR_CONFIRMATION";
             /** Subject */
             subject: string;
             /** Body Text */
@@ -2371,7 +2629,11 @@ export interface components {
             id: string;
             /** Edition Id */
             edition_id: string | null;
-            template_key: components["schemas"]["EmailKind"];
+            /**
+             * Template Key
+             * @constant
+             */
+            template_key: "QR_CONFIRMATION";
             /** Version */
             version: number;
             /** Subject */
@@ -3360,6 +3622,17 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[EmailJobOut] */
+        Page_EmailJobOut_: {
+            /** Items */
+            items: components["schemas"]["EmailJobOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[ExhibitionOut] */
         Page_ExhibitionOut_: {
             /** Items */
@@ -3938,6 +4211,11 @@ export interface components {
          * @enum {string}
          */
         ScopeType: "EDITION" | "TEAM" | "OWNED" | "GATE";
+        /**
+         * SmtpSecurity
+         * @enum {string}
+         */
+        SmtpSecurity: "NONE" | "STARTTLS" | "SSL";
         /** SyncIn */
         SyncIn: {
             /** Items */
@@ -4029,6 +4307,16 @@ export interface components {
          * @enum {string}
          */
         TelemarketingStatus: "NEW" | "ANSWER" | "NO_ANSWER" | "RECONTACTED" | "RETRY_NO_ANSWER";
+        /** TestEmailAccepted */
+        TestEmailAccepted: {
+            /**
+             * Email Job Id
+             * Format: uuid
+             */
+            email_job_id: string;
+            /** Recipient */
+            recipient: string;
+        };
         /** UserBrief */
         UserBrief: {
             /**
@@ -6705,7 +6993,7 @@ export interface operations {
         parameters: {
             query?: {
                 edition_id?: string | null;
-                template_key?: components["schemas"]["EmailKind"];
+                template_key?: "QR_CONFIRMATION";
             };
             header?: never;
             path?: never;
@@ -6753,6 +7041,278 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailTemplateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_accounts_api_v1_email_accounts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailAccountOut"][];
+                };
+            };
+        };
+    };
+    create_account_api_v1_email_accounts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailAccountIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailAccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    account_choices_api_v1_email_accounts_choices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailAccountBrief"][];
+                };
+            };
+        };
+    };
+    get_account_api_v1_email_accounts__account_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailAccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_account_api_v1_email_accounts__account_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailAccountUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailAccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_default_api_v1_email_accounts__account_id__default_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailAccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_test_api_v1_email_accounts__account_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestEmailAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_v1_email_jobs_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                edition_id?: string | null;
+                scope?: "editions" | "system";
+                kind?: components["schemas"]["EmailKind"] | null;
+                status?: components["schemas"]["EmailJobStatus"] | null;
+                account_id?: string | null;
+                q?: string | null;
+                queued_from?: string | null;
+                queued_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_EmailJobOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_job_api_v1_email_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailJobOut"];
                 };
             };
             /** @description Validation Error */

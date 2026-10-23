@@ -10,9 +10,9 @@ from app.core.context import Source, source_var
 from app.core.db import get_session
 from app.core.pagination import Page
 from app.modules.identity.router import client_ip
+from app.modules.mail.schemas import EmailJobOut
 from app.modules.registrations import service
 from app.modules.registrations.schemas import (
-    EmailJobOut,
     EmailTemplateIn,
     EmailTemplateOut,
     EmailTemplateParams,

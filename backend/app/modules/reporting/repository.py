@@ -18,7 +18,8 @@ from app.modules.checkin.models import Gate, ScanAttempt, VisitorCheckin
 from app.modules.checkin.repository import gate_scope_clause
 from app.modules.identity.models import User
 from app.modules.importexport.models import ImportJob
-from app.modules.registrations.models import EmailJob, VisitorRegistration
+from app.modules.mail.models import EmailJob
+from app.modules.registrations.models import VisitorRegistration
 from app.modules.telemarketing.models import VisitorCallActivity, VisitorFollowup
 from app.modules.visitors.models import VisitorLead
 

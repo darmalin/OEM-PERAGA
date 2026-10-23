@@ -14,6 +14,8 @@ from app.core.errors import Conflict, NotFound, PermissionDenied, ValidationFail
 from app.core.pagination import Page
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.identity import service as identity_service
+from app.modules.mail import service as mail_service
+from app.modules.mail.rules import EmailKind
 from app.modules.telemarketing import repository as repo
 from app.modules.telemarketing.models import (
     AssignmentJob,
@@ -755,6 +757,9 @@ async def team_queue(
 # --- reminders (D4) ------------------------------------------------------------------------
 
 
+REMINDER_SUBJECT = "Follow-up due soon"
+
+
 async def queue_followup_reminders(session: AsyncSession) -> int:
     """Claim a reminder per follow-up due soon; the dedup key is followup:{id}:{due_at}."""
     s = get_settings()
@@ -767,12 +772,17 @@ async def queue_followup_reminders(session: AsyncSession) -> int:
         reminder_id = await repo.claim_reminder(session, key, followup.id)
         if reminder_id is None:
             continue
-        await outbox.enqueue(
+        assignee = await identity_service.get_user(session, followup.assigned_to)
+        await mail_service.queue_email(
             session,
-            "followup.reminder_due",
-            "telemarketing.send_followup_reminder",
-            {"reminder_id": str(reminder_id)},
-            queue="email",
+            kind=EmailKind.FOLLOWUP_REMINDER,
+            recipient=assignee.email,
+            task="telemarketing.send_followup_reminder",
+            payload={"reminder_id": str(reminder_id)},
+            edition_id=followup.edition_id,
+            visitor_lead_id=followup.visitor_lead_id,
+            user_id=assignee.id,
+            subject=REMINDER_SUBJECT,
         )
         queued += 1
     return queued
