@@ -25,3 +25,11 @@ export const customFieldsQuery = (editionId: string) =>
     queryFn: () => call(api.GET("/api/v1/visitor-custom-fields", { params: { query: { edition_id: editionId } } })),
     staleTime: 5 * 60_000,
   });
+
+/** Global "Source" master data; inactive ones only for Setup and for a lead that already has one. */
+export const leadSourcesQuery = (includeInactive = false) =>
+  queryOptions({
+    queryKey: ["lead-sources", includeInactive],
+    queryFn: () => call(api.GET("/api/v1/lead-sources", { params: { query: { include_inactive: includeInactive } } })),
+    staleTime: 5 * 60_000,
+  });

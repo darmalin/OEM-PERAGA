@@ -887,6 +887,41 @@ export interface paths {
         patch: operations["update_field_option_api_v1_edition_field_options__option_id__patch"];
         trace?: never;
     };
+    "/api/v1/lead-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Lead Sources */
+        get: operations["list_lead_sources_api_v1_lead_sources_get"];
+        put?: never;
+        /** Create Lead Source */
+        post: operations["create_lead_source_api_v1_lead_sources_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lead-sources/{source_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Lead Source */
+        patch: operations["update_lead_source_api_v1_lead_sources__source_id__patch"];
+        trace?: never;
+    };
     "/api/v1/visitor-registrations": {
         parameters: {
             query?: never;
@@ -2897,9 +2932,11 @@ export interface components {
             /** Exhibition Type */
             exhibition_type?: string | null;
             /** Product Categories */
-            product_categories?: string[] | null;
+            product_categories?: string | null;
             /** Comment */
             comment?: string | null;
+            /** Lead Source Id */
+            lead_source_id?: string | null;
             /** Custom Fields */
             custom_fields?: {
                 [key: string]: unknown;
@@ -2934,6 +2971,8 @@ export interface components {
             /** Unassigned */
             unassigned?: boolean | null;
             source?: components["schemas"]["LeadSource"] | null;
+            /** Lead Source Id */
+            lead_source_id?: string | null;
             /** Country */
             country?: string | null;
             /** Is Valid Lead */
@@ -2977,6 +3016,8 @@ export interface components {
             /** Country */
             country: string | null;
             source: components["schemas"]["LeadSource"];
+            /** Lead Source Id */
+            lead_source_id: string | null;
             /** Lead Owner Id */
             lead_owner_id: string | null;
             /** Lead Owner Name */
@@ -3044,12 +3085,14 @@ export interface components {
             /** Exhibition Type */
             exhibition_type: string | null;
             source: components["schemas"]["LeadSource"];
+            /** Lead Source Id */
+            lead_source_id: string | null;
             /** Lead Owner Id */
             lead_owner_id: string | null;
             /** Lead Owner Name */
             lead_owner_name?: string | null;
             /** Product Categories */
-            product_categories: string[];
+            product_categories: string | null;
             /** Comment */
             comment: string | null;
             /** Is Valid Lead */
@@ -3107,6 +3150,48 @@ export interface components {
          * @enum {string}
          */
         LeadSource: "EXCEL" | "API" | "MANUAL" | "WEBSITE" | "TELEMARKETING";
+        /** LeadSourceIn */
+        LeadSourceIn: {
+            /** Name */
+            name: string;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+        };
+        /** LeadSourceOut */
+        LeadSourceOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Sort Order */
+            sort_order: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Version */
+            version: number;
+        };
+        /** LeadSourceUpdateIn */
+        LeadSourceUpdateIn: {
+            /** Version */
+            version: number;
+            /** Name */
+            name?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
         /** LeadUpdateIn */
         LeadUpdateIn: {
             /** Lead Date */
@@ -3135,9 +3220,11 @@ export interface components {
             /** Exhibition Type */
             exhibition_type?: string | null;
             /** Product Categories */
-            product_categories?: string[] | null;
+            product_categories?: string | null;
             /** Comment */
             comment?: string | null;
+            /** Lead Source Id */
+            lead_source_id?: string | null;
             /** Custom Fields */
             custom_fields?: {
                 [key: string]: unknown;
@@ -3446,7 +3533,7 @@ export interface components {
             /** Website */
             website?: string | null;
             /** Product Categories */
-            product_categories?: string[] | null;
+            product_categories?: string | null;
             /** Custom Fields */
             custom_fields?: {
                 [key: string]: unknown;
@@ -3618,6 +3705,8 @@ export interface components {
             /** Unassigned */
             unassigned?: boolean | null;
             source?: components["schemas"]["LeadSource"] | null;
+            /** Lead Source Id */
+            lead_source_id?: string | null;
             /** Country */
             country?: string | null;
             /** Is Valid Lead */
@@ -4174,6 +4263,8 @@ export interface components {
             /** Unassigned */
             unassigned?: boolean | null;
             source?: components["schemas"]["LeadSource"] | null;
+            /** Lead Source Id */
+            lead_source_id?: string | null;
             /** Country */
             country?: string | null;
             /** Is Valid Lead */
@@ -5969,6 +6060,7 @@ export interface operations {
                 team_id?: string | null;
                 unassigned?: boolean | null;
                 source?: components["schemas"]["LeadSource"] | null;
+                lead_source_id?: string | null;
                 country?: string | null;
                 is_valid_lead?: boolean | null;
                 is_invalid?: boolean | null;
@@ -6325,6 +6417,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FieldOptionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_lead_sources_api_v1_lead_sources_get: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadSourceOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_lead_source_api_v1_lead_sources_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadSourceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadSourceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_lead_source_api_v1_lead_sources__source_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadSourceUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadSourceOut"];
                 };
             };
             /** @description Validation Error */
@@ -7097,6 +7288,7 @@ export interface operations {
                 team_id?: string | null;
                 unassigned?: boolean | null;
                 source?: components["schemas"]["LeadSource"] | null;
+                lead_source_id?: string | null;
                 country?: string | null;
                 is_valid_lead?: boolean | null;
                 is_invalid?: boolean | null;

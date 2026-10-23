@@ -16,6 +16,7 @@ from app.modules.exhibitions import service as exhibitions_service
 from app.modules.visitors import repository as repo
 from app.modules.visitors.models import (
     EditionFieldOption,
+    LeadSourceOption,
     VisitorCustomFieldDefinition,
     VisitorLead,
 )
@@ -42,6 +43,9 @@ from app.modules.visitors.schemas import (
     LeadListItem,
     LeadListParams,
     LeadOut,
+    LeadSourceIn,
+    LeadSourceOut,
+    LeadSourceUpdateIn,
     LeadUpdateIn,
 )
 
@@ -62,6 +66,7 @@ AUDIT_FIELDS = (
     "branch",
     "exhibition_type",
     "source",
+    "lead_source_id",
     "lead_owner_id",
     "product_categories",
     "comment",
@@ -75,7 +80,15 @@ AUDIT_FIELDS = (
     "registration_status",
     "qr_status",
 )
-_TEXT_FIELDS = ("first_name", "company_name", "job_title", "city", "website", "comment")
+_TEXT_FIELDS = (
+    "first_name",
+    "company_name",
+    "job_title",
+    "city",
+    "website",
+    "product_categories",
+    "comment",
+)
 _OPTION_FIELDS = {
     "business_type": OptionField.BUSINESS_TYPE,
     "branch": OptionField.BRANCH,
@@ -256,13 +269,15 @@ async def normalize_fields(
             if value is not None and value not in options.get(field, set()):
                 errors[key] = "Not one of the allowed options."
             out[key] = value
-    if "product_categories" in values:
-        cats = [c for c in (clean_text(x) for x in values["product_categories"] or []) if c]
-        allowed = options.get(OptionField.PRODUCT_CATEGORY, set())
-        if any(c not in allowed for c in cats):
-            errors["product_categories"] = "Not one of the allowed options."
-        out["product_categories"] = list(dict.fromkeys(cats))
-
+    if "lead_source_id" in values:
+        source_id = values["lead_source_id"]
+        if source_id is not None:
+            found = await repo.get_lead_source(session, source_id)
+            # An inactive source stays valid on a lead that already has it.
+            keeps = current is not None and current.lead_source_id == source_id
+            if found is None or not (found.is_active or keeps):
+                errors["lead_source_id"] = "Not one of the allowed options."
+        out["lead_source_id"] = source_id
     if "custom_fields" in values:
         sent = dict(values["custom_fields"] or {})
         existing = dict(current.custom_fields) if current else {}
@@ -681,3 +696,84 @@ async def export_batch(
 ) -> list[tuple[VisitorLead, str | None]]:
     """(lead, owner name) pages in creation order for the Excel export worker."""
     return [(r[0], r[1]) for r in await repo.export_batch(session, scope, filters, after, limit)]
+
+
+# --- lead sources (global master data) --------------------------------------------------------
+
+_SOURCE_FIELDS = ("name", "sort_order", "is_active")
+
+
+def _require_master_data(ctx: AuthContext) -> None:
+    """Global master data, like venues: needs a cross-edition exhibition.manage grant."""
+    if not ctx.has_global("exhibition.manage"):
+        raise PermissionDenied()
+
+
+async def list_lead_sources(session: AsyncSession, include_inactive: bool) -> list[LeadSourceOut]:
+    rows = await repo.list_lead_sources(session, include_inactive)
+    return [LeadSourceOut.model_validate(r) for r in rows]
+
+
+async def _save_source(session: AsyncSession, source: LeadSourceOption) -> None:
+    try:
+        async with session.begin_nested():
+            await session.flush()
+    except IntegrityError as e:
+        raise Conflict(
+            "A source with this name already exists.",
+            code="DUPLICATE_LEAD_SOURCE",
+            fields={"name": "Already exists."},
+        ) from e
+    await session.refresh(source)
+
+
+async def create_lead_source(
+    session: AsyncSession, ctx: AuthContext, data: LeadSourceIn
+) -> LeadSourceOut:
+    _require_master_data(ctx)
+    source = LeadSourceOption(
+        name=data.name.strip(),
+        sort_order=data.sort_order,
+        is_active=data.is_active,
+        created_by=ctx.user.id,
+        updated_by=ctx.user.id,
+    )
+    session.add(source)
+    await _save_source(session, source)
+    await audit.record(
+        session,
+        entity_type="lead_source",
+        entity_id=source.id,
+        action="create",
+        after=audit.snapshot(source, _SOURCE_FIELDS),
+    )
+    return LeadSourceOut.model_validate(source)
+
+
+async def update_lead_source(
+    session: AsyncSession, ctx: AuthContext, source_id: uuid.UUID, data: LeadSourceUpdateIn
+) -> LeadSourceOut:
+    """Rename, reorder, or deactivate. Leads keep the source; inactive ones are hidden in forms."""
+    _require_master_data(ctx)
+    source = await repo.get_lead_source(session, source_id)
+    if source is None:
+        raise NotFound("Source not found.")
+    check_version(source.version, data.version)
+    before = audit.snapshot(source, _SOURCE_FIELDS)
+    changes = data.model_dump(exclude_unset=True, exclude={"version"})
+    if changes.get("name") is not None:
+        changes["name"] = changes["name"].strip()
+    for key, value in changes.items():
+        if value is not None:
+            setattr(source, key, value)
+    source.updated_by = ctx.user.id
+    await _save_source(session, source)
+    await audit.record(
+        session,
+        entity_type="lead_source",
+        entity_id=source.id,
+        action="update",
+        before=before,
+        after=audit.snapshot(source, _SOURCE_FIELDS),
+    )
+    return LeadSourceOut.model_validate(source)

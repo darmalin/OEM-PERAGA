@@ -23,6 +23,10 @@ from app.modules.visitors.schemas import (
     LeadListItem,
     LeadListParams,
     LeadOut,
+    LeadSourceIn,
+    LeadSourceOut,
+    LeadSourceParams,
+    LeadSourceUpdateIn,
     LeadUpdateIn,
 )
 
@@ -130,3 +134,29 @@ async def update_field_option(
     ctx: AuthContext = Depends(require("edition.manage")),
 ) -> FieldOptionOut:
     return await service.update_field_option(session, ctx, option_id, data)
+
+
+@router.get("/lead-sources", response_model=list[LeadSourceOut])
+async def list_lead_sources(
+    session: Session,
+    params: Annotated[LeadSourceParams, Query()],
+    _: AuthContext = Depends(require("visitor.read", "exhibition.read")),
+) -> list[LeadSourceOut]:
+    return await service.list_lead_sources(session, params.include_inactive)
+
+
+@router.post("/lead-sources", response_model=LeadSourceOut, status_code=status.HTTP_201_CREATED)
+async def create_lead_source(
+    data: LeadSourceIn, session: Session, ctx: AuthContext = Depends(require("exhibition.manage"))
+) -> LeadSourceOut:
+    return await service.create_lead_source(session, ctx, data)
+
+
+@router.patch("/lead-sources/{source_id}", response_model=LeadSourceOut)
+async def update_lead_source(
+    source_id: uuid.UUID,
+    data: LeadSourceUpdateIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibition.manage")),
+) -> LeadSourceOut:
+    return await service.update_lead_source(session, ctx, source_id, data)

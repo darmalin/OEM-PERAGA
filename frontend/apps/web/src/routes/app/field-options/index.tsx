@@ -36,9 +36,9 @@ function FieldOptions() {
   ];
   return (
     <Page>
-      <PageHead edition title="Field Options" meta={`Choices for Business Type, Branch, and Product Categories in ${edition.code}.`} actions={<Button asChild variant="primary"><Link to="/app/field-options/new" search={{ field: s.field }}>Add Option</Link></Button>} />
+      <PageHead edition title="Field Options" meta={`Choices for Business Type and Branch in ${edition.code}.`} actions={<Button asChild variant="primary"><Link to="/app/field-options/new" search={{ field: s.field }}>Add Option</Link></Button>} />
       <Panel>
-        <FilterBar><SelectFilter label="Field" value={s.field} onChange={(v) => void navigate({ search: { field: v } })} options={options("option_field").filter((o) => o.value !== "EXHIBITION_TYPE")} /></FilterBar>
+        <FilterBar><SelectFilter label="Field" value={s.field} onChange={(v) => void navigate({ search: { field: v } })} options={options("option_field").filter((o) => o.value !== "EXHIBITION_TYPE" && o.value !== "PRODUCT_CATEGORY")} /></FilterBar>
         <ArrayBody query={q} empty={<EmptyState title="No options yet. The lead form shows an empty list for these fields until you add some." action={<Button asChild variant="primary"><Link to="/app/field-options/new" search={{ field: s.field }}>Add Option</Link></Button>} />}>
           {(rows) => <ListTable caption="Field options" rows={[...rows].sort((a, b) => a.field.localeCompare(b.field) || a.sort_order - b.sort_order)} columns={columns} rowKey={(o) => o.id} rowLink={(o) => ({ to: "/app/field-options/$optionId", params: { optionId: o.id } })} />}
         </ArrayBody>

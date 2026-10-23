@@ -85,7 +85,7 @@ function NewExport() {
             {kind === "VISITORS" ? (
               <FieldGrid>
                 {(["telemarketing_status", "registration_status", "source"] as const).map((f) => (
-                  <Field key={f} label={f === "telemarketing_status" ? "Status" : f === "registration_status" ? "Registration" : "Source"}>
+                  <Field key={f} label={f === "telemarketing_status" ? "Status" : f === "registration_status" ? "Registration" : "Channel"}>
                     {(p) => (
                       <Select {...p} {...form.register(f)}>
                         <option value="">All</option>

@@ -11,6 +11,7 @@ closes or adds a gap. Backend gaps are in `BACKEND_RULES/known-gaps.md`.
 | W11 | P2 | The board loads 50 cards per column; more are reached through the "more in the list" link, not by scrolling the column. | Infinite scroll per column if teams work the board instead of the list. |
 | W12 | P3 | The Excel import template and mapping still offer the old "Exhibition Type" column, which fills the retired `exhibition_type` field (hidden in the UI). | Drop it from `importexport/rules.py` mapping targets and the template. |
 | W13 | P2 | Edition remarks and exhibitor dates (price periods, Order Expired, Catalog Expired) are stored and shown only; nothing uses them yet. | Exhibitor Portal phase, FEATURES/02 "Remarks and exhibitor dates". |
+| W14 | P3 | Excel import and the visitor export do not carry the new Source (master data) yet; imported leads get none. | Map a "Source" column by name to `lead_sources` in `importexport`; add it to the export columns. |
 | W10 | P3 | Scanner PWA has no manifest icons (W3), so browsers do not offer "Install app". It still works from the browser and offline after the first load. | Add icons with the logo. |
 | W3 | P2 | No logo or favicon: the header shows "EMS" as text (antislop R-23). | Owner supplies the logo; replace the text and the empty `<link rel="icon">`. |
 | W4 | P2 | Public website registration form is not part of this app; the API exists (`/public/editions/{code}/registrations`) but needs CORS for the website origin (backend gap S3). | Build it on the website, or add a public page here. |

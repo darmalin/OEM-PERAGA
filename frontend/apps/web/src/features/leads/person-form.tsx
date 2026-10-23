@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { type Control, Controller, type FieldErrors, type UseFormRegister } from "react-hook-form";
+import { type Control, Controller, type FieldErrors, type UseFormRegister, useWatch } from "react-hook-form";
 
 import { COUNTRIES } from "@/lib/countries";
 import { options as labelOptions } from "@/lib/labels";
@@ -8,7 +8,7 @@ import { Checkbox } from "@/ui/checkbox";
 import { Field, FieldGrid, Section } from "@/ui/field";
 import { Input, Select, Textarea } from "@/ui/input";
 
-import { type CustomField, customFieldsQuery, fieldOptionsQuery } from "./queries";
+import { type CustomField, customFieldsQuery, fieldOptionsQuery, leadSourcesQuery } from "./queries";
 
 /** Form values: every Person field the API accepts, as strings for the inputs. */
 export interface PersonValues {
@@ -24,21 +24,24 @@ export interface PersonValues {
   website: string;
   business_type: string;
   branch: string;
-  product_categories: string[];
+  /** "Source" (global master data); the system's intake channel is shown as "Channel". */
+  lead_source_id: string;
+  /** Free text since 2026-10-22, like the old system. */
+  product_categories: string;
   comment: string;
   custom_fields: Record<string, unknown>;
 }
 
 export const PERSON_FIELDS = [
   "lead_date", "first_name", "email", "phone", "gender", "company_name", "job_title", "country", "city",
-  "website", "business_type", "branch", "product_categories", "comment", "custom_fields",
+  "website", "business_type", "branch", "lead_source_id", "product_categories", "comment", "custom_fields",
 ] as const;
 
 export function emptyPerson(): PersonValues {
   return {
     lead_date: "", first_name: "", email: "", phone: "", gender: "", company_name: "", job_title: "",
-    country: "", city: "", website: "", business_type: "", branch: "",
-    product_categories: [], comment: "", custom_fields: {},
+    country: "", city: "", website: "", business_type: "", branch: "", lead_source_id: "",
+    product_categories: "", comment: "", custom_fields: {},
   };
 }
 
@@ -81,6 +84,12 @@ function OptionSelect({ field, opts, ...rest }: { field: string; opts: { value: 
 export function PersonFields({ editionId, register, control, errors, readOnly, systemCells, exhibitionType }: Props) {
   const options = useQuery(fieldOptionsQuery(editionId));
   const custom = useQuery(customFieldsQuery(editionId));
+  const sources = useQuery(leadSourcesQuery(true));
+  const sourceId = useWatch({ control, name: "lead_source_id" });
+  // Inactive sources are offered only to a lead that already has one.
+  const sourceOpts = (sources.data ?? [])
+    .filter((o) => o.is_active || o.id === sourceId)
+    .map((o) => ({ value: o.id, label: o.is_active ? o.name : `${o.name} (inactive)` }));
   const opts = (field: string) =>
     (options.data ?? []).filter((o) => o.field === field && o.is_active).map((o) => ({ value: o.value, label: o.label }));
   const contactError = errors.email?.message ?? errors.phone?.message;
@@ -108,6 +117,10 @@ export function PersonFields({ editionId, register, control, errors, readOnly, s
           <Field label="Company Name">
             {(p) => <Input {...p} readOnly={readOnly} {...register("company_name")} />}
           </Field>
+          <Field label="Source" error={errors.lead_source_id?.message}>
+            {/* Controlled: the options load after the form values, so the select follows the form. */}
+            {(p) => <OptionSelect {...p} field="lead_source_id" opts={sourceOpts} disabled={readOnly} {...register("lead_source_id")} value={sourceId} />}
+          </Field>
           <Field label="Job Title">
             {(p) => <Input {...p} readOnly={readOnly} {...register("job_title")} />}
           </Field>
@@ -127,38 +140,8 @@ export function PersonFields({ editionId, register, control, errors, readOnly, s
             {(p) => <OptionSelect {...p} field="branch" opts={opts("BRANCH")} disabled={readOnly} {...register("branch")} />}
           </Field>
           {exhibitionType}
-          <Field label="Product Categories Interested In" className="lg:row-span-2">
-            {(p) => (
-              <Controller
-                control={control}
-                name="product_categories"
-                render={({ field }) => {
-                  const cats = opts("PRODUCT_CATEGORY");
-                  if (cats.length === 0) {
-                    return <p id={p.id} className="text-[13px] text-label">No categories are set up for this edition.</p>;
-                  }
-                  return (
-                    <div id={p.id} role="group" aria-describedby={p["aria-describedby"]} className="flex max-h-40 flex-col gap-2 overflow-y-auto rounded-[8px] bg-input p-3">
-                      {cats.map((c) => {
-                        const checked = field.value.includes(c.value);
-                        return (
-                          <label key={c.value} className="flex items-center gap-2 text-[13px]">
-                            <Checkbox
-                              checked={checked}
-                              disabled={readOnly}
-                              onCheckedChange={(v) =>
-                                field.onChange(v === true ? [...field.value, c.value] : field.value.filter((x) => x !== c.value))
-                              }
-                            />
-                            {c.label}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  );
-                }}
-              />
-            )}
+          <Field label="Product Categories Interested In" error={errors.product_categories?.message}>
+            {(p) => <Textarea {...p} readOnly={readOnly} maxLength={2000} {...register("product_categories")} />}
           </Field>
           <Field label="Comment" className="md:col-span-2 lg:col-span-1">
             {(p) => <Textarea {...p} readOnly={readOnly} {...register("comment")} />}

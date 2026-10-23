@@ -15,7 +15,7 @@ export const PAGES = [
   "/app/exports/new", "/app/gates", "/app/gates/new", "/app/devices", "/app/devices/new", "/app/scans",
   "/app/reconciliation", "/app/overrides/new", "/app/reports", "/app/exhibitions", "/app/exhibitions/new",
   "/app/editions", "/app/editions/new", "/app/venues", "/app/venues/new", "/app/custom-fields",
-  "/app/custom-fields/new", "/app/field-options", "/app/field-options/new", "/system", "/system/users",
+  "/app/custom-fields/new", "/app/field-options", "/app/field-options/new", "/app/lead-sources", "/app/lead-sources/new", "/system", "/system/users",
   "/system/users/new", "/system/roles", "/system/roles/new", "/system/teams", "/system/teams/new",
   "/system/audit-log", "/system/email-templates", "/system/email-templates/new",
 ];

@@ -11,6 +11,7 @@ from app.core.authorization import Scope
 from app.modules.identity.models import User, UserTeamMembership
 from app.modules.visitors.models import (
     EditionFieldOption,
+    LeadSourceOption,
     VisitorCustomFieldDefinition,
     VisitorLead,
 )
@@ -54,6 +55,8 @@ def filter_clause(f: LeadFilters) -> ColumnElement[bool]:
         if len(digits) >= 4:
             options.append(VisitorLead.phone_normalized.like(f"%{digits}%"))
         conds.append(or_(*options))
+    if f.lead_source_id:
+        conds.append(VisitorLead.lead_source_id == f.lead_source_id)
     if f.telemarketing_status:
         conds.append(
             VisitorLead.telemarketing_status.in_([s.value for s in f.telemarketing_status])
@@ -331,3 +334,16 @@ async def unregistered_leads(
         .with_for_update(skip_locked=True)
     )
     return list((await session.scalars(stmt)).all())
+
+
+async def list_lead_sources(
+    session: AsyncSession, include_inactive: bool
+) -> list[LeadSourceOption]:
+    stmt = select(LeadSourceOption).order_by(LeadSourceOption.sort_order, LeadSourceOption.name)
+    if not include_inactive:
+        stmt = stmt.where(LeadSourceOption.is_active)
+    return list((await session.scalars(stmt)).all())
+
+
+async def get_lead_source(session: AsyncSession, source_id: uuid.UUID) -> LeadSourceOption | None:
+    return await session.get(LeadSourceOption, source_id)

@@ -41,6 +41,7 @@ from app.modules.telemarketing.models import (
 )
 from app.modules.visitors.models import (
     EditionFieldOption,
+    LeadSourceOption,
     VisitorCustomFieldDefinition,
     VisitorLead,
 )
@@ -64,6 +65,7 @@ __all__ = [
     "ImportMappingPreset",
     "ImportRowError",
     "LeadAssignmentHistory",
+    "LeadSourceOption",
     "OutboxEvent",
     "PasswordResetToken",
     "Permission",

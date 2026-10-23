@@ -150,7 +150,7 @@ class PublicRegistrationIn(BaseModel):
     country: Country | None = None
     city: str | None = Field(default=None, max_length=120)
     website: Website = Field(default=None, max_length=500)
-    product_categories: list[str] | None = Field(default=None, max_length=100)
+    product_categories: str | None = Field(default=None, max_length=2000)
     custom_fields: dict[str, Any] | None = None
     contact_fax: str | None = Field(default=None, max_length=100)
 

@@ -85,7 +85,8 @@ const LABELS: Record<string, Record<string, string>> = {
     BRANCH: "Branch",
     // Retired 2026-10-22: Exhibition Type is now the lead's edition. Kept to label old rows.
     EXHIBITION_TYPE: "Exhibition Type (old)",
-    PRODUCT_CATEGORY: "Product Category",
+    // Retired 2026-10-22: Product Categories Interested In is free text. Kept to label old rows.
+    PRODUCT_CATEGORY: "Product Category (old)",
   },
 };
 

@@ -21,9 +21,10 @@ Spec §4, §5. Reference screen: `DEV_DOCS/WhatsApp Image 2026-10-20 at 14.40.58
 | Person | Business Type | configurable select | Optional |
 | Person | Branch | configurable select | Per edition config |
 | Person | Exhibition Type | edition | The lead's edition, chosen when the lead is created, read-only after (owner decision 2026-10-22). The old `exhibition_type` option column is kept for existing data and no longer shown. |
-| Person | Source | select | Excel, API, Manual, Website, Telemarketing |
-| Person | Lead Owner | user | Optional until assigned |
-| Person | Product Categories Interested In | multi-select | Optional |
+| Person | Source | select | Global master data `lead_sources` (Setup > Sources), e.g. "2026 test". Optional. Inactive sources stay on leads that have them (owner decision 2026-10-22). |
+| Record | Channel | system | How the lead came in: Excel, API, Manual, Website, Telemarketing. Column `source`, set by the system, drives the registration channel. Labelled "Source" until 2026-10-22. |
+| Person | Lead Owner | user | Optional until assigned. Changed through Assign (keeps the assignment history), not in the Person form (owner decision 2026-10-22). |
+| Person | Product Categories Interested In | text (2000) | Optional free text, like the old system (owner decision 2026-10-22). Was a per-edition multi-select until migration `0016`, which turned stored values into their option labels joined with ", ". Excel import copies the cell as is. |
 | Person | Comment | textarea | Optional |
 | Verification | Valid Lead / Invalid | mutually exclusive | Neither = undecided |
 | Verification | Attend | select | `Attend`, `Attend Sourcing`, `Under Consideration`, `Not Attend`, `Hang Up Immediately` |

@@ -53,8 +53,9 @@ class LeadFields(BaseModel):
     business_type: str | None = Field(default=None, max_length=100)
     branch: str | None = Field(default=None, max_length=100)
     exhibition_type: str | None = Field(default=None, max_length=100)
-    product_categories: list[str] | None = Field(default=None, max_length=100)
+    product_categories: str | None = Field(default=None, max_length=2000)
     comment: str | None = Field(default=None, max_length=5000)
+    lead_source_id: uuid.UUID | None = None
     custom_fields: dict[str, Any] | None = None
 
 
@@ -98,9 +99,10 @@ class LeadOut(BaseModel):
     branch: str | None
     exhibition_type: str | None
     source: LeadSource
+    lead_source_id: uuid.UUID | None
     lead_owner_id: uuid.UUID | None
     lead_owner_name: str | None = None
-    product_categories: list[str]
+    product_categories: str | None
     comment: str | None
     is_valid_lead: bool
     is_invalid: bool
@@ -137,6 +139,7 @@ class LeadListItem(BaseModel):
     company_name: str | None
     country: str | None
     source: LeadSource
+    lead_source_id: uuid.UUID | None
     lead_owner_id: uuid.UUID | None
     lead_owner_name: str | None = None
     telemarketing_status: TelemarketingStatus
@@ -181,6 +184,7 @@ class LeadFilters(BaseModel):
     team_id: uuid.UUID | None = None
     unassigned: bool | None = None
     source: LeadSource | None = None
+    lead_source_id: uuid.UUID | None = None
     country: str | None = Field(default=None, max_length=2)
     is_valid_lead: bool | None = None
     is_invalid: bool | None = None
@@ -290,3 +294,39 @@ class FieldOptionOut(BaseModel):
 
 class FieldOptionParams(EditionScopedParams):
     field: OptionField | None = None
+
+
+# --- lead sources (global master data) --------------------------------------------------------
+
+
+class LeadSourceIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=100)
+    sort_order: int = Field(default=0, ge=0, le=10_000)
+    is_active: bool = True
+
+
+class LeadSourceUpdateIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    sort_order: int | None = Field(default=None, ge=0, le=10_000)
+    is_active: bool | None = None
+
+
+class LeadSourceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    sort_order: int
+    is_active: bool
+    version: int
+
+
+class LeadSourceParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    include_inactive: bool = False

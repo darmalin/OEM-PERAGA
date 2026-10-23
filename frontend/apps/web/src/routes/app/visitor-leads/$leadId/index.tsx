@@ -150,7 +150,7 @@ function LeadDetail() {
             <div className="p-5">
               <Facts
                 items={[
-                  ["Source", label("source", l.source)],
+                  ["Channel", label("source", l.source)],
                   ["External ID", l.external_id ? `${l.external_source ?? ""} ${l.external_id}` : null],
                   ["Created", formatDateTime(l.created_at, tz)],
                   ["Modified", formatDateTime(l.updated_at, tz)],
@@ -178,7 +178,8 @@ function toValues(l: Lead, tz?: string): PersonValues {
     website: l.website ?? "",
     business_type: l.business_type ?? "",
     branch: l.branch ?? "",
-    product_categories: l.product_categories,
+    lead_source_id: l.lead_source_id ?? "",
+    product_categories: l.product_categories ?? "",
     comment: l.comment ?? "",
     custom_fields: l.custom_fields,
   };

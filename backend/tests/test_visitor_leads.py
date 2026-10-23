@@ -240,7 +240,7 @@ async def test_list_filters_search_sort_and_unknown_params() -> None:
 async def test_configurable_options_and_custom_fields() -> None:
     edition = await make_edition()
     client = await admin_for(edition)
-    for field, value in (("BRANCH", "VIETNAM"), ("PRODUCT_CATEGORY", "personal_care")):
+    for field, value in (("BRANCH", "VIETNAM"),):
         r = await client.post(
             "/api/v1/edition-field-options",
             json={
@@ -275,19 +275,24 @@ async def test_configurable_options_and_custom_fields() -> None:
     }
     r = await create(
         client, edition, email="x@example.test", branch="NOWHERE",
-        product_categories=["personal_care", "bogus"], custom_fields={"hall": "C", "x": 1},
+        custom_fields={"hall": "C", "x": 1},
     )  # fmt: skip
     assert r.status_code == 422
     assert set(r.json()["error"]["fields"]) == {
-        "branch", "product_categories", "custom_fields.hall", "custom_fields.x",
+        "branch", "custom_fields.hall", "custom_fields.x",
     }  # fmt: skip
+    # Product Categories Interested In is free text (owner decision 2026-10-22).
     r = await create(
         client, edition, email="x@example.test", branch="VIETNAM",
-        product_categories=["personal_care"], custom_fields={"hall": "A"},
+        product_categories="  Garment machinery, dyeing  ", custom_fields={"hall": "A"},
     )  # fmt: skip
     assert r.status_code == 201, r.text
     lead = r.json()
     assert lead["custom_fields"] == {"hall": "A"}
+    assert lead["product_categories"] == "Garment machinery, dyeing"
+    r = await create(client, edition, email="y@example.test", custom_fields={"hall": "A"},
+                     product_categories=["a list"])  # fmt: skip
+    assert r.status_code == 422
 
     # Deactivating a definition keeps old values but they no longer count as required.
     await client.patch(
@@ -417,3 +422,48 @@ async def test_register_backlog_cli_runs_in_a_fresh_process() -> None:
     async with get_sessionmaker()() as session:
         stored = await session.get(VisitorLead, lead.id)
     assert stored is not None and stored.registration_status == "REGISTERED"
+
+
+async def test_lead_source_master_data_and_lead_field() -> None:
+    """Global "Source" master data (owner decision 2026-10-22); "source" stays the channel."""
+    edition = await make_edition()
+    _, root = await actor(RoleGrant("SUPER_ADMIN"))
+    admin = await admin_for(edition)
+    name = f"2026 test {uuid.uuid4().hex[:6]}"
+    assert (await admin.post("/api/v1/lead-sources", json={"name": name})).status_code == 403
+    r = await root.post("/api/v1/lead-sources", json={"name": name, "sort_order": 1})
+    assert r.status_code == 201, r.text
+    source = r.json()
+    r = await root.post("/api/v1/lead-sources", json={"name": name})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "DUPLICATE_LEAD_SOURCE"
+    listed = (await admin.get("/api/v1/lead-sources")).json()
+    assert source["id"] in [s["id"] for s in listed]
+
+    r = await create(admin, edition, email="visitor-104@example.test", lead_source_id=source["id"])
+    assert r.status_code == 201, r.text
+    lead = r.json()
+    assert lead["lead_source_id"] == source["id"] and lead["source"] == "MANUAL"
+    items = (
+        await admin.get(
+            f"/api/v1/visitor-leads?edition_id={edition.id}&lead_source_id={source['id']}"
+        )
+    ).json()["items"]
+    assert [i["id"] for i in items] == [lead["id"]]
+
+    r = await root.patch(
+        f"/api/v1/lead-sources/{source['id']}", json={"version": 1, "is_active": False}
+    )
+    assert r.status_code == 200 and r.json()["is_active"] is False
+    assert source["id"] not in [s["id"] for s in (await admin.get("/api/v1/lead-sources")).json()]
+    r = await create(admin, edition, email="visitor-105@example.test", lead_source_id=source["id"])
+    assert r.status_code == 422 and "lead_source_id" in r.json()["error"]["fields"]
+    # A lead that already has the inactive source keeps it on later edits.
+    r = await admin.patch(
+        f"/api/v1/visitor-leads/{lead['id']}",
+        json={"version": lead["version"], "city": "Hanoi", "lead_source_id": source["id"]},
+    )
+    assert r.status_code == 200, r.text
+    r = await create(
+        admin, edition, email="visitor-106@example.test", lead_source_id=str(uuid.uuid4())
+    )
+    assert r.status_code == 422

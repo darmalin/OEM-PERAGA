@@ -46,6 +46,9 @@ import { Route as AppGatesNewRouteImport } from './routes/app/gates/new'
 import { Route as AppImportsIndexRouteImport } from './routes/app/imports/index'
 import { Route as AppImportsJobIdRouteImport } from './routes/app/imports/$jobId'
 import { Route as AppImportsNewRouteImport } from './routes/app/imports/new'
+import { Route as AppLeadSourcesIndexRouteImport } from './routes/app/lead-sources/index'
+import { Route as AppLeadSourcesSourceIdRouteImport } from './routes/app/lead-sources/$sourceId'
+import { Route as AppLeadSourcesNewRouteImport } from './routes/app/lead-sources/new'
 import { Route as AppOverridesNewRouteImport } from './routes/app/overrides/new'
 import { Route as AppRegistrationsIndexRouteImport } from './routes/app/registrations/index'
 import { Route as AppVenuesIndexRouteImport } from './routes/app/venues/index'
@@ -262,6 +265,21 @@ const AppImportsNewRoute = AppImportsNewRouteImport.update({
   path: '/imports/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLeadSourcesIndexRoute = AppLeadSourcesIndexRouteImport.update({
+  id: '/lead-sources/',
+  path: '/lead-sources/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLeadSourcesSourceIdRoute = AppLeadSourcesSourceIdRouteImport.update({
+  id: '/lead-sources/$sourceId',
+  path: '/lead-sources/$sourceId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLeadSourcesNewRoute = AppLeadSourcesNewRouteImport.update({
+  id: '/lead-sources/new',
+  path: '/lead-sources/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppOverridesNewRoute = AppOverridesNewRouteImport.update({
   id: '/overrides/new',
   path: '/overrides/new',
@@ -446,6 +464,8 @@ export interface FileRoutesByFullPath {
   '/app/gates/new': typeof AppGatesNewRoute
   '/app/imports/$jobId': typeof AppImportsJobIdRoute
   '/app/imports/new': typeof AppImportsNewRoute
+  '/app/lead-sources/$sourceId': typeof AppLeadSourcesSourceIdRoute
+  '/app/lead-sources/new': typeof AppLeadSourcesNewRoute
   '/app/overrides/new': typeof AppOverridesNewRoute
   '/app/venues/$venueId': typeof AppVenuesVenueIdRoute
   '/app/venues/new': typeof AppVenuesNewRoute
@@ -467,6 +487,7 @@ export interface FileRoutesByFullPath {
   '/app/followups/': typeof AppFollowupsIndexRoute
   '/app/gates/': typeof AppGatesIndexRoute
   '/app/imports/': typeof AppImportsIndexRoute
+  '/app/lead-sources/': typeof AppLeadSourcesIndexRoute
   '/app/registrations/': typeof AppRegistrationsIndexRoute
   '/app/venues/': typeof AppVenuesIndexRoute
   '/app/visitor-leads/': typeof AppVisitorLeadsIndexRoute
@@ -512,6 +533,8 @@ export interface FileRoutesByTo {
   '/app/gates/new': typeof AppGatesNewRoute
   '/app/imports/$jobId': typeof AppImportsJobIdRoute
   '/app/imports/new': typeof AppImportsNewRoute
+  '/app/lead-sources/$sourceId': typeof AppLeadSourcesSourceIdRoute
+  '/app/lead-sources/new': typeof AppLeadSourcesNewRoute
   '/app/overrides/new': typeof AppOverridesNewRoute
   '/app/venues/$venueId': typeof AppVenuesVenueIdRoute
   '/app/venues/new': typeof AppVenuesNewRoute
@@ -533,6 +556,7 @@ export interface FileRoutesByTo {
   '/app/followups': typeof AppFollowupsIndexRoute
   '/app/gates': typeof AppGatesIndexRoute
   '/app/imports': typeof AppImportsIndexRoute
+  '/app/lead-sources': typeof AppLeadSourcesIndexRoute
   '/app/registrations': typeof AppRegistrationsIndexRoute
   '/app/venues': typeof AppVenuesIndexRoute
   '/app/visitor-leads': typeof AppVisitorLeadsIndexRoute
@@ -581,6 +605,8 @@ export interface FileRoutesById {
   '/app/gates/new': typeof AppGatesNewRoute
   '/app/imports/$jobId': typeof AppImportsJobIdRoute
   '/app/imports/new': typeof AppImportsNewRoute
+  '/app/lead-sources/$sourceId': typeof AppLeadSourcesSourceIdRoute
+  '/app/lead-sources/new': typeof AppLeadSourcesNewRoute
   '/app/overrides/new': typeof AppOverridesNewRoute
   '/app/venues/$venueId': typeof AppVenuesVenueIdRoute
   '/app/venues/new': typeof AppVenuesNewRoute
@@ -602,6 +628,7 @@ export interface FileRoutesById {
   '/app/followups/': typeof AppFollowupsIndexRoute
   '/app/gates/': typeof AppGatesIndexRoute
   '/app/imports/': typeof AppImportsIndexRoute
+  '/app/lead-sources/': typeof AppLeadSourcesIndexRoute
   '/app/registrations/': typeof AppRegistrationsIndexRoute
   '/app/venues/': typeof AppVenuesIndexRoute
   '/app/visitor-leads/': typeof AppVisitorLeadsIndexRoute
@@ -651,6 +678,8 @@ export interface FileRouteTypes {
     | '/app/gates/new'
     | '/app/imports/$jobId'
     | '/app/imports/new'
+    | '/app/lead-sources/$sourceId'
+    | '/app/lead-sources/new'
     | '/app/overrides/new'
     | '/app/venues/$venueId'
     | '/app/venues/new'
@@ -672,6 +701,7 @@ export interface FileRouteTypes {
     | '/app/followups/'
     | '/app/gates/'
     | '/app/imports/'
+    | '/app/lead-sources/'
     | '/app/registrations/'
     | '/app/venues/'
     | '/app/visitor-leads/'
@@ -717,6 +747,8 @@ export interface FileRouteTypes {
     | '/app/gates/new'
     | '/app/imports/$jobId'
     | '/app/imports/new'
+    | '/app/lead-sources/$sourceId'
+    | '/app/lead-sources/new'
     | '/app/overrides/new'
     | '/app/venues/$venueId'
     | '/app/venues/new'
@@ -738,6 +770,7 @@ export interface FileRouteTypes {
     | '/app/followups'
     | '/app/gates'
     | '/app/imports'
+    | '/app/lead-sources'
     | '/app/registrations'
     | '/app/venues'
     | '/app/visitor-leads'
@@ -785,6 +818,8 @@ export interface FileRouteTypes {
     | '/app/gates/new'
     | '/app/imports/$jobId'
     | '/app/imports/new'
+    | '/app/lead-sources/$sourceId'
+    | '/app/lead-sources/new'
     | '/app/overrides/new'
     | '/app/venues/$venueId'
     | '/app/venues/new'
@@ -806,6 +841,7 @@ export interface FileRouteTypes {
     | '/app/followups/'
     | '/app/gates/'
     | '/app/imports/'
+    | '/app/lead-sources/'
     | '/app/registrations/'
     | '/app/venues/'
     | '/app/visitor-leads/'
@@ -1095,6 +1131,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImportsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/lead-sources/': {
+      id: '/app/lead-sources/'
+      path: '/lead-sources'
+      fullPath: '/app/lead-sources/'
+      preLoaderRoute: typeof AppLeadSourcesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/lead-sources/$sourceId': {
+      id: '/app/lead-sources/$sourceId'
+      path: '/lead-sources/$sourceId'
+      fullPath: '/app/lead-sources/$sourceId'
+      preLoaderRoute: typeof AppLeadSourcesSourceIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/lead-sources/new': {
+      id: '/app/lead-sources/new'
+      path: '/lead-sources/new'
+      fullPath: '/app/lead-sources/new'
+      preLoaderRoute: typeof AppLeadSourcesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/overrides/new': {
       id: '/app/overrides/new'
       path: '/overrides/new'
@@ -1322,6 +1379,8 @@ interface AppRouteChildren {
   AppGatesNewRoute: typeof AppGatesNewRoute
   AppImportsJobIdRoute: typeof AppImportsJobIdRoute
   AppImportsNewRoute: typeof AppImportsNewRoute
+  AppLeadSourcesSourceIdRoute: typeof AppLeadSourcesSourceIdRoute
+  AppLeadSourcesNewRoute: typeof AppLeadSourcesNewRoute
   AppOverridesNewRoute: typeof AppOverridesNewRoute
   AppVenuesVenueIdRoute: typeof AppVenuesVenueIdRoute
   AppVenuesNewRoute: typeof AppVenuesNewRoute
@@ -1337,6 +1396,7 @@ interface AppRouteChildren {
   AppFollowupsIndexRoute: typeof AppFollowupsIndexRoute
   AppGatesIndexRoute: typeof AppGatesIndexRoute
   AppImportsIndexRoute: typeof AppImportsIndexRoute
+  AppLeadSourcesIndexRoute: typeof AppLeadSourcesIndexRoute
   AppRegistrationsIndexRoute: typeof AppRegistrationsIndexRoute
   AppVenuesIndexRoute: typeof AppVenuesIndexRoute
   AppVisitorLeadsIndexRoute: typeof AppVisitorLeadsIndexRoute
@@ -1371,6 +1431,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppGatesNewRoute: AppGatesNewRoute,
   AppImportsJobIdRoute: AppImportsJobIdRoute,
   AppImportsNewRoute: AppImportsNewRoute,
+  AppLeadSourcesSourceIdRoute: AppLeadSourcesSourceIdRoute,
+  AppLeadSourcesNewRoute: AppLeadSourcesNewRoute,
   AppOverridesNewRoute: AppOverridesNewRoute,
   AppVenuesVenueIdRoute: AppVenuesVenueIdRoute,
   AppVenuesNewRoute: AppVenuesNewRoute,
@@ -1386,6 +1448,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFollowupsIndexRoute: AppFollowupsIndexRoute,
   AppGatesIndexRoute: AppGatesIndexRoute,
   AppImportsIndexRoute: AppImportsIndexRoute,
+  AppLeadSourcesIndexRoute: AppLeadSourcesIndexRoute,
   AppRegistrationsIndexRoute: AppRegistrationsIndexRoute,
   AppVenuesIndexRoute: AppVenuesIndexRoute,
   AppVisitorLeadsIndexRoute: AppVisitorLeadsIndexRoute,

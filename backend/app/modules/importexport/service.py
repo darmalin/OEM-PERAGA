@@ -28,7 +28,6 @@ from app.modules.importexport.rules import (
     ImportStatus,
     ImportType,
     cell_to_text,
-    split_multi,
     suggest_mapping,
 )
 from app.modules.importexport.schemas import (
@@ -318,9 +317,6 @@ def _row_values(
         elif target in _OPTION_TARGETS:
             lookup = option_lookup.get(_OPTION_TARGETS[target], {})
             values[target] = lookup.get(text.lower(), text) if text else None
-        elif target == "product_categories":
-            lookup = option_lookup.get(OptionField.PRODUCT_CATEGORY, {})
-            values[target] = [lookup.get(p.lower(), p) for p in split_multi(text)]
         elif target == "country":
             values[target] = text.upper() if text else None
         elif target == "lead_date":

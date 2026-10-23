@@ -5,7 +5,7 @@ import { FileUp, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
-import type { LeadItem } from "@/features/leads/queries";
+import { type LeadItem, leadSourcesQuery } from "@/features/leads/queries";
 import { LeadViewSwitch } from "@/features/leads/view-switch";
 import { can, useMe } from "@/lib/auth";
 import { countryName } from "@/lib/countries";
@@ -27,6 +27,7 @@ const search = z.object({
   telemarketing_status: z.string().optional(),
   registration_status: z.string().optional(),
   source: z.string().optional(),
+  lead_source: z.string().optional(),
   validity: z.enum(["VALID", "INVALID"]).optional(),
   unassigned: z.boolean().optional(),
   page: z.number().int().min(1).default(1),
@@ -70,6 +71,7 @@ function LeadList() {
   const set = (patch: Partial<Search>) =>
     void navigate({ search: (prev) => ({ ...prev, page: 1, ...patch }), replace: true });
 
+  const sources = useQuery(leadSourcesQuery(true));
   const query = useQuery({
     queryKey: ["leads", s],
     enabled: editions.length > 0,
@@ -84,6 +86,7 @@ function LeadList() {
               telemarketing_status: s.telemarketing_status ? [s.telemarketing_status as "NEW"] : undefined,
               registration_status: s.registration_status as "REGISTERED" | undefined,
               source: s.source as "MANUAL" | undefined,
+              lead_source_id: s.lead_source,
               is_valid_lead: s.validity === "VALID" ? true : undefined,
               is_invalid: s.validity === "INVALID" ? true : undefined,
               unassigned: s.unassigned,
@@ -98,7 +101,7 @@ function LeadList() {
 
   if (editions.length === 0) return <Page><NoEdition /></Page>;
   const where = edition ? edition.code : "all editions";
-  const filtered = Boolean(s.edition || s.q || s.telemarketing_status || s.registration_status || s.source || s.validity || s.unassigned);
+  const filtered = Boolean(s.lead_source || s.edition || s.q || s.telemarketing_status || s.registration_status || s.source || s.validity || s.unassigned);
   const toggle = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -138,7 +141,8 @@ function LeadList() {
           <SelectFilter label="Exhibition Type" value={s.edition} onChange={(v) => { setSelected(new Set()); set({ edition: v }); }} options={editions.map((e) => ({ value: e.id, label: e.code }))} />
           <SelectFilter label="Status" value={s.telemarketing_status} onChange={(v) => set({ telemarketing_status: v })} options={options("telemarketing_status")} />
           <SelectFilter label="Registration" value={s.registration_status} onChange={(v) => set({ registration_status: v })} options={options("registration_status")} />
-          <SelectFilter label="Source" value={s.source} onChange={(v) => set({ source: v })} options={options("source")} />
+          <SelectFilter label="Source" value={s.lead_source} onChange={(v) => set({ lead_source: v })} options={(sources.data ?? []).map((o) => ({ value: o.id, label: o.is_active ? o.name : `${o.name} (inactive)` }))} />
+          <SelectFilter label="Channel" value={s.source} onChange={(v) => set({ source: v })} options={options("source")} />
           <SelectFilter label="Lead Quality" value={s.validity} onChange={(v) => set({ validity: v as Search["validity"] })} options={[{ value: "VALID", label: "Valid" }, { value: "INVALID", label: "Invalid" }]} />
           <SelectFilter label="Lead Owner" allLabel="Anyone" value={s.unassigned ? "none" : undefined} onChange={(v) => set({ unassigned: v === "none" ? true : undefined })} options={[{ value: "none", label: "Unassigned" }]} />
         </FilterBar>

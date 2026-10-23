@@ -15,7 +15,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, Timestamps, UUIDPk, Versioned
@@ -123,11 +123,15 @@ class VisitorLead(UUIDPk, Timestamps, Versioned, Base):
     business_type: Mapped[str | None] = mapped_column(String(100))
     branch: Mapped[str | None] = mapped_column(String(100))
     exhibition_type: Mapped[str | None] = mapped_column(String(100))
+    # How the lead came in (MANUAL, EXCEL, ...; "Channel" in the UI). Set by the system.
     source: Mapped[str] = mapped_column(String(20), nullable=False)
-    lead_owner_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
-    product_categories: Mapped[list[str]] = mapped_column(
-        ARRAY(String(100)), nullable=False, server_default="{}", default=list
+    # "Source" in the UI: campaign or list the lead came from, from the global master data.
+    lead_source_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("lead_sources.id"), index=True
     )
+    lead_owner_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    # Free text (owner decision 2026-10-22, like the old system); was a multi-select until 0016.
+    product_categories: Mapped[str | None] = mapped_column(Text)
     comment: Mapped[str | None] = mapped_column(Text)
 
     # Verification (current values; history lives in visitor_verifications).
@@ -157,6 +161,18 @@ class VisitorLead(UUIDPk, Timestamps, Versioned, Base):
     custom_fields: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, server_default="{}", default=dict
     )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
+class LeadSourceOption(UUIDPk, Timestamps, Versioned, Base):
+    """Global master data for the lead "Source" select (owner decision 2026-10-22)."""
+
+    __tablename__ = "lead_sources"
+
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 
