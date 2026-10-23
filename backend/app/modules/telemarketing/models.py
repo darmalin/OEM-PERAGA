@@ -136,6 +136,11 @@ class VisitorVerification(UUIDPk, Base):
     attend: Mapped[str | None] = mapped_column(String(30))
     b2b_matching: Mapped[bool] = mapped_column(nullable=False)
     buyer_type: Mapped[str | None] = mapped_column(String(10))
+    # The call this verification came with (dashboard counts per call); NULL for a save on the
+    # Verification tab between calls.
+    call_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("visitor_call_activities.id"), index=True
+    )
     changed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

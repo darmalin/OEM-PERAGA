@@ -6,7 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authorization import AuthContext, require
 from app.core.db import get_session
 from app.modules.reporting import service
-from app.modules.reporting.schemas import Report, ReportParams
+from app.modules.reporting.schemas import (
+    DashboardOptions,
+    DashboardOut,
+    DashboardParams,
+    Report,
+    ReportParams,
+)
 
 router = APIRouter(tags=["reports"])
 
@@ -19,3 +25,21 @@ async def visitor_report(
 ) -> Report:
     """Dashboard and report numbers. Poll it for near-real-time data (spec 11)."""
     return await service.visitor_report(session, ctx, params)
+
+
+@router.get("/reports/dashboard", response_model=DashboardOut)
+async def dashboard(
+    params: Annotated[DashboardParams, Query()],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    ctx: AuthContext = Depends(require("report.view")),
+) -> DashboardOut:
+    """Dashboard tabs: totals, per day, and per day by edition, source, or user."""
+    return await service.dashboard(session, ctx, params)
+
+
+@router.get("/reports/dashboard/options", response_model=DashboardOptions)
+async def dashboard_options(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    ctx: AuthContext = Depends(require("report.view")),
+) -> DashboardOptions:
+    return await service.dashboard_options(session, ctx)

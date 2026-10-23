@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     # Fernet key (urlsafe base64 of 32 bytes) for secrets that must be recoverable.
     app_encryption_key: SecretStr = SecretStr("")
     public_base_url: str = "http://localhost:8080"
+    # Day boundaries of the dashboard when no single edition is filtered (Indonesia, Vietnam).
+    report_timezone: str = "Asia/Jakarta"
 
     session_cookie_name: str = "ems_session"
     session_cookie_secure: bool = True

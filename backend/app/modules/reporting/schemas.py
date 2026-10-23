@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.modules.visitors.rules import Attend, BuyerType, TelemarketingStatus
 from app.modules.visitors.schemas import LeadFilters
 
 
@@ -188,3 +189,98 @@ Report = Annotated[
     | EmailsReport,
     Field(discriminator="report"),
 ]
+
+
+# --- dashboard (per call, like the old system's dashboard; FEATURES/10 "Dashboard") ---------
+
+DashboardGroup = Literal["total", "day", "day_edition", "day_source", "day_user"]
+MAX_DASHBOARD_DAYS = 366
+
+
+class DashboardParams(BaseModel):
+    """Filters of every dashboard tab. Lead filters narrow leads; verification filters narrow
+    calls by the verification sent with them (and leads by their current values)."""
+
+    model_config = {"extra": "forbid"}
+
+    date_from: date
+    date_to: date
+    group_by: DashboardGroup = "total"
+    edition_id: uuid.UUID | None = None
+    country: str | None = Field(default=None, min_length=2, max_length=2)
+    user_id: uuid.UUID | None = None
+    team_id: uuid.UUID | None = None
+    lead_source_id: uuid.UUID | None = None
+    telemarketing_status: TelemarketingStatus | None = None
+    lead_quality: Literal["VALID", "INVALID", "UNDECIDED"] | None = None
+    buyer_type: BuyerType | None = None
+    attend: Attend | None = None
+    b2b_matching: bool | None = None
+
+    @model_validator(mode="after")
+    def _range(self) -> "DashboardParams":
+        if self.date_to < self.date_from:
+            raise ValueError("date_to must not be before date_from")
+        if (self.date_to - self.date_from).days >= MAX_DASHBOARD_DAYS:
+            raise ValueError(f"Choose at most {MAX_DASHBOARD_DAYS} days.")
+        return self
+
+
+class DashboardRow(BaseModel):
+    """Counts for one day and/or key (edition, source, or user), or for the whole range.
+
+    Call counts: Answer / Non Answer = first call answered / not; Recontacted / Retry No Answer =
+    later calls answered / not; Total = all calls. Pending = leads never called by the end of
+    the day (of the range for the total row).
+    """
+
+    day: date | None = None
+    key: str | None = None
+    added: int = 0
+    pending: int = 0
+    total: int = 0
+    answer: int = 0
+    non_answer: int = 0
+    recontacted: int = 0
+    retry_no_answer: int = 0
+    valid: int = 0
+    no_valid: int = 0
+    attend: int = 0
+    attend_sourcing: int = 0
+    under_consideration: int = 0
+    not_attend: int = 0
+    hang_up_immediately: int = 0
+    b2b_matching: int = 0
+    b_side: int = 0
+    c_side: int = 0
+
+
+class DashboardKey(BaseModel):
+    id: str | None
+    label: str
+    # Recap By User: the user's teams and the editions they work in.
+    group: str | None = None
+    editions: str | None = None
+
+
+class DashboardOut(BaseModel):
+    timezone: str
+    today: date
+    date_from: date
+    date_to: date
+    group_by: DashboardGroup
+    rows: list[DashboardRow]
+    keys: list[DashboardKey] = []
+
+
+class DashboardOption(BaseModel):
+    id: str
+    label: str
+
+
+class DashboardOptions(BaseModel):
+    """Filter choices limited to what the caller can see: countries present in the leads."""
+
+    countries: list[str]
+    users: list[DashboardOption]
+    teams: list[DashboardOption]

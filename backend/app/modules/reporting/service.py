@@ -1,5 +1,6 @@
 """Reports (spec 11). Numbers come from the database only; every report applies the scope."""
 
+import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -7,6 +8,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import AuthContext, Scope
+from app.core.config import get_settings
 from app.core.errors import NotFound, PermissionDenied
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.reporting import repository as repo
@@ -18,6 +20,12 @@ from app.modules.reporting.schemas import (
     AttendanceDay,
     AttendanceReport,
     Count,
+    DashboardKey,
+    DashboardOption,
+    DashboardOptions,
+    DashboardOut,
+    DashboardParams,
+    DashboardRow,
     EmailsReport,
     GateRow,
     GatesReport,
@@ -231,3 +239,134 @@ async def visitor_report(session: AsyncSession, ctx: AuthContext, params: Report
     """GET /reports/visitors."""
     scope = scope_for_report(ctx, params, PERMISSION)
     return await build(session, scope, params, await edition_timezone(session, params.edition_id))
+
+
+# --- dashboard -------------------------------------------------------------------------------
+
+_GROUP_KEYS = {"day_edition": "edition", "day_source": "source", "day_user": "user"}
+_CALL_METRICS = (
+    "total",
+    "answer",
+    "non_answer",
+    "recontacted",
+    "retry_no_answer",
+    "valid",
+    "no_valid",
+    "attend",
+    "attend_sourcing",
+    "under_consideration",
+    "not_attend",
+    "hang_up_immediately",
+    "b2b_matching",
+    "b_side",
+    "c_side",
+)
+
+
+async def _dashboard_scopes(
+    session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID | None
+) -> tuple[list[Scope], str]:
+    """Scopes the dashboard reads, and the timezone of its days."""
+    if edition_id is not None:
+        return [ctx.scope_for(edition_id, PERMISSION)], await edition_timezone(session, edition_id)
+    scopes = await visitors_service.readable_scopes(session, ctx, PERMISSION)
+    return scopes, get_settings().report_timezone
+
+
+def _days(date_from: date, date_to: date) -> list[date]:
+    return [date_from + timedelta(days=i) for i in range((date_to - date_from).days + 1)]
+
+
+def _key(value: Any) -> str | None:
+    return None if value is None else str(value)
+
+
+async def dashboard(
+    session: AsyncSession, ctx: AuthContext, params: DashboardParams
+) -> DashboardOut:
+    """GET /reports/dashboard: every tab of the dashboard (FEATURES/10 "Dashboard")."""
+    scopes, timezone = await _dashboard_scopes(session, ctx, params.edition_id)
+    visible = visitors_service.lead_visibility(scopes)
+    window = local_window(params.date_from, params.date_to, timezone)
+    by_day = params.group_by != "total"
+    key = _GROUP_KEYS.get(params.group_by)
+    f = repo.DashFilters(**params.model_dump(exclude={"date_from", "date_to", "group_by"}))
+    calls = await repo.dashboard_calls(session, visible, f, window, timezone, by_day, key)
+    leads = await repo.dashboard_leads(session, visible, f, window, timezone, by_day, key)
+
+    rows: dict[tuple[date | None, str | None], DashboardRow] = {}
+
+    def row(day: date | None, k: str | None) -> DashboardRow:
+        return rows.setdefault((day, k), DashboardRow(day=day, key=k))
+
+    for r in calls:
+        target = row(r.get("day"), _key(r.get("key")))
+        for metric in _CALL_METRICS:
+            setattr(target, metric, int(r[metric]))
+    for r in leads["added"]:
+        row(r.get("day"), _key(r.get("key"))).added = int(r["n"])
+
+    # Pending = created by the end of the day - first called by then, per key.
+    base: dict[str | None, int] = {}
+    for r in leads["created_before"]:
+        base[_key(r.get("key"))] = base.get(_key(r.get("key")), 0) + int(r["n"])
+    for r in leads["called_before"]:
+        base[_key(r.get("key"))] = base.get(_key(r.get("key")), 0) - int(r["n"])
+    change: dict[tuple[date | None, str | None], int] = {}
+    for name, sign in (("added", 1), ("called", -1)):
+        for r in leads[name]:
+            at = (r.get("day"), _key(r.get("key")))
+            change[at] = change.get(at, 0) + sign * int(r["n"])
+    keys = set(base) | {k for _, k in change} | {k for _, k in rows}
+    if by_day:
+        for k in keys:
+            running = base.get(k, 0)
+            for day in _days(params.date_from, params.date_to):
+                running += change.get((day, k), 0)
+                if running or (day, k) in rows:
+                    row(day, k).pending = running
+    else:
+        row(None, None).pending = base.get(None, 0) + change.get((None, None), 0)
+
+    out_keys: list[DashboardKey] = []
+    if key == "edition":
+        summaries = await exhibitions_service.edition_summaries(
+            session, {s.edition_id for s in scopes}
+        )
+        out_keys = [DashboardKey(id=str(e.id), label=e.code) for e in summaries]
+    elif key == "source":
+        sources = await visitors_service.list_lead_sources(session, include_inactive=True)
+        out_keys = [DashboardKey(id=str(s.id), label=s.name) for s in sources]
+        out_keys.append(DashboardKey(id=None, label="No source"))
+    elif key == "user":
+        found = {uuid.UUID(k) for k in keys if k}
+        agents = await repo.dashboard_agents(session, {s.edition_id for s in scopes}, found)
+        out_keys = [
+            DashboardKey(id=str(i), label=name, group=group, editions=eds)
+            for i, name, group, eds in agents
+            if not params.user_id or i == params.user_id
+        ]
+        if any(k is None for k in keys):
+            out_keys.append(DashboardKey(id=None, label="Unassigned"))
+
+    ordered = sorted(rows.values(), key=lambda r: (r.day or date.min, r.key or ""))
+    return DashboardOut(
+        timezone=timezone,
+        today=datetime.now(ZoneInfo(timezone)).date(),
+        date_from=params.date_from,
+        date_to=params.date_to,
+        group_by=params.group_by,
+        rows=ordered if by_day else [row(None, None)],
+        keys=out_keys,
+    )
+
+
+async def dashboard_options(session: AsyncSession, ctx: AuthContext) -> DashboardOptions:
+    scopes = await visitors_service.readable_scopes(session, ctx, PERMISSION)
+    visible = visitors_service.lead_visibility(scopes)
+    agents = await repo.dashboard_agents(session, {s.edition_id for s in scopes}, set())
+    return DashboardOptions(
+        countries=await repo.dashboard_countries(session, visible),
+        users=[DashboardOption(id=str(i), label=n) for i, n, _, _ in agents],
+        teams=[DashboardOption(id=str(i), label=n) for i, n in await repo.dashboard_teams(session)],
+    )

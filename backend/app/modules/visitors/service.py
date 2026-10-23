@@ -476,18 +476,25 @@ async def get_lead(session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID) 
     return await lead_out(session, await get_lead_entity(session, scope, lead_id))
 
 
-async def _readable_scopes(session: AsyncSession, ctx: AuthContext) -> list[Scope]:
-    """The caller's scope in every edition it may read leads in."""
-    ids = ctx.edition_ids()
+async def readable_scopes(
+    session: AsyncSession, ctx: AuthContext, permission: str | None = None
+) -> list[Scope]:
+    """The caller's scope in every edition the permission (default: the route's) applies to."""
+    ids = ctx.edition_ids(permission)
     if ids is None:
         ids = {e.id for e in await exhibitions_service.edition_summaries(session, None)}
     scopes = []
     for edition_id in sorted(ids):
         try:
-            scopes.append(ctx.scope_for(edition_id))
+            scopes.append(ctx.scope_for(edition_id, permission))
         except NotFound:
             continue
     return scopes
+
+
+def lead_visibility(scopes: list[Scope]) -> Any:
+    """SQL condition on visitor_leads: visible in any of the scopes (reports across editions)."""
+    return repo.any_scope_clause(scopes)
 
 
 async def list_leads(
@@ -497,7 +504,7 @@ async def list_leads(
     if params.edition_id is not None:
         scopes = [ctx.scope_for(params.edition_id)]
     else:
-        scopes = await _readable_scopes(session, ctx)
+        scopes = await readable_scopes(session, ctx)
     rows, total = await repo.list_leads(
         session, scopes, params, params.sort, params.offset, params.page_size
     )

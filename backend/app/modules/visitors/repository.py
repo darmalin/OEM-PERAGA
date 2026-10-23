@@ -37,6 +37,11 @@ def scope_clause(scope: Scope) -> ColumnElement[bool]:
     return clause & (or_(*visible) if visible else false())
 
 
+def any_scope_clause(scopes: Sequence[Scope]) -> ColumnElement[bool]:
+    """Visible in at least one scope; no scope at all sees nothing."""
+    return or_(*(scope_clause(s) for s in scopes)) if scopes else false()
+
+
 def apply_scope[*Ts](stmt: Select[*Ts], scope: Scope) -> Select[*Ts]:
     return stmt.where(scope_clause(scope))
 
@@ -112,7 +117,7 @@ async def list_leads(
     limit: int,
 ) -> tuple[Sequence[Row[VisitorLead, str | None]], int]:
     """One edition, or several (the list without an edition): each keeps its own scope."""
-    visible = or_(*(scope_clause(s) for s in scopes)) if scopes else false()
+    visible = any_scope_clause(scopes)
     base = select(VisitorLead.id).where(visible, filter_clause(f))
     total = await session.scalar(select(func.count()).select_from(base.subquery())) or 0
     column = getattr(VisitorLead, sort.lstrip("-"))

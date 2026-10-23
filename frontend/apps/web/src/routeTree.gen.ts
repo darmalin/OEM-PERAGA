@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SystemRouteImport } from './routes/system'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppMyCallsRouteImport } from './routes/app/my-calls'
 import { Route as AppReconciliationRouteImport } from './routes/app/reconciliation'
 import { Route as AppReportsRouteImport } from './routes/app/reports'
@@ -117,6 +118,11 @@ const SystemRoute = SystemRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMyCallsRoute = AppMyCallsRouteImport.update({
@@ -474,6 +480,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/system': typeof SystemRouteWithChildren
+  '/app/dashboard': typeof AppDashboardRoute
   '/app/my-calls': typeof AppMyCallsRoute
   '/app/reconciliation': typeof AppReconciliationRoute
   '/app/reports': typeof AppReportsRoute
@@ -548,6 +555,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/dashboard': typeof AppDashboardRoute
   '/app/my-calls': typeof AppMyCallsRoute
   '/app/reconciliation': typeof AppReconciliationRoute
   '/app/reports': typeof AppReportsRoute
@@ -625,6 +633,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/system': typeof SystemRouteWithChildren
+  '/app/dashboard': typeof AppDashboardRoute
   '/app/my-calls': typeof AppMyCallsRoute
   '/app/reconciliation': typeof AppReconciliationRoute
   '/app/reports': typeof AppReportsRoute
@@ -703,6 +712,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/system'
+    | '/app/dashboard'
     | '/app/my-calls'
     | '/app/reconciliation'
     | '/app/reports'
@@ -777,6 +787,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/app/dashboard'
     | '/app/my-calls'
     | '/app/reconciliation'
     | '/app/reports'
@@ -853,6 +864,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/system'
+    | '/app/dashboard'
     | '/app/my-calls'
     | '/app/reconciliation'
     | '/app/reports'
@@ -981,6 +993,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/dashboard': {
+      id: '/app/dashboard'
+      path: '/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/my-calls': {
@@ -1456,6 +1475,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppDashboardRoute: typeof AppDashboardRoute
   AppMyCallsRoute: typeof AppMyCallsRoute
   AppReconciliationRoute: typeof AppReconciliationRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -1508,6 +1528,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppDashboardRoute: AppDashboardRoute,
   AppMyCallsRoute: AppMyCallsRoute,
   AppReconciliationRoute: AppReconciliationRoute,
   AppReportsRoute: AppReportsRoute,

@@ -1393,6 +1393,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dashboard
+         * @description Dashboard tabs: totals, per day, and per day by edition, source, or user.
+         */
+        get: operations["dashboard_api_v1_reports_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/dashboard/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard Options */
+        get: operations["dashboard_options_api_v1_reports_dashboard_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exports/visitors": {
         parameters: {
             query?: never;
@@ -2061,6 +2098,167 @@ export interface components {
             in_import?: boolean | null;
             /** In Export */
             in_export?: boolean | null;
+        };
+        /** DashboardKey */
+        DashboardKey: {
+            /** Id */
+            id: string | null;
+            /** Label */
+            label: string;
+            /** Group */
+            group?: string | null;
+            /** Editions */
+            editions?: string | null;
+        };
+        /** DashboardOption */
+        DashboardOption: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * DashboardOptions
+         * @description Filter choices limited to what the caller can see: countries present in the leads.
+         */
+        DashboardOptions: {
+            /** Countries */
+            countries: string[];
+            /** Users */
+            users: components["schemas"]["DashboardOption"][];
+            /** Teams */
+            teams: components["schemas"]["DashboardOption"][];
+        };
+        /** DashboardOut */
+        DashboardOut: {
+            /** Timezone */
+            timezone: string;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /**
+             * Group By
+             * @enum {string}
+             */
+            group_by: "total" | "day" | "day_edition" | "day_source" | "day_user";
+            /** Rows */
+            rows: components["schemas"]["DashboardRow"][];
+            /**
+             * Keys
+             * @default []
+             */
+            keys: components["schemas"]["DashboardKey"][];
+        };
+        /**
+         * DashboardRow
+         * @description Counts for one day and/or key (edition, source, or user), or for the whole range.
+         *
+         *     Call counts: Answer / Non Answer = first call answered / not; Recontacted / Retry No Answer =
+         *     later calls answered / not; Total = all calls. Pending = leads never called by the end of
+         *     the day (of the range for the total row).
+         */
+        DashboardRow: {
+            /** Day */
+            day?: string | null;
+            /** Key */
+            key?: string | null;
+            /**
+             * Added
+             * @default 0
+             */
+            added: number;
+            /**
+             * Pending
+             * @default 0
+             */
+            pending: number;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Answer
+             * @default 0
+             */
+            answer: number;
+            /**
+             * Non Answer
+             * @default 0
+             */
+            non_answer: number;
+            /**
+             * Recontacted
+             * @default 0
+             */
+            recontacted: number;
+            /**
+             * Retry No Answer
+             * @default 0
+             */
+            retry_no_answer: number;
+            /**
+             * Valid
+             * @default 0
+             */
+            valid: number;
+            /**
+             * No Valid
+             * @default 0
+             */
+            no_valid: number;
+            /**
+             * Attend
+             * @default 0
+             */
+            attend: number;
+            /**
+             * Attend Sourcing
+             * @default 0
+             */
+            attend_sourcing: number;
+            /**
+             * Under Consideration
+             * @default 0
+             */
+            under_consideration: number;
+            /**
+             * Not Attend
+             * @default 0
+             */
+            not_attend: number;
+            /**
+             * Hang Up Immediately
+             * @default 0
+             */
+            hang_up_immediately: number;
+            /**
+             * B2B Matching
+             * @default 0
+             */
+            b2b_matching: number;
+            /**
+             * B Side
+             * @default 0
+             */
+            b_side: number;
+            /**
+             * C Side
+             * @default 0
+             */
+            c_side: number;
         };
         /** DeviceContext */
         DeviceContext: {
@@ -7884,6 +8082,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dashboard_api_v1_reports_dashboard_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                group_by?: "total" | "day" | "day_edition" | "day_source" | "day_user";
+                edition_id?: string | null;
+                country?: string | null;
+                user_id?: string | null;
+                team_id?: string | null;
+                lead_source_id?: string | null;
+                telemarketing_status?: components["schemas"]["TelemarketingStatus"] | null;
+                lead_quality?: ("VALID" | "INVALID" | "UNDECIDED") | null;
+                buyer_type?: components["schemas"]["BuyerType"] | null;
+                attend?: components["schemas"]["Attend"] | null;
+                b2b_matching?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dashboard_options_api_v1_reports_dashboard_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardOptions"];
                 };
             };
         };

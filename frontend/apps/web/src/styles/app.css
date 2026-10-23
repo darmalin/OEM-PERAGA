@@ -3,6 +3,22 @@
 
 @import "@ems/ui/tokens.css";
 
+/* Chart series: validated categorical slots 1-4 (dataviz validate_palette, light on #fff and
+   dark on #171717). Light aqua and yellow sit below 3:1, so charts carry direct labels and a
+   table view. */
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+}
+.dark {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+}
+
 /* Chevron for native selects; a plain class so tailwind-merge never drops the fill color. */
 .select-chevron {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888' stroke-width='1.5'><path d='m4 6 4 4 4-4'/></svg>");

@@ -8,6 +8,7 @@ import {
   DoorOpen,
   FileDown,
   FileUp,
+  Gauge,
   HeartPulse,
   KeyRound,
   LayoutDashboard,
@@ -85,7 +86,10 @@ export const PANELS: PanelDef[] = [
       },
       {
         label: "Insights",
-        items: [{ label: "Reports", to: "/app/reports", icon: BarChart3, perms: ["report.view"] }],
+        items: [
+          { label: "Dashboard", to: "/app/dashboard", icon: Gauge, perms: ["report.view"] },
+          { label: "Reports", to: "/app/reports", icon: BarChart3, perms: ["report.view"] },
+        ],
       },
       {
         label: "Setup",

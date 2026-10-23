@@ -453,7 +453,7 @@ async def log_call(
         # Moved to a status where the visitor was never reached: nothing to say about attending.
         verification.update(attend=None, b2b_matching=False, buyer_type=None)
     if verification:
-        lead = await _record_verification(session, ctx, lead, verification)
+        lead = await _record_verification(session, ctx, lead, verification, call_id=call.id)
     return CallLoggedOut(
         call=CallOut.model_validate(call),
         telemarketing_status=lead.telemarketing_status,
@@ -506,7 +506,11 @@ async def update_verification(
 
 
 async def _record_verification(
-    session: AsyncSession, ctx: AuthContext, lead: "VisitorLead", changes: dict[str, object]
+    session: AsyncSession,
+    ctx: AuthContext,
+    lead: "VisitorLead",
+    changes: dict[str, object],
+    call_id: uuid.UUID | None = None,
 ) -> "VisitorLead":
     """Apply verification changes to a locked lead and append a history row."""
     changes["verification_updated_at"] = datetime.now(UTC)
@@ -520,6 +524,7 @@ async def _record_verification(
             attend=lead.attend,
             b2b_matching=lead.b2b_matching,
             buyer_type=lead.buyer_type,
+            call_id=call_id,
             changed_by=ctx.user.id,
         )
     )

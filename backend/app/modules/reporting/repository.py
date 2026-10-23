@@ -7,20 +7,44 @@ visitors.filtered_lead_ids(scope, filters) and gate data through the gate scope.
 
 import uuid
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, and_, case, distinct, extract, func, select, true
+from sqlalchemy import (
+    ColumnElement,
+    Select,
+    and_,
+    case,
+    distinct,
+    extract,
+    func,
+    or_,
+    select,
+    true,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import Scope
 from app.modules.checkin.models import Gate, ScanAttempt, VisitorCheckin
 from app.modules.checkin.repository import gate_scope_clause
-from app.modules.identity.models import User
+from app.modules.exhibitions.models import Edition
+from app.modules.identity.models import (
+    Permission,
+    RolePermission,
+    Team,
+    User,
+    UserRoleAssignment,
+    UserTeamMembership,
+)
 from app.modules.importexport.models import ImportJob
 from app.modules.mail.models import EmailJob
 from app.modules.registrations.models import VisitorRegistration
-from app.modules.telemarketing.models import VisitorCallActivity, VisitorFollowup
+from app.modules.telemarketing.models import (
+    VisitorCallActivity,
+    VisitorFollowup,
+    VisitorVerification,
+)
 from app.modules.visitors.models import VisitorLead
 
 Window = tuple[datetime | None, datetime | None]
@@ -359,3 +383,275 @@ async def email_status_totals(
         .group_by(EmailJob.status)
         .order_by(EmailJob.status),
     )
+
+
+# --- dashboard -------------------------------------------------------------------------------
+# Per call, like the old system: a call and the verification sent with it (call_id link).
+
+
+@dataclass(frozen=True)
+class DashFilters:
+    """Already-validated dashboard filters, split by what they narrow."""
+
+    edition_id: uuid.UUID | None = None
+    country: str | None = None
+    user_id: uuid.UUID | None = None
+    team_id: uuid.UUID | None = None
+    lead_source_id: uuid.UUID | None = None
+    telemarketing_status: str | None = None
+    lead_quality: str | None = None
+    buyer_type: str | None = None
+    attend: str | None = None
+    b2b_matching: bool | None = None
+
+
+def local_day(column: Any, timezone: str) -> Any:
+    """Event-local calendar date of a timestamptz column."""
+    return func.date(func.timezone(timezone, column))
+
+
+def _lead_conds(f: DashFilters) -> list[ColumnElement[bool]]:
+    lead = VisitorLead
+    conds: list[ColumnElement[bool]] = []
+    if f.edition_id:
+        conds.append(lead.edition_id == f.edition_id)
+    if f.country:
+        conds.append(lead.country == f.country)
+    if f.lead_source_id:
+        conds.append(lead.lead_source_id == f.lead_source_id)
+    if f.telemarketing_status:
+        conds.append(lead.telemarketing_status == f.telemarketing_status)
+    return conds
+
+
+def _people(column: Any, f: DashFilters) -> list[ColumnElement[bool]]:
+    """User and team filters on the agent of a call or the owner of a lead."""
+    conds: list[ColumnElement[bool]] = []
+    if f.user_id:
+        conds.append(column == f.user_id)
+    if f.team_id:
+        conds.append(
+            column.in_(
+                select(UserTeamMembership.user_id).where(UserTeamMembership.team_id == f.team_id)
+            )
+        )
+    return conds
+
+
+def _verification(
+    valid: Any, invalid: Any, attend: Any, b2b: Any, buyer: Any, f: DashFilters
+) -> list[ColumnElement[bool]]:
+    conds: list[ColumnElement[bool]] = []
+    if f.lead_quality == "VALID":
+        conds.append(valid.is_(True))
+    elif f.lead_quality == "INVALID":
+        conds.append(invalid.is_(True))
+    elif f.lead_quality == "UNDECIDED":
+        conds.append(
+            and_(func.coalesce(valid, False).is_(False), func.coalesce(invalid, False).is_(False))
+        )
+    if f.attend:
+        conds.append(attend == f.attend)
+    if f.b2b_matching is not None:
+        conds.append(func.coalesce(b2b, False).is_(f.b2b_matching))
+    if f.buyer_type:
+        conds.append(buyer == f.buyer_type)
+    return conds
+
+
+_CALL_KEYS = {
+    "edition": VisitorCallActivity.edition_id,
+    "source": VisitorLead.lead_source_id,
+    "user": VisitorCallActivity.agent_id,
+}
+_LEAD_KEYS = {
+    "edition": VisitorLead.edition_id,
+    "source": VisitorLead.lead_source_id,
+    "user": VisitorLead.lead_owner_id,
+}
+
+
+def _group(day: Any | None, key: Any | None) -> list[Any]:
+    return [c for c in (day, key) if c is not None]
+
+
+async def dashboard_calls(
+    session: AsyncSession,
+    visible: ColumnElement[bool],
+    f: DashFilters,
+    window: Window,
+    timezone: str,
+    by_day: bool,
+    key: str | None,
+) -> list[dict[str, Any]]:
+    call, v = VisitorCallActivity, VisitorVerification
+    answered = call.call_result == "ANSWER"
+    first = call.attempt_number == 1
+    day = local_day(call.called_at, timezone).label("day") if by_day else None
+    key_col = _CALL_KEYS[key].label("key") if key else None
+    metrics = [
+        func.count().label("total"),
+        _count_if(first & answered).label("answer"),
+        _count_if(first & ~answered).label("non_answer"),
+        _count_if(~first & answered).label("recontacted"),
+        _count_if(~first & ~answered).label("retry_no_answer"),
+        _count_if(v.is_valid_lead.is_(True)).label("valid"),
+        _count_if(v.is_invalid.is_(True)).label("no_valid"),
+        _count_if(v.attend == "ATTEND").label("attend"),
+        _count_if(v.attend == "ATTEND_SOURCING").label("attend_sourcing"),
+        _count_if(v.attend == "UNDER_CONSIDERATION").label("under_consideration"),
+        _count_if(v.attend == "NOT_ATTEND").label("not_attend"),
+        _count_if(v.attend == "HANG_UP_IMMEDIATELY").label("hang_up_immediately"),
+        _count_if(v.b2b_matching.is_(True)).label("b2b_matching"),
+        _count_if(v.buyer_type == "B_SIDE").label("b_side"),
+        _count_if(v.buyer_type == "C_SIDE").label("c_side"),
+    ]
+    groups = _group(day, key_col)
+    stmt = (
+        select(*groups, *metrics)
+        .select_from(call)
+        .join(VisitorLead, VisitorLead.id == call.visitor_lead_id)
+        .outerjoin(v, v.call_id == call.id)
+        .where(
+            visible,
+            _in_window(call.called_at, window),
+            *_lead_conds(f),
+            *_people(call.agent_id, f),
+            *_verification(
+                v.is_valid_lead, v.is_invalid, v.attend, v.b2b_matching, v.buyer_type, f
+            ),
+        )
+    )
+    if groups:
+        stmt = stmt.group_by(*groups)
+    return [dict(r._mapping) for r in await session.execute(stmt)]
+
+
+def _lead_where(visible: ColumnElement[bool], f: DashFilters) -> list[ColumnElement[bool]]:
+    lead = VisitorLead
+    return [
+        visible,
+        *_lead_conds(f),
+        *_people(lead.lead_owner_id, f),
+        *_verification(
+            lead.is_valid_lead, lead.is_invalid, lead.attend, lead.b2b_matching, lead.buyer_type, f
+        ),
+    ]
+
+
+async def dashboard_leads(
+    session: AsyncSession,
+    visible: ColumnElement[bool],
+    f: DashFilters,
+    window: Window,
+    timezone: str,
+    by_day: bool,
+    key: str | None,
+) -> dict[str, list[dict[str, Any]]]:
+    """Leads added, and the parts of Pending: created and first called, before and in range.
+
+    Pending at the end of a day = created by then - first called by then.
+    """
+    start, _ = window
+    lead = VisitorLead
+    key_col = _LEAD_KEYS[key].label("key") if key else None
+    where = _lead_where(visible, f)
+    first_call = (
+        select(
+            VisitorCallActivity.visitor_lead_id.label("lead_id"),
+            func.min(VisitorCallActivity.called_at).label("first_at"),
+        )
+        .group_by(VisitorCallActivity.visitor_lead_id)
+        .subquery()
+    )
+
+    async def counts(
+        time_col: Any, cond: ColumnElement[bool], with_day: bool, join_first: bool
+    ) -> list[dict[str, Any]]:
+        day = local_day(time_col, timezone).label("day") if with_day else None
+        groups = _group(day, key_col)
+        stmt = select(*groups, func.count().label("n")).select_from(lead)
+        if join_first:
+            stmt = stmt.join(first_call, first_call.c.lead_id == lead.id)
+        stmt = stmt.where(*where, cond)
+        if groups:
+            stmt = stmt.group_by(*groups)
+        return [dict(r._mapping) for r in await session.execute(stmt)]
+
+    in_range_created = _in_window(lead.created_at, window)
+    in_range_first = _in_window(first_call.c.first_at, window)
+    return {
+        "added": await counts(lead.created_at, in_range_created, by_day, False),
+        "created_before": await counts(lead.created_at, lead.created_at < start, False, False)
+        if start
+        else [],
+        "called_before": await counts(
+            first_call.c.first_at, first_call.c.first_at < start, False, True
+        )
+        if start
+        else [],
+        "called": await counts(first_call.c.first_at, in_range_first, by_day, True),
+    }
+
+
+async def dashboard_countries(session: AsyncSession, visible: ColumnElement[bool]) -> list[str]:
+    rows = await session.scalars(
+        select(VisitorLead.country)
+        .distinct()
+        .where(visible, VisitorLead.country.is_not(None))
+        .order_by(VisitorLead.country)
+    )
+    return [r for r in rows if r]
+
+
+async def dashboard_agents(
+    session: AsyncSession, edition_ids: set[uuid.UUID] | None, extra_ids: set[uuid.UUID]
+) -> list[tuple[uuid.UUID, str, str | None, str | None]]:
+    """(user id, name, team names, edition codes) for users who log calls in these editions,
+    plus `extra_ids` (users found in the data). Editions "All" for a global grant."""
+    grants = (
+        select(UserRoleAssignment.user_id, UserRoleAssignment.edition_id)
+        .join(RolePermission, RolePermission.role_id == UserRoleAssignment.role_id)
+        .join(Permission, Permission.id == RolePermission.permission_id)
+        .where(Permission.code == "telemarketing.call")
+    )
+    if edition_ids is not None:
+        grants = grants.where(
+            or_(
+                UserRoleAssignment.edition_id.in_(edition_ids),
+                UserRoleAssignment.edition_id.is_(None),
+            )
+        )
+    grant_rows = (await session.execute(grants)).all()
+    editions_of: dict[uuid.UUID, set[uuid.UUID | None]] = {}
+    for user_id, edition_id in grant_rows:
+        editions_of.setdefault(user_id, set()).add(edition_id)
+    ids = set(editions_of) | extra_ids
+    if not ids:
+        return []
+    users = (
+        await session.execute(
+            select(User.id, User.full_name).where(User.id.in_(ids)).order_by(User.full_name)
+        )
+    ).all()
+    teams: dict[uuid.UUID, list[str]] = {}
+    for user_id, name in await session.execute(
+        select(UserTeamMembership.user_id, Team.name)
+        .join(Team, Team.id == UserTeamMembership.team_id)
+        .where(UserTeamMembership.user_id.in_(ids))
+        .order_by(Team.name)
+    ):
+        teams.setdefault(user_id, []).append(name)
+    codes = dict((await session.execute(select(Edition.id, Edition.code))).all())
+    out = []
+    for user_id, name in users:
+        eds = editions_of.get(user_id, set())
+        label = "All" if None in eds else ", ".join(sorted(codes.get(e, "") for e in eds if e))
+        out.append((user_id, name, ", ".join(teams.get(user_id, [])) or None, label or None))
+    return out
+
+
+async def dashboard_teams(session: AsyncSession) -> list[tuple[uuid.UUID, str]]:
+    return [
+        (i, n) for i, n in await session.execute(select(Team.id, Team.name).order_by(Team.name))
+    ]
