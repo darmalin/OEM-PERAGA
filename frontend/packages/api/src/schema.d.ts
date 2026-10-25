@@ -263,17 +263,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/editions/{edition_id}/teams": {
+    "/api/v1/editions/{edition_id}/team": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Edition Teams */
-        get: operations["get_edition_teams_api_v1_editions__edition_id__teams_get"];
-        /** Set Edition Teams */
-        put: operations["set_edition_teams_api_v1_editions__edition_id__teams_put"];
+        /** Get Edition Team */
+        get: operations["get_edition_team_api_v1_editions__edition_id__team_get"];
+        /** Set Edition Team */
+        put: operations["set_edition_team_api_v1_editions__edition_id__team_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2663,23 +2663,23 @@ export interface components {
          * @enum {string}
          */
         EditionStatus: "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED";
-        /** EditionTeamsIn */
-        EditionTeamsIn: {
-            /** Team Ids */
-            team_ids: string[];
+        /** EditionTeamIn */
+        EditionTeamIn: {
+            /** Team Id */
+            team_id: string | null;
         };
         /**
-         * EditionTeamsOut
-         * @description Teams working an edition's leads (imports can share new leads among their callers).
+         * EditionTeamOut
+         * @description The team working an edition's leads (imports can share new leads among its callers).
          */
-        EditionTeamsOut: {
+        EditionTeamOut: {
             /**
              * Edition Id
              * Format: uuid
              */
             edition_id: string;
-            /** Team Ids */
-            team_ids: string[];
+            /** Team Id */
+            team_id: string | null;
         };
         /** EditionUpdateIn */
         EditionUpdateIn: {
@@ -5632,7 +5632,7 @@ export interface operations {
             };
         };
     };
-    get_edition_teams_api_v1_editions__edition_id__teams_get: {
+    get_edition_team_api_v1_editions__edition_id__team_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5649,7 +5649,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EditionTeamsOut"];
+                    "application/json": components["schemas"]["EditionTeamOut"];
                 };
             };
             /** @description Validation Error */
@@ -5663,7 +5663,7 @@ export interface operations {
             };
         };
     };
-    set_edition_teams_api_v1_editions__edition_id__teams_put: {
+    set_edition_team_api_v1_editions__edition_id__team_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -5674,7 +5674,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EditionTeamsIn"];
+                "application/json": components["schemas"]["EditionTeamIn"];
             };
         };
         responses: {
@@ -5684,7 +5684,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EditionTeamsOut"];
+                    "application/json": components["schemas"]["EditionTeamOut"];
                 };
             };
             /** @description Validation Error */

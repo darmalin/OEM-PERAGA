@@ -1,4 +1,4 @@
-"""Edition teams and imports that share new leads among their callers (owner request 2026-10-25)."""
+"""The edition's team and imports that share new leads among their callers (owner request 2026-10-25)."""
 
 from collections import Counter
 
@@ -48,18 +48,20 @@ async def test_import_shares_new_leads_among_the_edition_teams_callers(
         RoleGrant("TELEMARKETING_AGENT", "OWNED", edition.id), teams=(team,), active=False
     )
     await make_user(RoleGrant("TELEMARKETING_AGENT", "OWNED", edition.id), teams=(other_team,))
-    base = f"/api/v1/editions/{edition.id}/teams"
+    base = f"/api/v1/editions/{edition.id}/team"
     recipients = "/api/v1/visitor-leads/imports/recipients"
 
     # No teams yet: nobody receives, and an auto-assign import is refused up front.
-    assert (await admin.get(base)).json() == {"edition_id": str(edition.id), "team_ids": []}
+    assert (await admin.get(base)).json() == {"edition_id": str(edition.id), "team_id": None}
     assert (await admin.get(recipients, params={"edition_id": str(edition.id)})).json() == []
     r = await upload(admin, edition, rows("early", 2), auto_assign="true")
     assert r.status_code == 422 and "auto_assign" in r.json()["error"]["fields"]
 
-    r = await admin.put(base, json={"team_ids": [team]})
+    r = await admin.put(base, json={"team_id": other_team})
     assert r.status_code == 200, r.text
-    assert (await admin.get(base)).json()["team_ids"] == [team]
+    r = await admin.put(base, json={"team_id": team})  # one team: this replaces the other
+    assert r.status_code == 200, r.text
+    assert (await admin.get(base)).json()["team_id"] == team
     r = await admin.get(recipients, params={"edition_id": str(edition.id)})
     assert {x["id"] for x in r.json()} == {str(c.id) for c in callers}
 
@@ -97,14 +99,15 @@ async def test_edition_teams_permissions_and_validation() -> None:
     _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", edition.id))
     _, agent = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", edition.id))
     other = await make_edition()
-    base = f"/api/v1/editions/{edition.id}/teams"
+    base = f"/api/v1/editions/{edition.id}/team"
     unknown = "00000000-0000-4000-8000-000000000000"
 
-    assert (await agent.put(base, json={"team_ids": []})).status_code == 403
+    assert (await agent.put(base, json={"team_id": None})).status_code == 403
     assert (await agent.get(base)).status_code == 200
-    r = await admin.put(base, json={"team_ids": [unknown]})
-    assert r.status_code == 422 and "team_ids" in r.json()["error"]["fields"]
-    assert (await admin.get(f"/api/v1/editions/{other.id}/teams")).status_code == 404
+    r = await admin.put(base, json={"team_id": unknown})
+    assert r.status_code == 422 and "team_id" in r.json()["error"]["fields"]
+    assert (await admin.put(base, json={"team_id": None})).json()["team_id"] is None
+    assert (await admin.get(f"/api/v1/editions/{other.id}/team")).status_code == 404
     r = await admin.post(
         "/api/v1/visitor-leads/assignments",
         json={"edition_id": str(edition.id), "method": "IMPORT", "lead_ids": [unknown],

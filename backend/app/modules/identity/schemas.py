@@ -165,17 +165,17 @@ class TeamOut(BaseModel):
     member_ids: list[uuid.UUID] = []
 
 
-class EditionTeamsIn(BaseModel):
+class EditionTeamIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    team_ids: list[uuid.UUID] = Field(max_length=100)
+    team_id: uuid.UUID | None  # None: no team
 
 
-class EditionTeamsOut(BaseModel):
-    """Teams working an edition's leads (imports can share new leads among their callers)."""
+class EditionTeamOut(BaseModel):
+    """The team working an edition's leads (imports can share new leads among its callers)."""
 
     edition_id: uuid.UUID
-    team_ids: list[uuid.UUID]
+    team_id: uuid.UUID | None
 
 
 class TeamMemberIn(BaseModel):

@@ -4,7 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
 
-import { importRecipientsQuery } from "@/features/edition-teams";
+import { importRecipientsQuery } from "@/features/edition-team";
 import { useEdition } from "@/lib/edition";
 import { formatBytes, formatNumber } from "@/lib/format";
 import { notifyError, notifySuccess } from "@/lib/notify";
@@ -147,7 +147,7 @@ function NewImport() {
               <label className="flex items-start gap-2 text-[14px]">
                 <Checkbox className="mt-0.5" checked={assign} onCheckedChange={(c) => setAutoAssign(c === true)} />
                 <span>
-                  Share new leads evenly among {people.length} {people.length === 1 ? "person" : "people"} in this edition's teams
+                  Share new leads evenly among {people.length} {people.length === 1 ? "person" : "people"} in this edition's team
                   <span className="block text-[12px] text-label">{people.map((p) => p.full_name).join(", ")}</span>
                 </span>
               </label>
@@ -157,7 +157,7 @@ function NewImport() {
             <p className="text-[13px] text-label">
               {recipients.isPending ? "Checking who can receive leads" : (
                 <>
-                  New leads stay unassigned. To share them automatically, add a sales team on the{" "}
+                  New leads stay unassigned. To share them automatically, set a team on the{" "}
                   <Link to="/app/editions/$editionId" params={{ editionId: edition.id }} className="text-link hover:underline">edition</Link>.
                 </>
               )}

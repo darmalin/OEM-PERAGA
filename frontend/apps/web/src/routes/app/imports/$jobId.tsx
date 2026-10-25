@@ -77,7 +77,7 @@ function ImportJob() {
         {j.auto_assign ? (
           <div className="border-t border-line px-5 py-4 text-[13px]">
             <p className="font-medium">
-              <span className="tabular">{formatNumber(j.assigned_count)}</span> new {j.assigned_count === 1 ? "lead" : "leads"} shared among the edition's sales teams
+              <span className="tabular">{formatNumber(j.assigned_count)}</span> new {j.assigned_count === 1 ? "lead" : "leads"} shared among the edition's team
               {!finished && j.assigned_count === 0 ? <span className="font-normal text-label"> · after the rows are read</span> : null}
             </p>
             {j.assigned_to?.length ? (

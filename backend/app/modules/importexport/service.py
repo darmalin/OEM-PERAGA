@@ -139,8 +139,8 @@ async def start_import(
         )
     if auto_assign and not await telemarketing_service.import_recipients(session, edition_id):
         raise ValidationFailed(
-            "No one in this edition's teams can receive leads.",
-            fields={"auto_assign": "Add a team with callers to the edition first."},
+            "No one in this edition's team can receive leads.",
+            fields={"auto_assign": "Set a team with callers on the edition first."},
         )
     mapping = _parse_mapping(column_mapping, await _targets(session, edition_id))
     if not mapping and (preset := await repo.get_preset(session, edition_id)):
@@ -278,13 +278,13 @@ async def recipients(
 
 
 async def _auto_assign(session: AsyncSession, job: ImportJob) -> None:
-    """Share the import's unowned new leads round robin among the edition teams' callers.
+    """Share the import's unowned new leads round robin among the edition team's callers.
 
     Batches commit with the job's running totals, so a resumed job carries on where it
     stopped. Callers are read now, when rows are done: someone added meanwhile counts."""
     agents = await telemarketing_service.import_recipients(session, job.edition_id)
     if not agents:
-        job.error_summary = "Leads were not assigned: no one in the edition's teams can call."
+        job.error_summary = "Leads were not assigned: no one in the edition's team can call."
         return
     names = {a.id: a.full_name for a in agents}
     agent_ids = sorted(names)

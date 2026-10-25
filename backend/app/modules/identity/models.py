@@ -78,8 +78,8 @@ class UserTeamMembership(Base):
 
 
 class EditionTeam(Base):
-    """Teams that work an edition's leads; their members with telemarketing.call receive
-    imported leads round robin."""
+    """The team that works an edition's leads (one per edition); its members with
+    telemarketing.call receive imported leads round robin."""
 
     __tablename__ = "edition_teams"
 
@@ -87,7 +87,7 @@ class EditionTeam(Base):
         ForeignKey("exhibition_editions.id", ondelete="CASCADE"), primary_key=True
     )
     team_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("teams.id", ondelete="CASCADE"), primary_key=True, index=True
+        ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

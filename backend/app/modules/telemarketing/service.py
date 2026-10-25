@@ -99,12 +99,12 @@ async def assignable_agents(
 
 
 async def import_recipients(session: AsyncSession, edition_id: uuid.UUID) -> list[AgentOut]:
-    """Who receives an import's new leads: active members of the edition's teams who may
-    call in it (telemarketing.call). Gate staff and others in those teams are left out."""
-    teams = await identity_service.edition_team_ids(session, edition_id)
-    if not teams:
+    """Who receives an import's new leads: active members of the edition's team who may
+    call in it (telemarketing.call). Gate staff and others in the team are left out."""
+    team_id = await identity_service.edition_team_id(session, edition_id)
+    if team_id is None:
         return []
-    rows = await identity_service.eligible_users(session, edition_id, AGENT_PERMISSION, teams)
+    rows = await identity_service.eligible_users(session, edition_id, AGENT_PERMISSION, {team_id})
     return [AgentOut(id=u.id, full_name=u.full_name, email=u.email, team_ids=t) for u, t in rows]
 
 

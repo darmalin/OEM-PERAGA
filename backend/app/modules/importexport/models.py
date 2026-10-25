@@ -49,7 +49,7 @@ class ImportJob(UUIDPk, Timestamps, Base):
     duplicate_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     invalid_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     registered_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    # Share new leads round robin among the edition teams' callers when rows are done.
+    # Share new leads round robin among the edition team's callers when rows are done.
     auto_assign: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     assigned_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # {user_id: {"name": ..., "count": n}}

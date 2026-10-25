@@ -1,10 +1,10 @@
-"""teams per edition, and imports that share new leads among them
+"""a team per edition, and imports that share new leads among its callers
 
 Revision ID: 0020
 Revises: 0019
 Create Date: 2026-10-25
 
-Owner request 2026-10-25: an edition has teams; an import can hand its new leads round robin
+Owner request 2026-10-25: an edition has one team; an import can hand its new leads round robin
 to the members who may call (telemarketing.call), e.g. 500 leads over 5 callers = 100 each.
 """
 
@@ -40,7 +40,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["created_by"], ["users.id"], name=op.f("fk_edition_teams_created_by_users")
         ),
-        sa.PrimaryKeyConstraint("edition_id", "team_id", name=op.f("pk_edition_teams")),
+        sa.PrimaryKeyConstraint("edition_id", name=op.f("pk_edition_teams")),
     )  # fmt: skip
     op.create_index(op.f("ix_edition_teams_team_id"), "edition_teams", ["team_id"])
 
