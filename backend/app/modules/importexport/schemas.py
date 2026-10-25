@@ -103,8 +103,7 @@ class PreviewOut(BaseModel):
 
 
 class DownloadOut(BaseModel):
-    url: str
-    expires_in: int
+    url: str  # an API path; the file streams through the API
 
 
 class VisitorExportIn(LeadFilters):
@@ -133,5 +132,5 @@ class ExportJobOut(BaseModel):
     created_at: datetime
     finished_at: datetime | None
     expires_at: datetime | None
-    # Short-lived signed link, only while the file exists.
+    # API path that streams the file, only while it exists.
     download_url: str | None = None

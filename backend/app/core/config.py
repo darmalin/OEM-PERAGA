@@ -38,15 +38,11 @@ class Settings(BaseSettings):
     public_registration_per_ip_per_hour: int = 20
 
     s3_endpoint_url: str | None = None
-    # Host the browser uses for signed download links when it differs from the internal
-    # endpoint (e.g. http://storage:9000 inside Docker). None = sign with s3_endpoint_url.
-    s3_public_endpoint_url: str | None = None
     s3_access_key: SecretStr = SecretStr("")
     s3_secret_key: SecretStr = SecretStr("")
     s3_region: str = "us-east-1"
     s3_bucket_imports: str = "imports"
     s3_bucket_exports: str = "exports"
-    presigned_url_ttl_seconds: int = 300
 
     email_backend: Literal["smtp", "memory"] = "smtp"
     smtp_host: str = "localhost"

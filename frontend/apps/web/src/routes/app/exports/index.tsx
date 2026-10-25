@@ -1,4 +1,4 @@
-import { api, call, type Schemas } from "@ems/api";
+import { api, call, downloadFile, type Schemas } from "@ems/api";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Download } from "lucide-react";
@@ -21,9 +21,9 @@ export const Route = createFileRoute("/app/exports/")({
 
 async function download(id: string) {
   try {
-    // Ask for a fresh signed link each time; links expire after a few minutes.
+    // The file streams through the API; a fresh status first, since exports expire.
     const job = await call(api.GET("/api/v1/exports/{job_id}", { params: { path: { job_id: id } } }));
-    if (job.download_url) window.location.assign(job.download_url);
+    if (job.download_url) await downloadFile(job.download_url, job.file_name ?? "export.xlsx");
   } catch (e) {
     notifyError(e);
   }

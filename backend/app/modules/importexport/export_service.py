@@ -5,6 +5,7 @@ more than the requester may see at that moment.
 """
 
 import uuid
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -13,6 +14,7 @@ import structlog
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.core import audit, outbox
 from app.core.authorization import AuthContext, Scope
@@ -123,8 +125,8 @@ async def list_exports(
     )
 
 
-async def get_export(session: AsyncSession, ctx: AuthContext, job_id: uuid.UUID) -> ExportJobOut:
-    """GET /exports/{id}: the requester, or anyone with edition-wide export rights."""
+async def _scoped_export(session: AsyncSession, ctx: AuthContext, job_id: uuid.UUID) -> ExportJob:
+    """The requester, or anyone with edition-wide export rights; 404 for everyone else."""
     job = await session.get(ExportJob, job_id)
     if job is None:
         raise NotFound("Export not found.")
@@ -134,21 +136,40 @@ async def get_export(session: AsyncSession, ctx: AuthContext, job_id: uuid.UUID)
         raise NotFound("Export not found.") from e
     if job.requested_by != ctx.user.id and not scope.full_access:
         raise NotFound("Export not found.")
+    return job
+
+
+async def get_export(session: AsyncSession, ctx: AuthContext, job_id: uuid.UUID) -> ExportJobOut:
+    """GET /exports/{id}. The download link points at the API, which streams the file."""
+    job = await _scoped_export(session, ctx, job_id)
     out = ExportJobOut.model_validate(job)
     if job.status == ExportStatus.COMPLETED and job.object_key and job.file_name:
-        out.download_url = get_storage().presigned_url(
-            get_settings().s3_bucket_exports, job.object_key, job.file_name
-        )
-        # spec 11: exports are audited, including who fetched the file.
-        await audit.record(
-            session,
-            entity_type=ENTITY,
-            entity_id=job.id,
-            action="download_link",
-            after={"file_name": job.file_name},
-            edition_id=job.edition_id,
-        )
+        out.download_url = f"/api/v1/exports/{job.id}/file"
     return out
+
+
+async def export_file(
+    session: AsyncSession, ctx: AuthContext, job_id: uuid.UUID
+) -> tuple[Iterator[bytes], str]:
+    """(chunks, file name) of a finished export. spec 11: every download is audited."""
+    job = await _scoped_export(session, ctx, job_id)
+    if job.status != ExportStatus.COMPLETED or not job.object_key or not job.file_name:
+        raise NotFound("This export has no file.")
+    try:
+        chunks = await run_in_threadpool(
+            get_storage().stream, get_settings().s3_bucket_exports, job.object_key
+        )
+    except FileNotFoundError as e:
+        raise NotFound("The export file is no longer available. Request it again.") from e
+    await audit.record(
+        session,
+        entity_type=ENTITY,
+        entity_id=job.id,
+        action="download",
+        after={"file_name": job.file_name},
+        edition_id=job.edition_id,
+    )
+    return chunks, job.file_name
 
 
 # --- worker ----------------------------------------------------------------------------------

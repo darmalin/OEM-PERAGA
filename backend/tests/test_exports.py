@@ -66,8 +66,18 @@ async def test_visitor_export_end_to_end(storage: MemoryStorage) -> None:
     body = r.json()
     assert r.headers["cache-control"] == "no-store"
     assert (body["status"], body["row_count"]) == ("COMPLETED", 4)
-    assert body["download_url"].startswith("memory://exports/")
+    assert body["download_url"] == f"{EXPORTS}/{job['id']}/file"
     assert body["file_name"].startswith("visitor-leads-") and body["file_name"].endswith(".xlsx")
+
+    # The file streams through the API (storage is never exposed), for allowed callers only.
+    r = await w.admin.get(body["download_url"])
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("application/vnd.openxmlformats")
+    assert r.headers["content-disposition"] == f'attachment; filename="{body["file_name"]}"'
+    assert r.headers["cache-control"] == "no-store"
+    assert r.content == next(iter(storage.objects.values()))
+    assert (await w.team_agent_client.get(body["download_url"])).status_code == 403
+    assert (await w.manager.get(body["download_url"])).status_code == 404  # not theirs
 
     ws = workbook(storage)["Visitor Leads"]
     table = rows(ws)
@@ -97,7 +107,7 @@ async def test_visitor_export_end_to_end(storage: MemoryStorage) -> None:
                 )
             )
         )
-    assert actions == ["requested", "completed", "download_link"]
+    assert actions == ["requested", "completed", "download"]
 
 
 async def test_export_follows_scope_and_filters(storage: MemoryStorage) -> None:
@@ -190,6 +200,7 @@ async def test_cleanup_expires_files_and_fails_stuck_jobs(storage: MemoryStorage
     statuses = {j["id"]: (await w.admin.get(f"{EXPORTS}/{j['id']}")).json() for j in (done, stuck)}
     assert statuses[done["id"]]["status"] == "EXPIRED"
     assert statuses[done["id"]]["download_url"] is None
+    assert (await w.admin.get(f"{EXPORTS}/{done['id']}/file")).status_code == 404
     assert statuses[stuck["id"]]["status"] == "FAILED"
 
 

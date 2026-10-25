@@ -1,7 +1,9 @@
 import uuid
+from collections.abc import Iterator
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import AuthContext, require
@@ -28,6 +30,7 @@ from app.modules.importexport.schemas import (
 )
 
 router = APIRouter(prefix="/visitor-leads/imports", tags=["imports"])
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 Session = Annotated[AsyncSession, Depends(get_session)]
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -137,8 +140,27 @@ async def import_errors(
 async def import_errors_xlsx(
     job_id: uuid.UUID, session: Session, ctx: AuthContext = Depends(require("visitor.import"))
 ) -> DownloadOut:
-    url = await service.error_report_url(session, ctx, job_id)
-    return DownloadOut(url=url, expires_in=get_settings().presigned_url_ttl_seconds)
+    return DownloadOut(url=await service.error_report_url(session, ctx, job_id))
+
+
+@router.get("/{job_id}/errors/file", response_class=StreamingResponse)
+async def import_errors_file(
+    job_id: uuid.UUID, session: Session, ctx: AuthContext = Depends(require("visitor.import"))
+) -> StreamingResponse:
+    chunks, name = await service.error_report_file(session, ctx, job_id)
+    return attachment(chunks, name)
+
+
+def attachment(chunks: Iterator[bytes], filename: str) -> StreamingResponse:
+    """An .xlsx download. Names come from the server (job ids, generated export names)."""
+    return StreamingResponse(
+        chunks,
+        media_type=XLSX,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 export_router = APIRouter(prefix="/exports", tags=["exports"])
@@ -180,3 +202,13 @@ async def get_export(
 ) -> ExportJobOut:
     response.headers["Cache-Control"] = "no-store"
     return await export_service.get_export(session, ctx, job_id)
+
+
+@export_router.get("/{job_id}/file", response_class=StreamingResponse)
+async def export_file(
+    job_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("visitor.export", "report.export")),
+) -> StreamingResponse:
+    chunks, name = await export_service.export_file(session, ctx, job_id)
+    return attachment(chunks, name)

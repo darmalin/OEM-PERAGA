@@ -348,12 +348,27 @@ async def list_errors(
 
 
 async def error_report_url(session: AsyncSession, ctx: AuthContext, job_id: uuid.UUID) -> str:
+    """Where the browser downloads the error report: through the API, never from storage."""
     job = await _scoped_job(session, ctx, job_id)
     if job.errors_object_key is None:
         raise NotFound("This import has no error report.")
-    return get_storage().presigned_url(
-        get_settings().s3_bucket_imports, job.errors_object_key, f"import-errors-{job.id}.xlsx"
-    )
+    return f"/api/v1/visitor-leads/imports/{job.id}/errors/file"
+
+
+async def error_report_file(
+    session: AsyncSession, ctx: AuthContext, job_id: uuid.UUID
+) -> tuple[Iterator[bytes], str]:
+    """(chunks, file name) of the error report, for the caller's scope only."""
+    job = await _scoped_job(session, ctx, job_id)
+    if job.errors_object_key is None:
+        raise NotFound("This import has no error report.")
+    try:
+        chunks = await run_in_threadpool(
+            get_storage().stream, get_settings().s3_bucket_imports, job.errors_object_key
+        )
+    except FileNotFoundError as e:
+        raise NotFound("The error report is no longer available.") from e
+    return chunks, f"import-errors-{job.id}.xlsx"
 
 
 # --- worker --------------------------------------------------------------------------------

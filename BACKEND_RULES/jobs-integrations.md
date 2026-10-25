@@ -26,7 +26,7 @@
 
 ## File storage
 - S3 API via `boto3`; MinIO in dev. Buckets: `imports`, `exports`. Object keys random (`uuid7`).
-- Downloads via presigned URLs with short expiry, generated only after a permission check.
+- Downloads stream through the API (`/exports/{id}/file`, `/imports/{id}/errors/file`) after the same permission check as the job; storage is never reachable from browsers. Every export download is audited.
 
 ## Excel
 - Import: `openpyxl.load_workbook(read_only=True, data_only=True)`, stream rows, process in batches (e.g. 500) with a savepoint per row so a single failure is reported, not fatal.

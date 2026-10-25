@@ -186,6 +186,5 @@ Jalankan dari folder prod supaya yang di-backup adalah stack prod:
   `docker compose -p ems-prod ps` bisa dipakai dari folder mana pun.
 - RAM: dua stack lengkap butuh kira-kira 2× satu stack. Pantau dengan `docker stats`. Staging boleh
   dimatikan saat tidak dipakai (`docker compose stop`).
-- **Download file (Export, Error Report import) belum bisa dari browser**: storage tidak dibuka ke
-  luar, dan link download mengarah ke alamat internal. Perbaikannya sedang diputuskan: download
-  lewat API, atau subdomain file. Fitur lain tidak terpengaruh.
+- Storage (`storage`, port 9000) tidak dibuka ke luar dan memang tidak perlu. Download Export dan
+  Error Report import dialirkan lewat API.

@@ -1,4 +1,4 @@
-import { api, call } from "@ems/api";
+import { api, call, downloadFile } from "@ems/api";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Download } from "lucide-react";
@@ -37,7 +37,7 @@ function ImportJob() {
   const downloadErrors = async () => {
     try {
       const { url } = await call(api.GET("/api/v1/visitor-leads/imports/{job_id}/errors.xlsx", { params: { path: { job_id: jobId } } }));
-      window.location.assign(url);
+      await downloadFile(url, `import-errors-${jobId}.xlsx`);
     } catch (e) {
       notifyError(e);
     }

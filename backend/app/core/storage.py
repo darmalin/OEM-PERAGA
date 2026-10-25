@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from functools import lru_cache
 from typing import TYPE_CHECKING, Protocol
 
@@ -16,7 +17,7 @@ class Storage(Protocol):
     def put(self, bucket: str, key: str, data: bytes, content_type: str) -> None: ...
     def get(self, bucket: str, key: str) -> bytes: ...
     def delete(self, bucket: str, key: str) -> None: ...
-    def presigned_url(self, bucket: str, key: str, filename: str) -> str: ...
+    def stream(self, bucket: str, key: str) -> Iterator[bytes]: ...
     def ensure_bucket(self, bucket: str) -> None: ...
 
 
@@ -28,14 +29,8 @@ def new_object_key(suffix: str = "") -> str:
 class S3Storage:
     def __init__(self) -> None:
         s = get_settings()
+        # Storage is never reachable from browsers: downloads stream through the API.
         self._client = self._make_client(s.s3_endpoint_url)
-        # SigV4 signs the host, so links for browsers are signed with the public host.
-        self._signer = (
-            self._make_client(s.s3_public_endpoint_url)
-            if s.s3_public_endpoint_url
-            else self._client
-        )
-        self._ttl = s.presigned_url_ttl_seconds
 
     @staticmethod
     def _make_client(endpoint_url: str | None) -> "S3Client":
@@ -58,16 +53,22 @@ class S3Storage:
     def delete(self, bucket: str, key: str) -> None:
         self._client.delete_object(Bucket=bucket, Key=key)
 
-    def presigned_url(self, bucket: str, key: str, filename: str) -> str:
-        return self._signer.generate_presigned_url(
-            "get_object",
-            Params={
-                "Bucket": bucket,
-                "Key": key,
-                "ResponseContentDisposition": f'attachment; filename="{filename}"',
-            },
-            ExpiresIn=self._ttl,
-        )
+    def stream(self, bucket: str, key: str) -> Iterator[bytes]:
+        """Chunks of an object. Raises FileNotFoundError at once if it is gone."""
+        try:
+            body = self._client.get_object(Bucket=bucket, Key=key)["Body"]
+        except ClientError as e:
+            if e.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+                raise FileNotFoundError(key) from e
+            raise
+
+        def chunks() -> Iterator[bytes]:
+            try:
+                yield from body.iter_chunks(64 * 1024)
+            finally:
+                body.close()
+
+        return chunks()
 
     def ensure_bucket(self, bucket: str) -> None:
         try:
@@ -91,8 +92,10 @@ class MemoryStorage:
     def delete(self, bucket: str, key: str) -> None:
         self.objects.pop((bucket, key), None)
 
-    def presigned_url(self, bucket: str, key: str, filename: str) -> str:
-        return f"memory://{bucket}/{key}?filename={filename}"
+    def stream(self, bucket: str, key: str) -> Iterator[bytes]:
+        if (bucket, key) not in self.objects:
+            raise FileNotFoundError(key)
+        return iter([self.objects[(bucket, key)]])
 
     def ensure_bucket(self, bucket: str) -> None:
         return None

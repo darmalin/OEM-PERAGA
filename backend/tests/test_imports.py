@@ -135,8 +135,14 @@ async def test_import_end_to_end(storage: MemoryStorage) -> None:
 
     r = await client.get(f"/api/v1/visitor-leads/imports/{job_id}/errors.xlsx")
     assert r.status_code == 200
-    key = r.json()["url"].split("/")[3].split("?")[0]
-    report = load_workbook(io.BytesIO(storage.get("imports", key)), read_only=True)
+    url = r.json()["url"]
+    assert url == f"/api/v1/visitor-leads/imports/{job_id}/errors/file"
+    r = await client.get(url)
+    assert r.status_code == 200
+    assert r.headers["content-disposition"] == f'attachment; filename="import-errors-{job_id}.xlsx"'
+    _, other = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", (await make_edition()).id))
+    assert (await other.get(url)).status_code == 404
+    report = load_workbook(io.BytesIO(r.content), read_only=True)
     report_rows = list(report.worksheets[0].iter_rows(values_only=True))
     assert report_rows[0][:2] == ("Row", "Reason") and len(report_rows) == 5
 
