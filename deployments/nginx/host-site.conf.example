@@ -1,0 +1,36 @@
+# Host nginx site for one EMS environment (staging or production).
+# Copy to /etc/nginx/sites-available/<name>, then replace:
+#   DOMAIN  the address people open, e.g. ems.example.com / staging.ems.example.com
+#   PORT    the port from EMS_HTTP_PORT in that clone's .env (staging 8080, prod 8081)
+# Start with only the port-80 server; `certbot --nginx -d DOMAIN` adds the certificate and
+# the redirect, then add the headers below to the 443 server it creates.
+
+server {
+    listen 80;
+    server_name DOMAIN;
+
+    client_max_body_size 25m;                 # Excel import uploads
+
+    # The scanner PWA needs the camera; the app container sends camera=() for the desk pages.
+    location /scanner/ {
+        proxy_pass http://127.0.0.1:PORT;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_hide_header Permissions-Policy;
+        add_header Permissions-Policy "camera=(self), microphone=(), geolocation=()" always;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:PORT;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # After certbot (443 server): browsers keep to HTTPS for a year.
+    # add_header Strict-Transport-Security "max-age=31536000" always;
+}
