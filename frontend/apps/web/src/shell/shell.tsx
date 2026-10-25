@@ -1,11 +1,12 @@
 import { api } from "@ems/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LogOut, Menu as MenuIcon, Monitor, Moon, Search, Sun, X } from "lucide-react";
+import { LogOut, Maximize2, Menu as MenuIcon, Minimize2, Monitor, Moon, Search, Sun, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { useMe } from "@/lib/auth";
 import { cn } from "@/lib/cn";
+import { type PageWidth, setPageWidth, usePageWidth } from "@/lib/layout";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 import { Button } from "@/ui/button";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/ui/menu";
@@ -81,6 +82,7 @@ function Sidebar({ panel, panels, onNavigate }: { panel: PanelDef; panels: Panel
 function UserMenu() {
   const me = useMe();
   const theme = useTheme();
+  const width = usePageWidth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const signOut = async () => {
@@ -114,6 +116,16 @@ function UserMenu() {
           </MenuRadioItem>
           <MenuRadioItem value="system">
             <span className="flex items-center gap-2"><Monitor className="size-4 text-muted" aria-hidden />System</span>
+          </MenuRadioItem>
+        </MenuRadioGroup>
+        <MenuSeparator />
+        <MenuLabel>Page Width</MenuLabel>
+        <MenuRadioGroup value={width} onValueChange={(v) => setPageWidth(v as PageWidth)}>
+          <MenuRadioItem value="full">
+            <span className="flex items-center gap-2"><Maximize2 className="size-4 text-muted" aria-hidden />Full Width</span>
+          </MenuRadioItem>
+          <MenuRadioItem value="centered">
+            <span className="flex items-center gap-2"><Minimize2 className="size-4 text-muted" aria-hidden />Centered</span>
           </MenuRadioItem>
         </MenuRadioGroup>
         <MenuSeparator />

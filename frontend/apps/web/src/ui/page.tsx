@@ -3,11 +3,14 @@ import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
+import { usePageWidth } from "@/lib/layout";
 
 import { EditionPicker } from "./edition-picker";
 
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("route-fade mx-auto w-full max-w-[1400px] px-6 pb-16 max-md:px-4", className)}>{children}</div>;
+  // Full width (the default) overrides a page's own max width, forms included.
+  const full = usePageWidth() === "full";
+  return <div className={cn("route-fade mx-auto w-full max-w-[1400px] px-6 pb-16 max-md:px-4", className, full && "max-w-none")}>{children}</div>;
 }
 
 interface PageHeadProps {
