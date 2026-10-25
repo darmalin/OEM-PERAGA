@@ -66,7 +66,8 @@ function AddRole() {
               {(p) => (
                 <Select {...p} {...form.register("role_id", { required: "Choose a role." })}>
                   <option value="">Choose a role</option>
-                  {(roles.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {/* Roles above the user's own access are refused by the server; not offered. */}
+                  {(roles.data ?? []).filter((r) => r.permissions.every((p) => me.permissions.includes(p))).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </Select>
               )}
             </Field>

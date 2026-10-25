@@ -96,9 +96,9 @@ async def password_reset_confirm(data: PasswordResetConfirmIn, session: Session)
 async def list_users(
     session: Session,
     params: Annotated[UserListParams, Query()],
-    _: AuthContext = Depends(require("user.manage")),
+    ctx: AuthContext = Depends(require("user.manage")),
 ) -> Page[UserOut]:
-    return await service.list_users(session, params)
+    return await service.list_users(session, params, ctx)
 
 
 @router.post("/users", response_model=UserDetailOut, status_code=status.HTTP_201_CREATED)
@@ -110,9 +110,9 @@ async def create_user(
 
 @router.get("/users/{user_id}", response_model=UserDetailOut)
 async def get_user(
-    user_id: uuid.UUID, session: Session, _: AuthContext = Depends(require("user.manage"))
+    user_id: uuid.UUID, session: Session, ctx: AuthContext = Depends(require("user.manage"))
 ) -> UserDetailOut:
-    return await service.get_user(session, user_id)
+    return await service.get_user(session, user_id, ctx)
 
 
 @router.patch("/users/{user_id}", response_model=UserDetailOut)
@@ -163,9 +163,9 @@ async def list_roles(
 
 @router.post("/roles", response_model=RoleOut, status_code=status.HTTP_201_CREATED)
 async def create_role(
-    data: RoleCreateIn, session: Session, _: AuthContext = Depends(require("role.manage"))
+    data: RoleCreateIn, session: Session, ctx: AuthContext = Depends(require("role.manage"))
 ) -> RoleOut:
-    return await service.create_role(session, data)
+    return await service.create_role(session, data, ctx)
 
 
 @router.put("/roles/{role_id}/permissions", response_model=RoleOut)
@@ -173,9 +173,9 @@ async def set_role_permissions(
     role_id: uuid.UUID,
     data: RolePermissionsIn,
     session: Session,
-    _: AuthContext = Depends(require("role.manage")),
+    ctx: AuthContext = Depends(require("role.manage")),
 ) -> RoleOut:
-    return await service.set_role_permissions(session, role_id, data.permissions)
+    return await service.set_role_permissions(session, role_id, data.permissions, ctx)
 
 
 @router.get("/permissions", response_model=list[PermissionOut])

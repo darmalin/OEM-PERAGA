@@ -826,16 +826,16 @@ async def queue_followup_reminders(session: AsyncSession) -> int:
         reminder_id = await repo.claim_reminder(session, key, followup.id)
         if reminder_id is None:
             continue
-        assignee = await identity_service.get_user(session, followup.assigned_to)
+        email = await identity_service.user_email(session, followup.assigned_to)
         await mail_service.queue_email(
             session,
             kind=EmailKind.FOLLOWUP_REMINDER,
-            recipient=assignee.email,
+            recipient=email,
             task="telemarketing.send_followup_reminder",
             payload={"reminder_id": str(reminder_id)},
             edition_id=followup.edition_id,
             visitor_lead_id=followup.visitor_lead_id,
-            user_id=assignee.id,
+            user_id=followup.assigned_to,
             subject=REMINDER_SUBJECT,
         )
         queued += 1

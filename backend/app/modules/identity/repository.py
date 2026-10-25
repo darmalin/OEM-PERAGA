@@ -34,9 +34,19 @@ async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
 
 
 async def list_users(
-    session: AsyncSession, q: str | None, is_active: bool | None, offset: int, limit: int
+    session: AsyncSession,
+    q: str | None,
+    is_active: bool | None,
+    offset: int,
+    limit: int,
+    edition_ids: set[uuid.UUID] | None = None,
 ) -> tuple[Sequence[User], int]:
+    """edition_ids None: everyone. Otherwise users with a role in those editions, or none."""
     stmt = select(User)
+    if edition_ids is not None:
+        has_any = select(UserRoleAssignment.id).where(UserRoleAssignment.user_id == User.id)
+        has_inside = has_any.where(UserRoleAssignment.edition_id.in_(edition_ids))
+        stmt = stmt.where(or_(~has_any.exists(), has_inside.exists()))
     if q:
         like = f"%{q.lower()}%"
         stmt = stmt.where(or_(func.lower(User.full_name).like(like), User.email.like(like)))
@@ -232,3 +242,12 @@ async def set_edition_team(
     if team_id is not None:
         session.add(EditionTeam(edition_id=edition_id, team_id=team_id, created_by=actor_id))
     await session.flush()
+
+
+async def role_permission_codes(session: AsyncSession, role_id: uuid.UUID) -> set[str]:
+    rows = await session.scalars(
+        select(Permission.code)
+        .join(RolePermission, RolePermission.permission_id == Permission.id)
+        .where(RolePermission.role_id == role_id)
+    )
+    return set(rows.all())

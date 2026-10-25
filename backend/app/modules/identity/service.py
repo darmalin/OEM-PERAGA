@@ -235,11 +235,18 @@ async def confirm_password_reset(session: AsyncSession, token: str, new_password
 # --- users ---------------------------------------------------------------------------------
 
 
-async def _user_detail(session: AsyncSession, user: User) -> UserDetailOut:
+async def _user_detail(
+    session: AsyncSession, user: User, editions: set[uuid.UUID] | None = None
+) -> UserDetailOut:
+    """editions: only show assignments inside them (an edition admin's view); None = all."""
     rows = await repo.list_assignments(session, user.id)
     return UserDetailOut(
         **UserOut.model_validate(user).model_dump(),
-        role_assignments=[_assignment_out(a, code) for a, code in rows],
+        role_assignments=[
+            _assignment_out(a, code)
+            for a, code in rows
+            if editions is None or a.edition_id in editions
+        ],
         team_ids=await repo.user_team_ids(session, user.id),
     )
 
@@ -257,10 +264,86 @@ def _assignment_out(a: UserRoleAssignment, role_code: str) -> RoleAssignmentOut:
     )
 
 
-async def list_users(session: AsyncSession, params: UserListParams) -> Page[UserOut]:
-    """Paginated user list with search."""
+# --- admin boundaries ----------------------------------------------------------------------
+# An Exhibition Admin holds user.manage in some editions only. They see users who have a role
+# in those editions (or none yet), change only users who live entirely inside them, and never
+# grant or revoke a role carrying more than their own access. Roles themselves are global.
+
+
+def managed_editions(ctx: AuthContext) -> set[uuid.UUID] | None:
+    """Editions where the caller manages users with full scope; None = every edition."""
+    if ctx.has_global("user.manage"):
+        return None
+    ids = ctx.edition_ids("user.manage") or set()
+    return {e for e in ids if ctx.scope_for(e, "user.manage").full_access}
+
+
+def _own_permissions(ctx: AuthContext, edition_id: uuid.UUID | None) -> set[str]:
+    """Permissions the caller holds with full scope in an edition (None: globally)."""
+    perms: set[str] = set()
+    for g in ctx.grants:
+        if g.scope_type != ScopeType.EDITION:
+            continue
+        if g.edition_id is None or (edition_id is not None and g.edition_id == edition_id):
+            perms |= g.permissions
+    return perms
+
+
+async def _check_role_within_reach(
+    session: AsyncSession, ctx: AuthContext, role_id: uuid.UUID, edition_id: uuid.UUID | None
+) -> None:
+    extra = await repo.role_permission_codes(session, role_id) - _own_permissions(ctx, edition_id)
+    if extra:
+        raise PermissionDenied(
+            "You cannot grant or remove a role with more access than your own.",
+            code="ROLE_ABOVE_YOURS",
+        )
+
+
+async def _visible_user(
+    session: AsyncSession, ctx: AuthContext, user_id: uuid.UUID, *, write: bool
+) -> tuple[User, set[uuid.UUID] | None]:
+    """The user if the caller may see them (404 otherwise); with write, 403 unless every role
+    the user has sits inside the caller's editions and within the caller's own access."""
+    user = await repo.get_user(session, user_id)
+    if user is None:
+        raise NotFound("User not found.")
+    editions = managed_editions(ctx)
+    if editions is None:
+        return user, None
+    rows = await repo.list_assignments(session, user.id)
+    if rows and not any(a.edition_id in editions for a, _ in rows):
+        raise NotFound("User not found.")
+    if write:
+        for a, _ in rows:
+            outside = a.edition_id not in editions
+            if outside or await repo.role_permission_codes(session, a.role_id) - _own_permissions(
+                ctx, a.edition_id
+            ):
+                raise PermissionDenied(
+                    "This user has access outside your editions or above yours.",
+                    code="USER_OUTSIDE_SCOPE",
+                )
+    return user, editions
+
+
+def require_global_role_manage(ctx: AuthContext) -> None:
+    """Roles are shared by every edition: only a global role manager may change them."""
+    if not ctx.has_global("role.manage"):
+        raise PermissionDenied("Only global administrators can change roles.")
+
+
+async def list_users(
+    session: AsyncSession, params: UserListParams, ctx: AuthContext
+) -> Page[UserOut]:
+    """Paginated user list with search, limited to the caller's editions."""
     rows, total = await repo.list_users(
-        session, params.q, params.is_active, params.offset, params.page_size
+        session,
+        params.q,
+        params.is_active,
+        params.offset,
+        params.page_size,
+        managed_editions(ctx),
     )
     return Page(
         items=[UserOut.model_validate(u) for u in rows],
@@ -270,11 +353,17 @@ async def list_users(session: AsyncSession, params: UserListParams) -> Page[User
     )
 
 
-async def get_user(session: AsyncSession, user_id: uuid.UUID) -> UserDetailOut:
+async def user_email(session: AsyncSession, user_id: uuid.UUID) -> str:
+    """System use (reminders): a user's email address."""
     user = await repo.get_user(session, user_id)
     if user is None:
         raise NotFound("User not found.")
-    return await _user_detail(session, user)
+    return user.email
+
+
+async def get_user(session: AsyncSession, user_id: uuid.UUID, ctx: AuthContext) -> UserDetailOut:
+    user, editions = await _visible_user(session, ctx, user_id, write=False)
+    return await _user_detail(session, user, editions)
 
 
 async def create_user(session: AsyncSession, data: UserCreateIn) -> UserDetailOut:
@@ -315,9 +404,7 @@ async def update_user(
     session: AsyncSession, user_id: uuid.UUID, data: UserUpdateIn, ctx: AuthContext
 ) -> UserDetailOut:
     """Edit name or active flag; deactivation kills sessions immediately."""
-    user = await repo.get_user(session, user_id)
-    if user is None:
-        raise NotFound("User not found.")
+    user, editions = await _visible_user(session, ctx, user_id, write=True)
     check_version(user.version, data.version)
     if data.is_active is False and user.id == ctx.user.id:
         raise ValidationFailed(fields={"is_active": "You cannot deactivate yourself."})
@@ -339,7 +426,7 @@ async def update_user(
     )
     if not user.is_active:
         await sessions.destroy_all_for_user(user.id)
-    return await _user_detail(session, user)
+    return await _user_detail(session, user, editions)
 
 
 def _assignment_audit(a: UserRoleAssignment) -> dict[str, Any]:
@@ -374,6 +461,7 @@ async def add_role_assignment(
     ):
         raise ValidationFailed(fields={"gate_id": "Unknown gate in this edition."})
     _check_can_grant(ctx, data.edition_id)
+    await _check_role_within_reach(session, ctx, role.id, data.edition_id)
     assignment = UserRoleAssignment(
         user_id=user.id,
         role_id=role.id,
@@ -408,6 +496,7 @@ async def remove_role_assignment(
     if assignment is None:
         raise NotFound("Role assignment not found.")
     _check_can_grant(ctx, assignment.edition_id)
+    await _check_role_within_reach(session, ctx, assignment.role_id, assignment.edition_id)
     snap = _assignment_audit(assignment)
     await session.delete(assignment)
     await session.flush()
@@ -452,8 +541,9 @@ async def _permission_ids(session: AsyncSession, codes: list[str]) -> list[uuid.
     return list(ids.values())
 
 
-async def create_role(session: AsyncSession, data: RoleCreateIn) -> RoleOut:
+async def create_role(session: AsyncSession, data: RoleCreateIn, ctx: AuthContext) -> RoleOut:
     """Create a custom role (bundle of permissions)."""
+    require_global_role_manage(ctx)
     if await repo.get_role_by_code(session, data.code):
         raise Conflict("Role code already exists.", fields={"code": "Already exists."})
     role = Role(code=data.code, name=data.name, description=data.description, is_system=False)
@@ -474,9 +564,10 @@ async def create_role(session: AsyncSession, data: RoleCreateIn) -> RoleOut:
 
 
 async def set_role_permissions(
-    session: AsyncSession, role_id: uuid.UUID, codes: list[str]
+    session: AsyncSession, role_id: uuid.UUID, codes: list[str], ctx: AuthContext
 ) -> RoleOut:
     """Replace a role's permissions. SUPER_ADMIN always keeps every permission."""
+    require_global_role_manage(ctx)
     role = await repo.get_role(session, role_id)
     if role is None:
         raise NotFound("Role not found.")

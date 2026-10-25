@@ -14,6 +14,14 @@ Seed every permission listed in §9.1 (`exhibition.*`, `edition.*`, `visitor.*`,
 ## Scopes
 `EDITION`, `TEAM`, `OWNED`, `GATE`. Super Admin may hold cross-edition scope.
 
+## Admin boundaries (fixed 2026-10-25)
+Super Admin (global) is held by the development team. An Exhibition Admin manages users only inside their editions:
+- **No role above your own:** granting or revoking a role needs every permission of that role in the caller's own full-scope access for that edition (globally for cross-edition grants). Else `403 ROLE_ABOVE_YOURS`. Closes the hole where an edition admin could make anyone, themselves included, Super Admin of their edition.
+- **Roles are global:** creating a role or changing its permissions needs `role.manage` held globally; an edition-scoped grant of it is not enough.
+- **Users:** the list and detail show users with a role in the caller's editions, plus users with no role yet; others are `404`. Detail shows only the assignments inside those editions. Renaming or deactivating needs every role of the user to sit inside those editions and within the caller's access, else `403 USER_OUTSIDE_SCOPE`.
+- The Add Role form offers only roles within the caller's own permissions.
+- Tests: `tests/test_admin_boundaries.py`.
+
 ## Tasks
 - [ ] Models + migration + seed (roles, permissions, role_permissions).
 - [ ] Login / logout / current user (`GET /api/v1/auth/me` returns user, permissions, scopes, allowed editions).
