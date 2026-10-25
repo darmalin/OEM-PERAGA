@@ -74,6 +74,21 @@ function ImportJob() {
             <div className="h-2 rounded-full bg-input"><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${progress}%` }} /></div>
           </div>
         ) : null}
+        {j.auto_assign ? (
+          <div className="border-t border-line px-5 py-4 text-[13px]">
+            <p className="font-medium">
+              <span className="tabular">{formatNumber(j.assigned_count)}</span> new {j.assigned_count === 1 ? "lead" : "leads"} shared among the edition's sales teams
+              {!finished && j.assigned_count === 0 ? <span className="font-normal text-label"> · after the rows are read</span> : null}
+            </p>
+            {j.assigned_to?.length ? (
+              <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-muted" aria-label="Leads per person">
+                {j.assigned_to.map((a) => (
+                  <li key={a.user_id}>{a.full_name} <span className="tabular text-ink">{formatNumber(a.count)}</span></li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
         {j.error_summary ? <p role="alert" className="mx-5 mb-5 rounded-[8px] bg-[var(--red-bg)] px-3 py-2 text-[13px] text-[var(--red-fg)]">{j.error_summary}</p> : null}
       </Panel>
       {finished ? (

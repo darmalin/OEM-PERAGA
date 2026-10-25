@@ -1,13 +1,15 @@
 import { downloadFile, type Schemas, upload } from "@ems/api";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
 
+import { importRecipientsQuery } from "@/features/edition-teams";
 import { useEdition } from "@/lib/edition";
 import { formatBytes, formatNumber } from "@/lib/format";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { Button } from "@/ui/button";
+import { Checkbox } from "@/ui/checkbox";
 import { Section } from "@/ui/field";
 import { Select } from "@/ui/input";
 import { FormActions, Page, PageHead, Panel } from "@/ui/page";
@@ -23,6 +25,8 @@ function NewImport() {
   const [preview, setPreview] = useState<Schemas["PreviewOut"] | null>(null);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [autoAssign, setAutoAssign] = useState<boolean | null>(null);
+  const recipients = useQuery({ ...importRecipientsQuery(edition?.id ?? ""), enabled: Boolean(edition) });
 
   if (!edition) return <Page><NoEdition /></Page>;
 
@@ -46,6 +50,9 @@ function NewImport() {
     }
   };
 
+  const people = recipients.data ?? [];
+  // On by default once the edition has someone to receive leads.
+  const assign = (autoAssign ?? true) && people.length > 0;
   const required = preview?.targets.filter((t) => t.required) ?? [];
   const missing = required.filter((t) => !Object.values(mapping).includes(t.target));
 
@@ -59,6 +66,7 @@ function NewImport() {
       form.set("import_type", "LEADS_ONLY");
       form.set("column_mapping", JSON.stringify(Object.fromEntries(Object.entries(mapping).filter(([, v]) => v))));
       form.set("save_mapping", "true");
+      form.set("auto_assign", String(assign));
       const job = await upload<Schemas["JobAccepted"]>("/api/v1/visitor-leads/imports", form);
       void queryClient.invalidateQueries({ queryKey: ["imports"] });
       notifySuccess("Import started", "You can leave this page; it runs in the background.");
@@ -133,6 +141,29 @@ function NewImport() {
             ) : null}
           </Section>
         ) : null}
+        <Section title="Lead Owner">
+          {people.length ? (
+            <>
+              <label className="flex items-start gap-2 text-[14px]">
+                <Checkbox className="mt-0.5" checked={assign} onCheckedChange={(c) => setAutoAssign(c === true)} />
+                <span>
+                  Share new leads evenly among {people.length} {people.length === 1 ? "person" : "people"} in this edition's teams
+                  <span className="block text-[12px] text-label">{people.map((p) => p.full_name).join(", ")}</span>
+                </span>
+              </label>
+              {!assign ? <p className="mt-2 text-[12px] text-label">New leads stay unassigned; use Assign To on the list.</p> : null}
+            </>
+          ) : (
+            <p className="text-[13px] text-label">
+              {recipients.isPending ? "Checking who can receive leads" : (
+                <>
+                  New leads stay unassigned. To share them automatically, add a sales team on the{" "}
+                  <Link to="/app/editions/$editionId" params={{ editionId: edition.id }} className="text-link hover:underline">edition</Link>.
+                </>
+              )}
+            </p>
+          )}
+        </Section>
         <FormActions>
           <Button asChild variant="ghost"><Link to="/app/imports">Cancel</Link></Button>
           <Button variant="primary" disabled={!preview || missing.length > 0} loading={busy && Boolean(preview)} onClick={() => void start()}>

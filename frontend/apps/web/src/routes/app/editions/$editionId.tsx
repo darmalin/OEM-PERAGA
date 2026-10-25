@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 
+import { EditionTeamsPanel } from "@/features/edition-teams";
 import { EditionFields, editionPayload, type EditionValues, EXHIBITOR_FIELDS, exhibitorValues } from "@/features/edition-form";
 import { can, meQuery, useMe } from "@/lib/auth";
 import { handleFormError } from "@/lib/forms";
@@ -59,6 +60,7 @@ function Edition() {
               {manage ? <FormActions><Button type="submit" variant="primary" disabled={!form.formState.isDirty} loading={form.formState.isSubmitting}>Save Edition</Button></FormActions> : null}
             </Panel>
           </form>
+          <EditionTeamsPanel editionId={editionId} manage={manage} />
         </div>
       )}
     </Page>
