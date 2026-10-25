@@ -1,5 +1,7 @@
 # Backup and restore
 
+See `deployments/PRODUCTION.md` for running production next to staging on one server.
+
 Run from the repository root, against the running Compose stack.
 
 | Script | What it does |
