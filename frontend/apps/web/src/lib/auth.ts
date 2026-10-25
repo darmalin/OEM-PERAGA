@@ -24,3 +24,8 @@ export function useMe(): Me {
 export function can(me: Me, ...permissions: string[]): boolean {
   return permissions.some((p) => me.permissions.includes(p));
 }
+
+/** Held across every edition (Super Admin): platform pages and global objects like roles. */
+export function canGlobal(me: Me, ...permissions: string[]): boolean {
+  return permissions.some((p) => (me.global_permissions ?? []).includes(p));
+}

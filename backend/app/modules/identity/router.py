@@ -228,9 +228,9 @@ async def add_team_member(
     team_id: uuid.UUID,
     data: TeamMemberIn,
     session: Session,
-    _: AuthContext = Depends(require("user.manage")),
+    ctx: AuthContext = Depends(require("user.manage")),
 ) -> TeamOut:
-    return await service.add_team_member(session, team_id, data.user_id)
+    return await service.add_team_member(session, team_id, data.user_id, ctx)
 
 
 @router.delete("/teams/{team_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -238,6 +238,6 @@ async def remove_team_member(
     team_id: uuid.UUID,
     user_id: uuid.UUID,
     session: Session,
-    _: AuthContext = Depends(require("user.manage")),
+    ctx: AuthContext = Depends(require("user.manage")),
 ) -> None:
-    await service.remove_team_member(session, team_id, user_id)
+    await service.remove_team_member(session, team_id, user_id, ctx)

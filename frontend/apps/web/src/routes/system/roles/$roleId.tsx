@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { PermissionMatrix } from "@/features/permission-matrix";
-import { can, meQuery, useMe } from "@/lib/auth";
+import { canGlobal, meQuery, useMe } from "@/lib/auth";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { Button } from "@/ui/button";
 import { Section } from "@/ui/field";
@@ -25,7 +25,7 @@ function Role() {
       <Panel>
         {roles.isPending || perms.isPending ? <FormSkeleton /> : !role || !perms.data ? <EmptyState title="Role not found." /> : (
           // Remount when the saved permissions change, so the editor starts from them.
-          <RoleEditor key={role.permissions.join()} role={role} permissions={perms.data} editable={can(me, "role.manage")} />
+          <RoleEditor key={role.permissions.join()} role={role} permissions={perms.data} editable={canGlobal(me, "role.manage")} />
         )}
       </Panel>
     </Page>
@@ -56,7 +56,7 @@ function RoleEditor({ role, permissions, editable }: { role: Schemas["RoleOut"];
   return (
     <>
       <Section title={`Permissions (${selected.size})`}>
-        {!editable ? <p className="mb-4 text-[13px] text-label">You can view this role. Changing it needs the role.manage permission.</p> : null}
+        {!editable ? <p className="mb-4 text-[13px] text-label">You can view this role. Roles are shared by every edition, so only a Super Admin can change them.</p> : null}
         <PermissionMatrix permissions={permissions} selected={selected} onChange={setSelected} readOnly={!editable} />
       </Section>
       {editable ? (

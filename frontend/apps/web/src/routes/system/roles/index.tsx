@@ -2,7 +2,7 @@ import { api, call, type Schemas } from "@ems/api";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { can, useMe } from "@/lib/auth";
+import { canGlobal, useMe } from "@/lib/auth";
 import { Button } from "@/ui/button";
 import { Indicator } from "@/ui/indicator";
 import { ArrayBody } from "@/ui/list";
@@ -23,7 +23,7 @@ function Roles() {
   ];
   return (
     <Page>
-      <PageHead title="Roles" meta="A role is a set of permissions. Scope is chosen when the role is given to a user." actions={can(me, "role.manage") ? <Button asChild variant="primary"><Link to="/system/roles/new">Add Role</Link></Button> : null} />
+      <PageHead title="Roles" meta="A role is a set of permissions. Scope is chosen when the role is given to a user." actions={canGlobal(me, "role.manage") ? <Button asChild variant="primary"><Link to="/system/roles/new">Add Role</Link></Button> : null} />
       <Panel>
         <ArrayBody query={q} empty={<EmptyState title="No roles." />}>
           {(rows) => <ListTable caption="Roles" rows={rows} columns={columns} rowKey={(r) => r.id} rowLink={(r) => ({ to: "/system/roles/$roleId", params: { roleId: r.id } })} />}

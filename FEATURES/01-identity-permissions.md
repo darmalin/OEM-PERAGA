@@ -20,6 +20,8 @@ Super Admin (global) is held by the development team. An Exhibition Admin manage
 - **Roles are global:** creating a role or changing its permissions needs `role.manage` held globally; an edition-scoped grant of it is not enough.
 - **Users:** the list and detail show users with a role in the caller's editions, plus users with no role yet; others are `404`. Detail shows only the assignments inside those editions. Renaming or deactivating needs every role of the user to sit inside those editions and within the caller's access, else `403 USER_OUTSIDE_SCOPE`.
 - The Add Role form offers only roles within the caller's own permissions.
+- Team members: adding or removing someone needs that user to be fully inside the caller's editions (as for editing users).
+- System menu: `/auth/me` returns `global_permissions`. Health and Email Accounts show only to global holders; Roles is read-only unless `role.manage` is global. The System panel opens on the first page the user can see.
 - Tests: `tests/test_admin_boundaries.py`.
 
 ## Tasks

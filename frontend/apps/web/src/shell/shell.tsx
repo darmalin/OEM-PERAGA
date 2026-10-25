@@ -24,7 +24,9 @@ function initials(name: string): string {
 }
 
 function isActive(path: string, to: string, home: string): boolean {
-  return to === home ? path === to : path === to || path.startsWith(`${to}/`);
+  // A panel root (/app, /system) matches only itself; any other page also its sub-pages.
+  const root = to === home && to.split("/").length <= 2;
+  return root ? path === to : path === to || path.startsWith(`${to}/`);
 }
 
 function Sidebar({ panel, panels, onNavigate }: { panel: PanelDef; panels: PanelDef[]; onNavigate?: () => void }) {

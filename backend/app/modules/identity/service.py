@@ -107,6 +107,7 @@ async def me(session: AsyncSession, ctx: AuthContext) -> MeOut:
         editions=[EditionBrief.model_validate(e.model_dump()) for e in editions],
         user=UserBrief(id=ctx.user.id, email=ctx.user.email, full_name=ctx.user.full_name),
         permissions=sorted({p for g in ctx.grants for p in g.permissions}),
+        global_permissions=sorted(_own_permissions(ctx, None)),
         grants=[
             GrantOut(
                 role_code=code,
@@ -609,13 +610,17 @@ async def create_team(session: AsyncSession, name: str) -> TeamOut:
     return TeamOut(id=team.id, name=team.name, member_ids=[])
 
 
-async def add_team_member(session: AsyncSession, team_id: uuid.UUID, user_id: uuid.UUID) -> TeamOut:
-    """Add a user to a team (idempotent)."""
+async def add_team_member(
+    session: AsyncSession, team_id: uuid.UUID, user_id: uuid.UUID, ctx: AuthContext
+) -> TeamOut:
+    """Add a user to a team (idempotent). Only users the caller fully manages."""
     team = await repo.get_team(session, team_id)
     if team is None:
         raise NotFound("Team not found.")
-    if await repo.get_user(session, user_id) is None:
-        raise ValidationFailed(fields={"user_id": "Unknown user."})
+    try:
+        await _visible_user(session, ctx, user_id, write=True)
+    except NotFound as e:
+        raise ValidationFailed(fields={"user_id": "Unknown user."}) from e
     if await repo.get_membership(session, team_id, user_id) is None:
         session.add(UserTeamMembership(team_id=team_id, user_id=user_id))
         await session.flush()
@@ -631,10 +636,13 @@ async def add_team_member(session: AsyncSession, team_id: uuid.UUID, user_id: uu
     )
 
 
-async def remove_team_member(session: AsyncSession, team_id: uuid.UUID, user_id: uuid.UUID) -> None:
+async def remove_team_member(
+    session: AsyncSession, team_id: uuid.UUID, user_id: uuid.UUID, ctx: AuthContext
+) -> None:
     membership = await repo.get_membership(session, team_id, user_id)
     if membership is None:
         raise NotFound("Membership not found.")
+    await _visible_user(session, ctx, user_id, write=True)
     await session.delete(membership)
     await session.flush()
     await audit.record(

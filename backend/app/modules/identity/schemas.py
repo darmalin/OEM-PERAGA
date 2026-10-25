@@ -42,6 +42,8 @@ class EditionBrief(BaseModel):
 class MeOut(BaseModel):
     user: UserBrief
     permissions: list[str]
+    # Held across every edition (Super Admin): platform pages like Health, Email Accounts.
+    global_permissions: list[str] = []
     grants: list[GrantOut]
     editions: list[EditionBrief]
     csrf_token: str

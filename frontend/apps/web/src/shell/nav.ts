@@ -29,7 +29,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { can, type Me } from "@/lib/auth";
+import { can, canGlobal, type Me } from "@/lib/auth";
 
 export interface NavItem {
   label: string;
@@ -37,6 +37,8 @@ export interface NavItem {
   icon: LucideIcon;
   /** Any one of these permissions shows the item (the backend still checks). */
   perms: string[];
+  /** Platform page: the permission must be held across every edition (Super Admin). */
+  global?: boolean;
 }
 
 export interface NavGroup {
@@ -112,7 +114,7 @@ export const PANELS: PanelDef[] = [
       {
         label: "",
         items: [
-          { label: "Health", to: "/system", icon: HeartPulse, perms: ["user.manage", "role.manage", "audit_log.read"] },
+          { label: "Health", to: "/system", icon: HeartPulse, perms: ["user.manage", "role.manage"], global: true },
         ],
       },
       {
@@ -132,7 +134,7 @@ export const PANELS: PanelDef[] = [
       {
         label: "Email",
         items: [
-          { label: "Email Accounts", to: "/system/email-accounts", icon: AtSign, perms: ["email_account.manage"] },
+          { label: "Email Accounts", to: "/system/email-accounts", icon: AtSign, perms: ["email_account.manage"], global: true },
           { label: "Email Templates", to: "/system/email-templates", icon: Mail, perms: ["edition.manage"] },
           { label: "Email Log", to: "/system/email-log", icon: Inbox, perms: ["email_log.read", "email_account.manage"] },
         ],
@@ -142,10 +144,13 @@ export const PANELS: PanelDef[] = [
 ];
 
 export function visiblePanels(me: Me): PanelDef[] {
-  return PANELS.map((p) => ({
-    ...p,
-    groups: p.groups
-      .map((g) => ({ ...g, items: g.items.filter((i) => can(me, ...i.perms)) }))
-      .filter((g) => g.items.length > 0),
-  })).filter((p) => p.groups.length > 0);
+  return PANELS.map((p) => {
+    const groups = p.groups
+      .map((g) => ({ ...g, items: g.items.filter((i) => (i.global ? canGlobal(me, ...i.perms) : can(me, ...i.perms))) }))
+      .filter((g) => g.items.length > 0);
+    const items = groups.flatMap((g) => g.items);
+    // The panel opens on its home page, or on its first visible item when home is hidden.
+    const home = items.some((i) => i.to === p.home) ? p.home : (items[0]?.to ?? p.home);
+    return { ...p, home, groups };
+  }).filter((p) => p.groups.length > 0);
 }

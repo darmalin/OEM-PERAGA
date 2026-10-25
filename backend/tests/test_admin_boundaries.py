@@ -109,3 +109,28 @@ async def test_edition_admins_see_and_edit_only_users_inside_their_editions() ->
     # A global Super Admin still manages everyone.
     _, platform = await actor(RoleGrant("SUPER_ADMIN"))
     assert (await platform.get(f"/api/v1/users/{elsewhere.id}")).status_code == 200
+
+
+async def test_team_members_and_global_permissions() -> None:
+    mine = await make_edition()
+    other = await make_edition()
+    _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", mine.id))
+    inside = await make_user(RoleGrant("TELEMARKETING_AGENT", "OWNED", mine.id))
+    elsewhere = await make_user(RoleGrant("TELEMARKETING_AGENT", "OWNED", other.id))
+    team = (await admin.post("/api/v1/teams", json={"name": f"Team {mine.id}"})).json()["id"]
+
+    r = await admin.post(f"/api/v1/teams/{team}/members", json={"user_id": str(inside.id)})
+    assert r.status_code == 200, r.text
+    r = await admin.post(f"/api/v1/teams/{team}/members", json={"user_id": str(elsewhere.id)})
+    assert r.status_code == 422
+
+    _, platform = await actor(RoleGrant("SUPER_ADMIN"))
+    r = await platform.post(f"/api/v1/teams/{team}/members", json={"user_id": str(elsewhere.id)})
+    assert r.status_code == 200
+    r = await admin.delete(f"/api/v1/teams/{team}/members/{elsewhere.id}")
+    assert r.status_code == 404  # not one of theirs
+
+    me = (await admin.get("/api/v1/auth/me")).json()
+    assert me["global_permissions"] == [] and "user.manage" in me["permissions"]
+    me = (await platform.get("/api/v1/auth/me")).json()
+    assert "role.manage" in me["global_permissions"]

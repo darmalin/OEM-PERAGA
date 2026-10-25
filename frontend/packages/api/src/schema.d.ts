@@ -4051,6 +4051,11 @@ export interface components {
             user: components["schemas"]["UserBrief"];
             /** Permissions */
             permissions: string[];
+            /**
+             * Global Permissions
+             * @default []
+             */
+            global_permissions: string[];
             /** Grants */
             grants: components["schemas"]["GrantOut"][];
             /** Editions */
