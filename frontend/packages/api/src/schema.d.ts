@@ -263,6 +263,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/editions/{edition_id}/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Edition Teams */
+        get: operations["get_edition_teams_api_v1_editions__edition_id__teams_get"];
+        /** Set Edition Teams */
+        put: operations["set_edition_teams_api_v1_editions__edition_id__teams_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/teams/{team_id}/members": {
         parameters: {
             query?: never;
@@ -433,6 +451,26 @@ export interface paths {
         put?: never;
         /** Start Import */
         post: operations["start_import_api_v1_visitor_leads_imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/visitor-leads/imports/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Import Recipients
+         * @description Who would receive the new leads of an import into this edition (auto assign).
+         */
+        get: operations["import_recipients_api_v1_visitor_leads_imports_recipients_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1631,6 +1669,18 @@ export interface components {
             /** Agents */
             agents: components["schemas"]["AgentRow"][];
         };
+        /** AssignedCount */
+        AssignedCount: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Count */
+            count: number;
+        };
         /** AssignmentAccepted */
         AssignmentAccepted: {
             /**
@@ -1724,7 +1774,7 @@ export interface components {
          * AssignmentMethod
          * @enum {string}
          */
-        AssignmentMethod: "MANUAL" | "BULK" | "ROUND_ROBIN";
+        AssignmentMethod: "MANUAL" | "BULK" | "ROUND_ROBIN" | "IMPORT";
         /** AssignmentResult */
         AssignmentResult: {
             /**
@@ -1863,6 +1913,11 @@ export interface components {
              * @default false
              */
             save_mapping: boolean;
+            /**
+             * Auto Assign
+             * @default false
+             */
+            auto_assign: boolean;
         };
         /**
          * BuyerType
@@ -2608,6 +2663,24 @@ export interface components {
          * @enum {string}
          */
         EditionStatus: "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED";
+        /** EditionTeamsIn */
+        EditionTeamsIn: {
+            /** Team Ids */
+            team_ids: string[];
+        };
+        /**
+         * EditionTeamsOut
+         * @description Teams working an edition's leads (imports can share new leads among their callers).
+         */
+        EditionTeamsOut: {
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /** Team Ids */
+            team_ids: string[];
+        };
         /** EditionUpdateIn */
         EditionUpdateIn: {
             /** Version */
@@ -3481,6 +3554,15 @@ export interface components {
             invalid_count: number;
             /** Registered Count */
             registered_count: number;
+            /** Auto Assign */
+            auto_assign: boolean;
+            /** Assigned Count */
+            assigned_count: number;
+            /**
+             * Assigned To
+             * @default []
+             */
+            assigned_to: components["schemas"]["AssignedCount"][];
             /** Error Summary */
             error_summary: string | null;
             /**
@@ -3499,6 +3581,16 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** ImportRecipient */
+        ImportRecipient: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Full Name */
+            full_name: string;
         };
         /**
          * ImportStatus
@@ -5540,6 +5632,72 @@ export interface operations {
             };
         };
     };
+    get_edition_teams_api_v1_editions__edition_id__teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditionTeamsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_edition_teams_api_v1_editions__edition_id__teams_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditionTeamsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditionTeamsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     add_team_member_api_v1_teams__team_id__members_post: {
         parameters: {
             query?: never;
@@ -6052,6 +6210,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_recipients_api_v1_visitor_leads_imports_recipients_get: {
+        parameters: {
+            query: {
+                edition_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportRecipient"][];
                 };
             };
             /** @description Validation Error */

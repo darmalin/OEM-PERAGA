@@ -98,6 +98,55 @@ async def assignable_agents(
     return [AgentOut(id=u.id, full_name=u.full_name, email=u.email, team_ids=t) for u, t in rows]
 
 
+async def import_recipients(session: AsyncSession, edition_id: uuid.UUID) -> list[AgentOut]:
+    """Who receives an import's new leads: active members of the edition's teams who may
+    call in it (telemarketing.call). Gate staff and others in those teams are left out."""
+    teams = await identity_service.edition_team_ids(session, edition_id)
+    if not teams:
+        return []
+    rows = await identity_service.eligible_users(session, edition_id, AGENT_PERMISSION, teams)
+    return [AgentOut(id=u.id, full_name=u.full_name, email=u.email, team_ids=t) for u, t in rows]
+
+
+async def assign_import_batch(
+    session: AsyncSession,
+    edition_id: uuid.UUID,
+    lead_ids: list[uuid.UUID],
+    agent_ids: list[uuid.UUID],
+    actor_id: uuid.UUID | None,
+    batch_id: uuid.UUID,
+) -> Counter[uuid.UUID]:
+    """Round robin a batch of an import's unowned leads (the worker, no request context).
+
+    The cursor is per edition for imports, so several imports in a row stay even."""
+    cursor = await repo.lock_cursor(session, edition_id, "import")
+    scope = Scope(edition_id=edition_id, user_id=actor_id or new_id(), full_access=True)
+    leads = {lead.id: lead for lead in await visitors_service.lock_leads(session, scope, lead_ids)}
+    ordered = [i for i in lead_ids if i in leads and leads[i].lead_owner_id is None]
+    pairs, last = round_robin(ordered, agent_ids, cursor.last_user_id)
+    cursor.last_user_id = last
+    counts: Counter[uuid.UUID] = Counter()
+    for lead_id, agent in pairs:
+        lead = leads[lead_id]
+        session.add(
+            LeadAssignmentHistory(
+                edition_id=edition_id,
+                visitor_lead_id=lead.id,
+                from_user_id=None,
+                to_user_id=agent,
+                method=AssignmentMethod.IMPORT,
+                actor_user_id=actor_id,
+                batch_id=batch_id,
+            )
+        )
+        await visitors_service.apply_changes(
+            session, lead, {"lead_owner_id": agent}, action="assign"
+        )
+        counts[agent] += 1
+    await session.flush()
+    return counts
+
+
 async def _check_agents(
     session: AsyncSession, ctx: AuthContext, scope: Scope, data: AssignmentIn
 ) -> list[uuid.UUID]:

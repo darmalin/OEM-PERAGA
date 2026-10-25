@@ -38,6 +38,7 @@ from app.modules.identity.models import (
 from app.modules.identity.rules import PERMISSIONS, ScopeType, normalize_email, password_problems
 from app.modules.identity.schemas import (
     EditionBrief,
+    EditionTeamsOut,
     GrantOut,
     MeOut,
     RoleAssignmentIn,
@@ -552,6 +553,45 @@ async def remove_team_member(session: AsyncSession, team_id: uuid.UUID, user_id:
         action="member_removed",
         before={"user_id": user_id},
     )
+
+
+# --- edition teams ---------------------------------------------------------------------------
+
+
+async def edition_team_ids(session: AsyncSession, edition_id: uuid.UUID) -> set[uuid.UUID]:
+    """Teams that work this edition's leads."""
+    return set(await repo.edition_team_ids(session, edition_id))
+
+
+async def get_edition_teams(
+    session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID
+) -> EditionTeamsOut:
+    ctx.scope_for(edition_id)  # 404 outside the caller's editions
+    ids = await repo.edition_team_ids(session, edition_id)
+    return EditionTeamsOut(edition_id=edition_id, team_ids=sorted(ids))
+
+
+async def set_edition_teams(
+    session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID, team_ids: list[uuid.UUID]
+) -> EditionTeamsOut:
+    ctx.scope_for(edition_id)
+    wanted = set(team_ids)
+    missing = wanted - await repo.existing_team_ids(session, wanted) if wanted else set()
+    if missing:
+        raise ValidationFailed(fields={"team_ids": "Unknown team."})
+    before = set(await repo.edition_team_ids(session, edition_id))
+    if before != wanted:
+        await repo.replace_edition_teams(session, edition_id, wanted, current_actor_id())
+        await audit.record(
+            session,
+            entity_type="edition",
+            entity_id=edition_id,
+            action="teams",
+            before={"team_ids": sorted(str(t) for t in before)},
+            after={"team_ids": sorted(str(t) for t in wanted)},
+            edition_id=edition_id,
+        )
+    return EditionTeamsOut(edition_id=edition_id, team_ids=sorted(wanted))
 
 
 async def eligible_users(

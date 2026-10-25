@@ -26,7 +26,9 @@ class LeadAssignmentHistory(UUIDPk, Base):
     __table_args__ = (
         Index("ix_lead_assignment_history_lead", "visitor_lead_id", "assigned_at"),
         Index("ix_lead_assignment_history_edition", "edition_id", "assigned_at"),
-        CheckConstraint("method IN ('MANUAL', 'BULK', 'ROUND_ROBIN')", name="method_valid"),
+        CheckConstraint(
+            "method IN ('MANUAL', 'BULK', 'ROUND_ROBIN', 'IMPORT')", name="method_valid"
+        ),
     )
 
     edition_id: Mapped[uuid.UUID] = mapped_column(

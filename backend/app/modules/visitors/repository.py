@@ -245,6 +245,23 @@ async def scoped_lead_ids(
     return list((await session.scalars(stmt)).all())
 
 
+async def unassigned_import_lead_ids(
+    session: AsyncSession, edition_id: uuid.UUID, import_job_id: uuid.UUID, limit: int
+) -> list[uuid.UUID]:
+    """Leads an import created that still have no owner, in creation order."""
+    stmt = (
+        select(VisitorLead.id)
+        .where(
+            VisitorLead.edition_id == edition_id,
+            VisitorLead.import_job_id == import_job_id,
+            VisitorLead.lead_owner_id.is_(None),
+        )
+        .order_by(VisitorLead.created_at, VisitorLead.id)
+        .limit(limit)
+    )
+    return list((await session.scalars(stmt)).all())
+
+
 async def lock_leads(
     session: AsyncSession, scope: Scope, lead_ids: list[uuid.UUID]
 ) -> list[VisitorLead]:

@@ -10,6 +10,8 @@ from app.core.db import get_session
 from app.core.pagination import Page
 from app.modules.identity import service
 from app.modules.identity.schemas import (
+    EditionTeamsIn,
+    EditionTeamsOut,
     LoginIn,
     MeOut,
     MessageOut,
@@ -200,6 +202,25 @@ async def create_team(
     data: TeamIn, session: Session, _: AuthContext = Depends(require("user.manage"))
 ) -> TeamOut:
     return await service.create_team(session, data.name)
+
+
+@router.get("/editions/{edition_id}/teams", response_model=EditionTeamsOut)
+async def get_edition_teams(
+    edition_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("edition.read")),
+) -> EditionTeamsOut:
+    return await service.get_edition_teams(session, ctx, edition_id)
+
+
+@router.put("/editions/{edition_id}/teams", response_model=EditionTeamsOut)
+async def set_edition_teams(
+    edition_id: uuid.UUID,
+    data: EditionTeamsIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("edition.manage")),
+) -> EditionTeamsOut:
+    return await service.set_edition_teams(session, ctx, edition_id, data.team_ids)
 
 
 @router.post("/teams/{team_id}/members", response_model=TeamOut)

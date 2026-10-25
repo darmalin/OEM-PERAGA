@@ -156,6 +156,13 @@ async def scoped_lead_ids(
     return await repo.scoped_lead_ids(session, scope, lead_ids, filters, limit)
 
 
+async def unassigned_import_lead_ids(
+    session: AsyncSession, edition_id: uuid.UUID, import_job_id: uuid.UUID, limit: int
+) -> list[uuid.UUID]:
+    """System use (the import worker): an import's leads that have no owner yet."""
+    return await repo.unassigned_import_lead_ids(session, edition_id, import_job_id, limit)
+
+
 async def lock_leads(
     session: AsyncSession, scope: Scope, lead_ids: list[uuid.UUID]
 ) -> list[VisitorLead]:

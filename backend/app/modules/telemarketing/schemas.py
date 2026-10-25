@@ -26,6 +26,8 @@ class AssignmentIn(BaseModel):
 
     @model_validator(mode="after")
     def _shape(self) -> Self:
+        if self.method == AssignmentMethod.IMPORT:
+            raise ValueError("Import assignment runs only from an import.")
         if (self.lead_ids is None) == (self.filter is None):
             raise ValueError("Send either lead_ids or filter.")
         if self.method != AssignmentMethod.ROUND_ROBIN and len(set(self.agent_ids)) != 1:

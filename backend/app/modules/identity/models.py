@@ -77,6 +77,24 @@ class UserTeamMembership(Base):
     )
 
 
+class EditionTeam(Base):
+    """Teams that work an edition's leads; their members with telemarketing.call receive
+    imported leads round robin."""
+
+    __tablename__ = "edition_teams"
+
+    edition_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("exhibition_editions.id", ondelete="CASCADE"), primary_key=True
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("teams.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
 class UserRoleAssignment(UUIDPk, Base):
     """A role granted to a user, limited to a scope.
 

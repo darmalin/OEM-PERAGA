@@ -8,6 +8,7 @@ class AssignmentMethod(StrEnum):
     MANUAL = "MANUAL"
     BULK = "BULK"
     ROUND_ROBIN = "ROUND_ROBIN"
+    IMPORT = "IMPORT"  # round robin over the edition's teams when an import finishes
 
 
 def round_robin(

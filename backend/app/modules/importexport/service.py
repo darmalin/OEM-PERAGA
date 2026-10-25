@@ -13,6 +13,7 @@ from app.core import audit, outbox
 from app.core.authorization import AuthContext
 from app.core.config import get_settings
 from app.core.context import Source, actor_id_var, source_var
+from app.core.db import new_id
 from app.core.errors import AppError, NotFound, PermissionDenied, ValidationFailed
 from app.core.excel import is_xlsx, iter_rows, write_workbook
 from app.core.logging import mask_email, mask_phone
@@ -31,15 +32,18 @@ from app.modules.importexport.rules import (
     suggest_mapping,
 )
 from app.modules.importexport.schemas import (
+    AssignedCount,
     ImportErrorOut,
     ImportErrorParams,
     ImportJobOut,
     ImportListParams,
+    ImportRecipient,
     JobAccepted,
     MappingTarget,
     PreviewOut,
 )
 from app.modules.registrations import service as registrations_service
+from app.modules.telemarketing import service as telemarketing_service
 from app.modules.visitors import service as visitors_service
 from app.modules.visitors.rules import LeadSource, OptionField
 from app.modules.visitors.schemas import LeadFields
@@ -122,6 +126,7 @@ async def start_import(
     import_type: ImportType,
     column_mapping: str | None,
     save_mapping: bool,
+    auto_assign: bool = False,
 ) -> JobAccepted:
     """Store the upload and queue the job. Rows are never read in the request."""
     _check_scope(ctx, edition_id)
@@ -131,6 +136,11 @@ async def start_import(
         raise ValidationFailed(
             "Registering visitors from an import is not enabled (open decision D2).",
             fields={"import_type": "Not available."},
+        )
+    if auto_assign and not await telemarketing_service.import_recipients(session, edition_id):
+        raise ValidationFailed(
+            "No one in this edition's teams can receive leads.",
+            fields={"auto_assign": "Add a team with callers to the edition first."},
         )
     mapping = _parse_mapping(column_mapping, await _targets(session, edition_id))
     if not mapping and (preset := await repo.get_preset(session, edition_id)):
@@ -150,6 +160,7 @@ async def start_import(
         file_size=len(data),
         object_key=key,
         column_mapping=mapping,
+        auto_assign=auto_assign,
         created_by=ctx.user.id,
     )
     session.add(job)
@@ -162,7 +173,12 @@ async def start_import(
         entity_type="import_job",
         entity_id=job.id,
         action="start",
-        after={"file_name": job.file_name, "file_size": job.file_size, "import_type": import_type},
+        after={
+            "file_name": job.file_name,
+            "file_size": job.file_size,
+            "import_type": import_type,
+            "auto_assign": auto_assign,
+        },
         edition_id=edition_id,
     )
     return JobAccepted(job_id=job.id, status=job.status)
@@ -241,7 +257,51 @@ async def template(session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUI
 def _job_out(job: ImportJob) -> ImportJobOut:
     out = ImportJobOut.model_validate(job)
     out.has_error_report = job.errors_object_key is not None
+    out.assigned_to = sorted(
+        (
+            AssignedCount(user_id=uuid.UUID(k), full_name=v["name"], count=v["count"])
+            for k, v in job.assign_summary.items()
+        ),
+        key=lambda a: a.full_name,
+    )
     return out
+
+
+async def recipients(
+    session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID
+) -> list[ImportRecipient]:
+    _check_scope(ctx, edition_id)
+    return [
+        ImportRecipient(id=a.id, full_name=a.full_name)
+        for a in await telemarketing_service.import_recipients(session, edition_id)
+    ]
+
+
+async def _auto_assign(session: AsyncSession, job: ImportJob) -> None:
+    """Share the import's unowned new leads round robin among the edition teams' callers.
+
+    Batches commit with the job's running totals, so a resumed job carries on where it
+    stopped. Callers are read now, when rows are done: someone added meanwhile counts."""
+    agents = await telemarketing_service.import_recipients(session, job.edition_id)
+    if not agents:
+        job.error_summary = "Leads were not assigned: no one in the edition's teams can call."
+        return
+    names = {a.id: a.full_name for a in agents}
+    agent_ids = sorted(names)
+    batch_id = new_id()
+    while lead_ids := await visitors_service.unassigned_import_lead_ids(
+        session, job.edition_id, job.id, get_settings().import_batch_size
+    ):
+        counts = await telemarketing_service.assign_import_batch(
+            session, job.edition_id, lead_ids, agent_ids, job.created_by, batch_id
+        )
+        summary = dict(job.assign_summary)
+        for user_id, n in counts.items():
+            prev = summary.get(str(user_id), {"name": names[user_id], "count": 0})
+            summary[str(user_id)] = {"name": names[user_id], "count": prev["count"] + n}
+        job.assign_summary = summary
+        job.assigned_count += sum(counts.values())
+        await session.commit()
 
 
 async def _scoped_job(session: AsyncSession, ctx: AuthContext, job_id: uuid.UUID) -> ImportJob:
@@ -489,6 +549,9 @@ async def _process_locked(session: AsyncSession, job_id: uuid.UUID) -> ImportSta
                 await session.commit()
                 in_batch = 0
         await session.commit()
+
+        if job.auto_assign:
+            await _auto_assign(session, job)
 
         await _write_error_report(session, job)
         has_errors = job.duplicate_count or job.invalid_count

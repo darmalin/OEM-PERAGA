@@ -21,6 +21,12 @@ class JobAccepted(BaseModel):
     status: str
 
 
+class AssignedCount(BaseModel):
+    user_id: uuid.UUID
+    full_name: str
+    count: int
+
+
 class ImportJobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,12 +43,26 @@ class ImportJobOut(BaseModel):
     duplicate_count: int
     invalid_count: int
     registered_count: int
+    auto_assign: bool
+    assigned_count: int
+    assigned_to: list[AssignedCount] = []
     error_summary: str | None
     has_error_report: bool = False
     started_at: datetime | None
     finished_at: datetime | None
     created_by: uuid.UUID | None
     created_at: datetime
+
+
+class RecipientParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    edition_id: uuid.UUID
+
+
+class ImportRecipient(BaseModel):
+    id: uuid.UUID
+    full_name: str
 
 
 class ImportErrorOut(BaseModel):

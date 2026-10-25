@@ -8,6 +8,7 @@ from sqlalchemy import Row, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.models import (
+    EditionTeam,
     PasswordResetToken,
     Permission,
     Role,
@@ -209,3 +210,28 @@ async def get_reset_token(session: AsyncSession, token_hash: str) -> PasswordRes
         .where(PasswordResetToken.token_hash == token_hash)
         .with_for_update()
     )
+
+
+async def edition_team_ids(session: AsyncSession, edition_id: uuid.UUID) -> list[uuid.UUID]:
+    rows = await session.scalars(
+        select(EditionTeam.team_id).where(EditionTeam.edition_id == edition_id)
+    )
+    return list(rows.all())
+
+
+async def existing_team_ids(session: AsyncSession, team_ids: set[uuid.UUID]) -> set[uuid.UUID]:
+    rows = await session.scalars(select(Team.id).where(Team.id.in_(team_ids)))
+    return set(rows.all())
+
+
+async def replace_edition_teams(
+    session: AsyncSession,
+    edition_id: uuid.UUID,
+    team_ids: set[uuid.UUID],
+    actor_id: uuid.UUID | None,
+) -> None:
+    await session.execute(delete(EditionTeam).where(EditionTeam.edition_id == edition_id))
+    session.add_all(
+        EditionTeam(edition_id=edition_id, team_id=t, created_by=actor_id) for t in team_ids
+    )
+    await session.flush()

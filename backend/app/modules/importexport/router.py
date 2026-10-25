@@ -19,8 +19,10 @@ from app.modules.importexport.schemas import (
     ImportErrorParams,
     ImportJobOut,
     ImportListParams,
+    ImportRecipient,
     JobAccepted,
     PreviewOut,
+    RecipientParams,
     ReportExportIn,
     VisitorExportIn,
 )
@@ -43,6 +45,7 @@ async def start_import(
     import_type: Annotated[ImportType, Form()] = ImportType.LEADS_ONLY,
     column_mapping: Annotated[str | None, Form(max_length=20_000)] = None,
     save_mapping: Annotated[bool, Form()] = False,
+    auto_assign: Annotated[bool, Form()] = False,
     ctx: AuthContext = Depends(require("visitor.import")),
 ) -> JobAccepted:
     return await service.start_import(
@@ -55,7 +58,18 @@ async def start_import(
         import_type=import_type,
         column_mapping=column_mapping,
         save_mapping=save_mapping,
+        auto_assign=auto_assign,
     )
+
+
+@router.get("/recipients", response_model=list[ImportRecipient])
+async def import_recipients(
+    session: Session,
+    params: Annotated[RecipientParams, Query()],
+    ctx: AuthContext = Depends(require("visitor.import")),
+) -> list[ImportRecipient]:
+    """Who would receive the new leads of an import into this edition (auto assign)."""
+    return await service.recipients(session, ctx, params.edition_id)
 
 
 @router.post("/preview", response_model=PreviewOut)

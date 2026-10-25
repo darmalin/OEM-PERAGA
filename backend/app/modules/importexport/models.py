@@ -2,7 +2,17 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -39,6 +49,11 @@ class ImportJob(UUIDPk, Timestamps, Base):
     duplicate_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     invalid_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     registered_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Share new leads round robin among the edition teams' callers when rows are done.
+    auto_assign: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    assigned_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # {user_id: {"name": ..., "count": n}}
+    assign_summary: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     error_summary: Mapped[str | None] = mapped_column(Text)
     errors_object_key: Mapped[str | None] = mapped_column(String(100))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

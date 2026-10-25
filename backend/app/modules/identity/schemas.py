@@ -165,5 +165,18 @@ class TeamOut(BaseModel):
     member_ids: list[uuid.UUID] = []
 
 
+class EditionTeamsIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    team_ids: list[uuid.UUID] = Field(max_length=100)
+
+
+class EditionTeamsOut(BaseModel):
+    """Teams working an edition's leads (imports can share new leads among their callers)."""
+
+    edition_id: uuid.UUID
+    team_ids: list[uuid.UUID]
+
+
 class TeamMemberIn(BaseModel):
     user_id: uuid.UUID
