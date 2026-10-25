@@ -164,8 +164,20 @@ await step("Registration shows two credentials (revoked + active)", async () => 
   await page.getByText(/Revoked .*Flow test: phone lost/).waitFor();
   return "revoked credential with reason";
 });
+await step("List: field filter + stacked Filter -> one lead", async () => {
+  await goto("/app/visitor-leads");
+  await page.getByLabel("Email", { exact: true }).fill(`flow-${run}`);
+  await page.waitForURL(/email=flow-/);
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  const filters = page.getByRole("dialog", { name: "Filters" });
+  await filters.getByLabel("Field").selectOption("job_title");
+  await filters.getByLabel("Value").fill("buyer");
+  await filters.getByRole("button", { name: "Apply Filters" }).click();
+  await page.getByRole("button", { name: "Remove filter: Job Title contains buyer" }).waitFor();
+  await page.getByText(/^1 in all editions matching the filters$/).waitFor();
+  return "email field + Job Title contains buyer";
+});
 await step("List: select lead -> Assign To page -> assign -> toast", async () => {
-  await goto(`/app/visitor-leads?q=flow-${run}`);
   await pickEdition(page.getByLabel("Exhibition Type"));
   await page.getByRole("checkbox", { name: "Select row" }).first().click();
   await page.getByRole("button", { name: "Assign To" }).click();

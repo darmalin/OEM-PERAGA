@@ -33,3 +33,11 @@ export const leadSourcesQuery = (includeInactive = false) =>
     queryFn: () => call(api.GET("/api/v1/lead-sources", { params: { query: { include_inactive: includeInactive } } })),
     staleTime: 5 * 60_000,
   });
+
+/** Countries, lead owners, and their teams found in the leads the user can see. */
+export const leadFilterOptionsQuery = (editionId: string | undefined) =>
+  queryOptions({
+    queryKey: ["lead-filter-options", editionId ?? "all"],
+    queryFn: () => call(api.GET("/api/v1/visitor-leads/filter-options", { params: { query: { edition_id: editionId } } })),
+    staleTime: 60_000,
+  });

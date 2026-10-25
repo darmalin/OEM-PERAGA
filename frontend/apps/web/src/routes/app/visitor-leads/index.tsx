@@ -1,11 +1,13 @@
 import { api, call } from "@ems/api";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { FileUp, UserPlus } from "lucide-react";
+import { FileUp, UserPlus, X } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
-import { type LeadItem, leadSourcesQuery } from "@/features/leads/queries";
+import { type ChoiceData, type Condition, type Op } from "@/features/leads/conditions";
+import { ConditionChips, FilterButton } from "@/features/leads/filter-button";
+import { type LeadItem, leadFilterOptionsQuery, leadSourcesQuery } from "@/features/leads/queries";
 import { LeadViewSwitch } from "@/features/leads/view-switch";
 import { can, useMe } from "@/lib/auth";
 import { countryName } from "@/lib/countries";
@@ -13,27 +15,55 @@ import { useEdition } from "@/lib/edition";
 import { relative } from "@/lib/format";
 import { options } from "@/lib/labels";
 import { Button } from "@/ui/button";
-import { FilterBar, SearchFilter, SelectFilter } from "@/ui/filters";
+import { FilterBar, SelectFilter, TextFilter } from "@/ui/filters";
 import { Indicator } from "@/ui/indicator";
 import { ListBody } from "@/ui/list";
 import { Page, PageHead, Panel } from "@/ui/page";
 import { EmptyState, NoEdition } from "@/ui/states";
 import { type Column, ListTable } from "@/ui/table";
 
+const condition = z.object({
+  field: z.string(),
+  op: z.string() as z.ZodType<Op>,
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]).optional(),
+});
+
 const search = z.object({
+  // The board's "more" link carries its search box here.
   q: z.string().optional(),
+  // Per-field row (Frappe standard filters): text matches anywhere in the field.
+  code: z.string().optional(),
+  name: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  company: z.string().optional(),
   // Exhibition Type (edition) filter; absent means every edition the user can read.
   edition: z.string().optional(),
   telemarketing_status: z.string().optional(),
-  registration_status: z.string().optional(),
-  source: z.string().optional(),
-  lead_source: z.string().optional(),
-  validity: z.enum(["VALID", "INVALID"]).optional(),
-  unassigned: z.boolean().optional(),
+  // A user id, or "none" for unassigned leads.
+  owner: z.string().optional(),
+  // Stacked conditions from the Filter button.
+  f: z.array(condition).optional(),
   page: z.number().int().min(1).default(1),
   page_size: z.number().int().default(20),
 });
 type Search = z.infer<typeof search>;
+
+/** The per-field row and the Filter button, as one list of conditions for the API. */
+function conditions(s: Search): Condition[] {
+  const text: [string, string | undefined][] = [
+    ["registration_code", s.code],
+    ["first_name", s.name],
+    ["email", s.email],
+    ["company_name", s.company],
+    // Phone matches digits only; under 4 digits would match almost everything.
+    ["phone", s.phone && s.phone.replace(/\D/g, "").length >= 4 ? s.phone : undefined],
+  ];
+  return [
+    ...text.filter(([, v]) => v).map(([field, value]) => ({ field, op: "contains" as const, value })),
+    ...(s.f ?? []),
+  ];
+}
 
 export const Route = createFileRoute("/app/visitor-leads/")({
   validateSearch: search,
@@ -72,6 +102,14 @@ function LeadList() {
     void navigate({ search: (prev) => ({ ...prev, page: 1, ...patch }), replace: true });
 
   const sources = useQuery(leadSourcesQuery(true));
+  const filterOptions = useQuery(leadFilterOptionsQuery(s.edition));
+  const choiceData: ChoiceData = {
+    leadSources: (sources.data ?? []).map((o) => ({ id: o.id, name: o.is_active ? o.name : `${o.name} (inactive)` })),
+    countries: filterOptions.data?.countries ?? [],
+    owners: filterOptions.data?.owners ?? [],
+    teams: filterOptions.data?.teams ?? [],
+  };
+  const conds = conditions(s);
   const query = useQuery({
     queryKey: ["leads", s],
     enabled: editions.length > 0,
@@ -84,12 +122,9 @@ function LeadList() {
               edition_id: s.edition,
               q: s.q,
               telemarketing_status: s.telemarketing_status ? [s.telemarketing_status as "NEW"] : undefined,
-              registration_status: s.registration_status as "REGISTERED" | undefined,
-              source: s.source as "MANUAL" | undefined,
-              lead_source_id: s.lead_source,
-              is_valid_lead: s.validity === "VALID" ? true : undefined,
-              is_invalid: s.validity === "INVALID" ? true : undefined,
-              unassigned: s.unassigned,
+              lead_owner_id: s.owner && s.owner !== "none" ? s.owner : undefined,
+              unassigned: s.owner === "none" ? true : undefined,
+              filters: conds.length ? JSON.stringify(conds) : undefined,
               page: s.page,
               page_size: s.page_size,
               sort: "-updated_at",
@@ -101,7 +136,8 @@ function LeadList() {
 
   if (editions.length === 0) return <Page><NoEdition /></Page>;
   const where = edition ? edition.code : "all editions";
-  const filtered = Boolean(s.lead_source || s.edition || s.q || s.telemarketing_status || s.registration_status || s.source || s.validity || s.unassigned);
+  const filtered = Boolean(s.edition || s.q || s.telemarketing_status || s.owner || conds.length);
+  const clear = () => void navigate({ search: { page: 1, page_size: s.page_size }, replace: true });
   const toggle = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -133,19 +169,29 @@ function LeadList() {
         }
       />
       <Panel>
-        <FilterBar
-          active={filtered}
-          onClear={() => void navigate({ search: { page: 1, page_size: s.page_size }, replace: true })}
-        >
-          <SearchFilter value={s.q} onChange={(q) => set({ q })} placeholder="Name, email, phone, company, Registration ID" label="Search leads" />
-          <SelectFilter label="Exhibition Type" value={s.edition} onChange={(v) => { setSelected(new Set()); set({ edition: v }); }} options={editions.map((e) => ({ value: e.id, label: e.code }))} />
-          <SelectFilter label="Status" value={s.telemarketing_status} onChange={(v) => set({ telemarketing_status: v })} options={options("telemarketing_status")} />
-          <SelectFilter label="Registration" value={s.registration_status} onChange={(v) => set({ registration_status: v })} options={options("registration_status")} />
-          <SelectFilter label="Source" value={s.lead_source} onChange={(v) => set({ lead_source: v })} options={(sources.data ?? []).map((o) => ({ value: o.id, label: o.is_active ? o.name : `${o.name} (inactive)` }))} />
-          <SelectFilter label="Channel" value={s.source} onChange={(v) => set({ source: v })} options={options("source")} />
-          <SelectFilter label="Lead Quality" value={s.validity} onChange={(v) => set({ validity: v as Search["validity"] })} options={[{ value: "VALID", label: "Valid" }, { value: "INVALID", label: "Invalid" }]} />
-          <SelectFilter label="Lead Owner" allLabel="Anyone" value={s.unassigned ? "none" : undefined} onChange={(v) => set({ unassigned: v === "none" ? true : undefined })} options={[{ value: "none", label: "Unassigned" }]} />
+        <FilterBar active={filtered} onClear={clear}>
+          <TextFilter label="Registration ID" value={s.code} onChange={(code) => set({ code })} />
+          <TextFilter label="Name" value={s.name} onChange={(name) => set({ name })} />
+          <TextFilter label="Email" value={s.email} onChange={(email) => set({ email })} inputMode="email" />
+          <TextFilter label="Phone" value={s.phone} onChange={(phone) => set({ phone })} inputMode="tel" />
+          <TextFilter label="Company" value={s.company} onChange={(company) => set({ company })} />
+          <SelectFilter className="min-w-[128px]" label="Exhibition Type" value={s.edition} onChange={(v) => { setSelected(new Set()); set({ edition: v, owner: undefined }); }} options={editions.map((e) => ({ value: e.id, label: e.code }))} />
+          <SelectFilter className="min-w-[128px]" label="Status" value={s.telemarketing_status} onChange={(v) => set({ telemarketing_status: v })} options={options("telemarketing_status")} />
+          <SelectFilter className="min-w-[128px]" label="Lead Owner" allLabel="Anyone" value={s.owner} onChange={(owner) => set({ owner })} options={[{ value: "none", label: "Unassigned" }, ...choiceData.owners.map((o) => ({ value: o.id, label: o.name }))]} />
+          <FilterButton value={s.f ?? []} onChange={(f) => set({ f: f.length ? f : undefined })} data={choiceData} />
         </FilterBar>
+        {s.q ? (
+          <div className="flex items-center gap-2 border-b border-line px-4 py-2 text-[12px]">
+            <span className="text-label">Search from the board:</span>
+            <span className="flex items-center gap-1 rounded-full bg-input py-0.5 pr-1 pl-2.5">
+              {s.q}
+              <button type="button" onClick={() => set({ q: undefined })} className="grid size-5 place-items-center rounded-full text-label hover:bg-hover hover:text-ink pointer-coarse:size-8" aria-label={`Remove search: ${s.q}`}>
+                <X className="size-3.5" aria-hidden />
+              </button>
+            </span>
+          </div>
+        ) : null}
+        <ConditionChips value={s.f ?? []} onChange={(f) => set({ f: f.length ? f : undefined })} data={choiceData} />
         {selected.size > 0 ? (
           <div className="flex flex-wrap items-center gap-3 border-b border-line bg-subtle px-4 py-2 text-[13px]" role="region" aria-label="Bulk actions">
             <span className="font-medium tabular">{selected.size} selected</span>
@@ -170,7 +216,7 @@ function LeadList() {
           onPageSize={(page_size) => set({ page_size })}
           empty={
             filtered ? (
-              <EmptyState title="No leads match these filters." action={<Button onClick={() => void navigate({ search: { page: 1, page_size: s.page_size } })}>Clear Filters</Button>} />
+              <EmptyState title="No leads match these filters." action={<Button onClick={clear}>Clear Filters</Button>} />
             ) : (
               <EmptyState
                 title="No visitor leads yet. Import an Excel file or add one by hand."

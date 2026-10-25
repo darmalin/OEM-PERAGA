@@ -782,6 +782,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/visitor-leads/filter-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lead Filter Options */
+        get: operations["lead_filter_options_api_v1_visitor_leads_filter_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/visitor-leads/{lead_id}": {
         parameters: {
             query?: never;
@@ -1972,6 +1989,11 @@ export interface components {
             b2b_matching?: boolean | null;
             buyer_type?: components["schemas"]["BuyerType"] | null;
         };
+        /**
+         * ConditionOp
+         * @enum {string}
+         */
+        ConditionOp: "contains" | "equals" | "starts_with" | "is" | "is_not" | "is_set" | "not_set" | "between" | "before" | "after" | "gt" | "lt";
         /** Count */
         Count: {
             /** Key */
@@ -3174,6 +3196,16 @@ export interface components {
             /** Is Active */
             is_active?: boolean | null;
         };
+        /** FilterChoice */
+        FilterChoice: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
         /** FollowupChangeOut */
         FollowupChangeOut: {
             /** Action */
@@ -3519,6 +3551,18 @@ export interface components {
             /** Status */
             status: string;
         };
+        /**
+         * LeadCondition
+         * @description One row of the Filter button: field, operator, value. Fields and operators are a
+         *     fixed list (rules.CONDITION_FIELDS); the value is checked and typed for the field.
+         */
+        LeadCondition: {
+            /** Field */
+            field: string;
+            op: components["schemas"]["ConditionOp"];
+            /** Value */
+            value?: unknown;
+        };
         /** LeadCreateIn */
         LeadCreateIn: {
             /** Lead Date */
@@ -3569,6 +3613,18 @@ export interface components {
             external_id?: string | null;
         };
         /**
+         * LeadFilterOptions
+         * @description Choices for the list filters, taken from the leads the caller can see.
+         */
+        LeadFilterOptions: {
+            /** Countries */
+            countries: string[];
+            /** Owners */
+            owners: components["schemas"]["FilterChoice"][];
+            /** Teams */
+            teams: components["schemas"]["FilterChoice"][];
+        };
+        /**
          * LeadFilters
          * @description Filters shared by the list, assignments by filter, reports, and exports.
          */
@@ -3600,6 +3656,8 @@ export interface components {
             lead_date_from?: string | null;
             /** Lead Date To */
             lead_date_to?: string | null;
+            /** Filters */
+            filters?: string | null;
         };
         /** LeadListItem */
         LeadListItem: {
@@ -4345,6 +4403,8 @@ export interface components {
             lead_date_from?: string | null;
             /** Lead Date To */
             lead_date_to?: string | null;
+            /** Filters */
+            filters?: string | null;
             /**
              * Edition Id
              * Format: uuid
@@ -4918,6 +4978,8 @@ export interface components {
             lead_date_from?: string | null;
             /** Lead Date To */
             lead_date_to?: string | null;
+            /** Filters */
+            filters?: string | null;
             /**
              * Edition Id
              * Format: uuid
@@ -6709,6 +6771,7 @@ export interface operations {
                 buyer_type?: components["schemas"]["BuyerType"] | null;
                 lead_date_from?: string | null;
                 lead_date_to?: string | null;
+                filters?: string | null;
                 page?: number;
                 page_size?: number;
                 edition_id?: string | null;
@@ -6760,6 +6823,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lead_filter_options_api_v1_visitor_leads_filter_options_get: {
+        parameters: {
+            query?: {
+                edition_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadFilterOptions"];
                 };
             };
             /** @description Validation Error */
@@ -8209,6 +8303,7 @@ export interface operations {
                 buyer_type?: components["schemas"]["BuyerType"] | null;
                 lead_date_from?: string | null;
                 lead_date_to?: string | null;
+                filters?: string | null;
                 edition_id: string;
                 report: components["schemas"]["ReportType"];
                 date_from?: string | null;
