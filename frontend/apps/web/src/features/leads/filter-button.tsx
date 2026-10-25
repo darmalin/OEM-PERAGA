@@ -23,14 +23,14 @@ import {
 } from "./conditions";
 
 /** Frappe-style Filter button: stacked field / operator / value rows, all of which must match. */
-export function FilterButton({ value, onChange, data }: { value: Condition[]; onChange: (next: Condition[]) => void; data: ChoiceData }) {
+export function FilterButton({ value, onChange, data, fields = FIELDS }: { value: Condition[]; onChange: (next: Condition[]) => void; data: ChoiceData; fields?: FieldDef[] }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Condition[]>([]);
   const [checked, setChecked] = useState(false);
 
   const openChange = (next: boolean) => {
     if (next) {
-      setDraft(value.length ? value : [blankCondition()]);
+      setDraft(value.length ? value : [blankCondition(fields[0]!.key)]);
       setChecked(false);
     }
     setOpen(next);
@@ -70,6 +70,7 @@ export function FilterButton({ value, onChange, data }: { value: Condition[]; on
                 key={`${i}-${c.field}`}
                 condition={c}
                 data={data}
+                fields={fields}
                 error={checked ? problem(c) : null}
                 onChange={(next) => update(i, next)}
                 onRemove={() => setDraft((d) => d.filter((_, j) => j !== i))}
@@ -77,7 +78,7 @@ export function FilterButton({ value, onChange, data }: { value: Condition[]; on
             ))}
           </ul>
           <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-            <Button type="button" variant="ghost" size="sm" onClick={() => setDraft((d) => [...d, blankCondition()])} disabled={draft.length >= 20}>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setDraft((d) => [...d, blankCondition(fields[0]!.key)])} disabled={draft.length >= 20}>
               <Plus aria-hidden />
               Add a Filter
             </Button>
@@ -97,8 +98,8 @@ export function FilterButton({ value, onChange, data }: { value: Condition[]; on
   );
 }
 
-function ConditionRow({ condition: c, data, error, onChange, onRemove }: { condition: Condition; data: ChoiceData; error: string | null; onChange: (c: Condition) => void; onRemove: () => void }) {
-  const f = fieldDef(c.field) ?? FIELDS[0]!;
+function ConditionRow({ condition: c, data, fields, error, onChange, onRemove }: { condition: Condition; data: ChoiceData; fields: FieldDef[]; error: string | null; onChange: (c: Condition) => void; onRemove: () => void }) {
+  const f = fieldDef(c.field) ?? fields[0]!;
   const id = useId();
   const errorId = `${id}-error`;
   return (
@@ -106,7 +107,7 @@ function ConditionRow({ condition: c, data, error, onChange, onRemove }: { condi
       <div className="grid grid-cols-[1fr_1fr_auto] gap-2 sm:grid-cols-[170px_140px_1fr_auto]">
         <label htmlFor={`${id}-field`} className="sr-only">Field</label>
         <Select id={`${id}-field`} value={f.key} onChange={(e) => onChange(blankCondition(e.target.value))}>
-          {FIELDS.map((o) => (
+          {fields.map((o) => (
             <option key={o.key} value={o.key}>{o.label}</option>
           ))}
         </Select>

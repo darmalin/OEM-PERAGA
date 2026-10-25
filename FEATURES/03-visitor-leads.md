@@ -53,6 +53,7 @@ Like Frappe: a row of per-field inputs above the list, plus a **Filter** button 
 | number | Call Attempts | equals, greater than, less than |
 
 - Text matches ignore case; `%` and `_` are literal; phone compares digits only (at least 4). Dates are calendar days in `report_timezone`. Required fields (Name, Registration ID, statuses) do not offer is set / not set.
+- The board uses the same row and Filter button (without Status: its columns are the statuses); a column's "more" link opens the list with the same filters plus that status. Lead Owner offers "Me" and "Unassigned". On a phone only Name, Exhibition Type, and filled fields stay in the row; the rest are in the Filter button.
 - `GET /visitor-leads/filter-options` gives countries, lead owners, and their teams found in the leads the caller can see.
 - `pg_trgm` GIN indexes (migration 0019) serve "contains" on name, company, email, phone, and Registration ID.
 

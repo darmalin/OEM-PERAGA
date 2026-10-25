@@ -177,6 +177,22 @@ await step("List: field filter + stacked Filter -> one lead", async () => {
   await page.getByText(/^1 in all editions matching the filters$/).waitFor();
   return "email field + Job Title contains buyer";
 });
+await step("Board: same field filters, Status not offered", async () => {
+  await goto("/app/visitor-leads/board");
+  await page.getByLabel("Name", { exact: true }).fill(`Flow Visitor ${run}`);
+  await page.waitForURL(/name=Flow/);
+  await page.getByText(`Flow Visitor ${run}`).first().waitFor();
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  const field = page.getByRole("dialog", { name: "Filters" }).getByLabel("Field");
+  if (await field.locator("option[value=telemarketing_status]").count()) throw new Error("Status offered on the board");
+  await page.keyboard.press("Escape");
+  return "one card by name";
+});
+await step("List: back with the same filters", async () => {
+  await goto(`/app/visitor-leads?email=flow-${run}&f=${encodeURIComponent(JSON.stringify([{ field: "job_title", op: "contains", value: "buyer" }]))}`);
+  await page.getByText(/^1 in all editions matching the filters$/).waitFor();
+  return "url filters restored";
+});
 await step("List: select lead -> Assign To page -> assign -> toast", async () => {
   await pickEdition(page.getByLabel("Exhibition Type"));
   await page.getByRole("checkbox", { name: "Select row" }).first().click();
