@@ -1,14 +1,19 @@
 import asyncio
+import json
 import uuid
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
 
+from app.core.config import get_settings
 from app.core.db import get_sessionmaker
 from app.modules.exhibitions.models import Edition
 from app.modules.visitors.models import VisitorLead
+from app.modules.visitors.schemas import LeadFilters
 from tests.factories import RoleGrant, actor, make_edition, make_user
 
 
@@ -235,6 +240,97 @@ async def test_list_filters_search_sort_and_unknown_params() -> None:
     assert r.status_code == 422
     r = await client.get("/api/v1/visitor-leads", params={**base, "page_size": 501})
     assert r.status_code == 422
+
+
+async def test_list_conditions_from_the_filter_button() -> None:
+    edition = await make_edition()
+    client = await admin_for(edition)
+    await create(
+        client, edition, first_name="Alpha", email="alpha@example.test", company_name="Acme",
+        city="Hanoi", job_title="Buyer Manager", phone="0812-3456-0001", country="ID",
+    )  # fmt: skip
+    await create(client, edition, first_name="Beta", email="beta@example.test",
+                 company_name="Beta 100% Co")  # fmt: skip
+    await create(client, edition, first_name="Gamma", email="gamma@example.test")
+
+    async def names(*conds: tuple[str, str, Any]) -> list[str]:
+        filters = json.dumps([{"field": f, "op": o, "value": v} for f, o, v in conds])
+        r = await client.get(
+            "/api/v1/visitor-leads",
+            params={"edition_id": str(edition.id), "filters": filters, "sort": "first_name"},
+        )
+        assert r.status_code == 200, r.text
+        return [i["first_name"] for i in r.json()["items"]]
+
+    assert await names(("city", "contains", "HAN")) == ["Alpha"]
+    assert await names(("company_name", "contains", "100%")) == ["Beta"]
+    assert await names(("company_name", "contains", "%")) == ["Beta"]  # % is literal
+    assert await names(("first_name", "starts_with", "gam")) == ["Gamma"]
+    assert await names(("email", "equals", "BETA@example.test")) == ["Beta"]
+    assert await names(("phone", "contains", "3456-0001")) == ["Alpha"]
+    assert await names(("city", "not_set", None)) == ["Beta", "Gamma"]
+    assert await names(("city", "is_set", None), ("job_title", "contains", "buyer")) == ["Alpha"]
+    assert await names(("city", "is_set", None), ("job_title", "contains", "seller")) == []
+    assert await names(("country", "is", "id")) == ["Alpha"]
+    assert await names(("country", "is_not", "ID")) == ["Beta", "Gamma"]
+    assert len(await names(("telemarketing_status", "is", "NEW"))) == 3
+    assert await names(("telemarketing_status", "is_not", "NEW")) == []
+    assert await names(("is_valid_lead", "is", True)) == []
+    assert await names(("call_attempts", "gt", 0)) == []
+    assert len(await names(("call_attempts", "equals", 0))) == 3
+    today = datetime.now(ZoneInfo(get_settings().report_timezone)).date()
+    span = [today.isoformat(), today.isoformat()]
+    assert len(await names(("lead_date", "between", span))) == 3
+    assert await names(("lead_date", "before", today.isoformat())) == []
+    assert await names(("created_at", "after", today.isoformat())) == []
+    assert await names(("last_call_at", "not_set", None), ("first_name", "contains", "a")) == [
+        "Alpha", "Beta", "Gamma",
+    ]  # fmt: skip
+
+    bad = [
+        [{"field": "password_hash", "op": "contains", "value": "x"}],  # not a filter field
+        [{"field": "telemarketing_status", "op": "contains", "value": "N"}],  # wrong operator
+        [{"field": "first_name", "op": "is_set"}],  # never empty
+        [{"field": "is_valid_lead", "op": "is", "value": "yes"}],
+        [{"field": "country", "op": "is", "value": "Indonesia"}],
+        [{"field": "attend", "op": "is", "value": "MAYBE"}],
+        [{"field": "phone", "op": "contains", "value": "12"}],
+        [{"field": "lead_date", "op": "between", "value": ["2026-10-02", "2026-10-01"]}],
+        [{"field": "city", "op": "contains", "value": "x", "sql": "1=1"}],
+        [{"field": "city", "op": "is_set"}] * 21,
+    ]
+    for filters in bad:
+        r = await client.get(
+            "/api/v1/visitor-leads",
+            params={"edition_id": str(edition.id), "filters": json.dumps(filters)},
+        )
+        assert r.status_code == 422, filters
+    r = await client.get("/api/v1/visitor-leads", params={"filters": "not json"})
+    assert r.status_code == 422
+
+    # Stored export/assign params come back as JSON and validate again unchanged.
+    f = LeadFilters.model_validate(
+        {"filters": [{"field": "lead_date", "op": "between", "value": span},
+                     {"field": "phone", "op": "contains", "value": "+62 812"}]}
+    )  # fmt: skip
+    assert LeadFilters.model_validate(f.model_dump(mode="json")) == f
+
+
+async def test_filter_options_come_from_visible_leads() -> None:
+    edition = await make_edition()
+    other = await make_edition()
+    client = await admin_for(edition)
+    _, super_admin = await actor(RoleGrant("SUPER_ADMIN"))
+    await create(client, edition, email="vn@example.test", country="VN")
+    await create(client, edition, email="id@example.test", country="ID")
+    await create(super_admin, other, email="th@example.test", country="TH")
+    r = await client.get("/api/v1/visitor-leads/filter-options")
+    assert r.status_code == 200, r.text
+    assert r.json() == {"countries": ["ID", "VN"], "owners": [], "teams": []}
+    r = await client.get(
+        "/api/v1/visitor-leads/filter-options", params={"edition_id": str(other.id)}
+    )
+    assert r.status_code == 404
 
 
 async def test_configurable_options_and_custom_fields() -> None:

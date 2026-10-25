@@ -20,6 +20,8 @@ from app.modules.visitors.schemas import (
     FieldOptionParams,
     FieldOptionUpdateIn,
     LeadCreateIn,
+    LeadFilterOptions,
+    LeadFilterOptionsParams,
     LeadListItem,
     LeadListParams,
     LeadOut,
@@ -50,6 +52,15 @@ async def create_lead(
     # Every new lead is registered at once (owner decision 2026-10-22). The registrations
     # module does it, since it already depends on visitors.
     return await registrations_service.create_lead(session, ctx, data)
+
+
+@router.get("/visitor-leads/filter-options", response_model=LeadFilterOptions)
+async def lead_filter_options(
+    session: Session,
+    params: Annotated[LeadFilterOptionsParams, Query()],
+    ctx: AuthContext = Depends(require("visitor.read")),
+) -> LeadFilterOptions:
+    return await service.filter_options(session, ctx, params)
 
 
 @router.get("/visitor-leads/{lead_id}", response_model=LeadOut)

@@ -38,7 +38,10 @@ from app.modules.visitors.schemas import (
     FieldOptionIn,
     FieldOptionOut,
     FieldOptionUpdateIn,
+    FilterChoice,
     LeadCreateIn,
+    LeadFilterOptions,
+    LeadFilterOptionsParams,
     LeadFilters,
     LeadListItem,
     LeadListParams,
@@ -514,6 +517,21 @@ async def list_leads(
         item.lead_owner_name = owner
         items.append(item)
     return Page(items=items, total=total, page=params.page, page_size=params.page_size)
+
+
+async def filter_options(
+    session: AsyncSession, ctx: AuthContext, params: LeadFilterOptionsParams
+) -> LeadFilterOptions:
+    if params.edition_id is not None:
+        scopes = [ctx.scope_for(params.edition_id)]
+    else:
+        scopes = await readable_scopes(session, ctx)
+    countries, owners, teams = await repo.filter_options(session, scopes)
+    return LeadFilterOptions(
+        countries=countries,
+        owners=[FilterChoice(id=i, name=n) for i, n in owners],
+        teams=[FilterChoice(id=i, name=n) for i, n in teams],
+    )
 
 
 async def activity(

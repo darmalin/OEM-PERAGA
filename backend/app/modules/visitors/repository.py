@@ -2,20 +2,24 @@
 
 import uuid
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
+from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import ColumnElement, Row, Select, case, false, func, or_, select, true, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import Scope
-from app.modules.identity.models import User, UserTeamMembership
+from app.core.config import get_settings
+from app.modules.identity.models import Team, User, UserTeamMembership
 from app.modules.visitors.models import (
     EditionFieldOption,
     LeadSourceOption,
     VisitorCustomFieldDefinition,
     VisitorLead,
 )
-from app.modules.visitors.schemas import LeadFilters
+from app.modules.visitors.rules import ConditionOp
+from app.modules.visitors.schemas import LeadCondition, LeadFilters
 
 
 def scope_clause(scope: Scope) -> ColumnElement[bool]:
@@ -98,7 +102,63 @@ def filter_clause(f: LeadFilters) -> ColumnElement[bool]:
         conds.append(VisitorLead.lead_date >= f.lead_date_from)
     if f.lead_date_to:
         conds.append(VisitorLead.lead_date < f.lead_date_to)
+    conds.extend(condition_clause(c) for c in f.filters or ())
     return _and(conds) if conds else true()
+
+
+# Text columns as compared: lowercased like the search, matching the trigram indexes.
+_TEXT_COLUMNS: dict[str, Any] = {
+    "first_name": func.lower(VisitorLead.first_name),
+    "company_name": func.lower(VisitorLead.company_name),
+    "email": VisitorLead.email_normalized,
+    "phone": VisitorLead.phone_normalized,
+    "registration_code": func.lower(VisitorLead.registration_code),
+    "job_title": func.lower(VisitorLead.job_title),
+    "city": func.lower(VisitorLead.city),
+}
+
+
+def _day_start(d: date) -> datetime:
+    # Dates mean calendar days in the report timezone (leads may span editions).
+    return datetime.combine(d, time.min, ZoneInfo(get_settings().report_timezone))
+
+
+def condition_clause(c: LeadCondition) -> ColumnElement[bool]:
+    """SQL for one validated condition (schemas.LeadCondition checked field, op, value)."""
+    op, value = c.op, c.value
+    if c.field == "team_id":
+        members = select(UserTeamMembership.user_id).where(UserTeamMembership.team_id == value)
+        inside = VisitorLead.lead_owner_id.in_(members)
+        return inside if op is ConditionOp.IS else ~inside | VisitorLead.lead_owner_id.is_(None)
+    raw: Any = getattr(VisitorLead, c.field)
+    column: Any = _TEXT_COLUMNS.get(c.field, raw)
+    text = c.field in _TEXT_COLUMNS
+    clause: ColumnElement[bool]
+    match op:
+        case ConditionOp.IS_SET:
+            clause = raw.is_not(None) & (raw != "") if text else raw.is_not(None)
+        case ConditionOp.NOT_SET:
+            clause = raw.is_(None) | (raw == "") if text else raw.is_(None)
+        case ConditionOp.CONTAINS:
+            clause = column.contains(value, autoescape=True)
+        case ConditionOp.STARTS_WITH:
+            clause = column.startswith(value, autoescape=True)
+        case ConditionOp.EQUALS | ConditionOp.IS:
+            clause = column == value
+        case ConditionOp.IS_NOT:
+            clause = (column != value) | column.is_(None)
+        case ConditionOp.BETWEEN:
+            start, end = value
+            clause = (column >= _day_start(start)) & (column < _day_start(end + timedelta(days=1)))
+        case ConditionOp.BEFORE:
+            clause = column < _day_start(value)
+        case ConditionOp.AFTER:
+            clause = column >= _day_start(value + timedelta(days=1))
+        case ConditionOp.GT:
+            clause = column > value
+        case ConditionOp.LT:
+            clause = column < value
+    return clause
 
 
 def _and(conds: list[ColumnElement[bool]]) -> ColumnElement[bool]:
@@ -131,6 +191,41 @@ async def list_leads(
         .limit(limit)
     )
     return (await session.execute(stmt)).all(), total
+
+
+async def filter_options(
+    session: AsyncSession, scopes: Sequence[Scope]
+) -> tuple[list[str], list[tuple[uuid.UUID, str]], list[tuple[uuid.UUID, str]]]:
+    """(countries, owners, owners' teams) present in the visible leads."""
+    visible = any_scope_clause(scopes)
+    countries = await session.scalars(
+        select(VisitorLead.country)
+        .distinct()
+        .where(visible, VisitorLead.country.is_not(None))
+        .order_by(VisitorLead.country)
+    )
+    owner_ids = (
+        select(VisitorLead.lead_owner_id)
+        .where(visible, VisitorLead.lead_owner_id.is_not(None))
+        .distinct()
+    )
+    owners = await session.execute(
+        select(User.id, User.full_name).where(User.id.in_(owner_ids)).order_by(User.full_name)
+    )
+    teams = await session.execute(
+        select(Team.id, Team.name)
+        .where(
+            Team.id.in_(
+                select(UserTeamMembership.team_id).where(UserTeamMembership.user_id.in_(owner_ids))
+            )
+        )
+        .order_by(Team.name)
+    )
+    return (
+        [c for c in countries if c],
+        [(i, n) for i, n in owners.all()],
+        [(i, n) for i, n in teams.all()],
+    )
 
 
 async def scoped_lead_ids(

@@ -215,3 +215,83 @@ def validate_custom_fields(
         if d.required and d.field_key not in clean and d.field_key not in errors:
             errors[d.field_key] = "Required."
     return clean, errors
+
+
+# --- list conditions (the Filter button) ----------------------------------------------------
+
+
+class ConditionKind(StrEnum):
+    TEXT = "text"
+    CHOICE = "choice"
+    BOOL = "bool"
+    DATE = "date"
+    NUMBER = "number"
+
+
+class ConditionOp(StrEnum):
+    CONTAINS = "contains"
+    EQUALS = "equals"
+    STARTS_WITH = "starts_with"
+    IS = "is"
+    IS_NOT = "is_not"
+    IS_SET = "is_set"
+    NOT_SET = "not_set"
+    BETWEEN = "between"
+    BEFORE = "before"
+    AFTER = "after"
+    GT = "gt"
+    LT = "lt"
+
+
+# The only fields and operators a list condition may use; anything else is a 422.
+CONDITION_FIELDS: dict[str, ConditionKind] = {
+    "first_name": ConditionKind.TEXT,
+    "company_name": ConditionKind.TEXT,
+    "email": ConditionKind.TEXT,
+    "phone": ConditionKind.TEXT,
+    "registration_code": ConditionKind.TEXT,
+    "job_title": ConditionKind.TEXT,
+    "city": ConditionKind.TEXT,
+    "telemarketing_status": ConditionKind.CHOICE,
+    "registration_status": ConditionKind.CHOICE,
+    "qr_status": ConditionKind.CHOICE,
+    "source": ConditionKind.CHOICE,
+    "lead_source_id": ConditionKind.CHOICE,
+    "country": ConditionKind.CHOICE,
+    "attend": ConditionKind.CHOICE,
+    "buyer_type": ConditionKind.CHOICE,
+    "lead_owner_id": ConditionKind.CHOICE,
+    "team_id": ConditionKind.CHOICE,
+    "is_valid_lead": ConditionKind.BOOL,
+    "is_invalid": ConditionKind.BOOL,
+    "b2b_matching": ConditionKind.BOOL,
+    "lead_date": ConditionKind.DATE,
+    "last_call_at": ConditionKind.DATE,
+    "next_followup_at": ConditionKind.DATE,
+    "created_at": ConditionKind.DATE,
+    "call_attempts": ConditionKind.NUMBER,
+}
+
+_SET = {ConditionOp.IS_SET, ConditionOp.NOT_SET}
+CONDITION_OPS: dict[ConditionKind, set[ConditionOp]] = {
+    ConditionKind.TEXT: {ConditionOp.CONTAINS, ConditionOp.EQUALS, ConditionOp.STARTS_WITH, *_SET},
+    ConditionKind.CHOICE: {ConditionOp.IS, ConditionOp.IS_NOT, *_SET},
+    ConditionKind.BOOL: {ConditionOp.IS},
+    ConditionKind.DATE: {ConditionOp.BETWEEN, ConditionOp.BEFORE, ConditionOp.AFTER, *_SET},
+    ConditionKind.NUMBER: {ConditionOp.EQUALS, ConditionOp.GT, ConditionOp.LT},
+}
+# Required fields are never empty, so "is set" would match everything: not offered.
+NEVER_EMPTY = {
+    "first_name", "registration_code", "telemarketing_status", "registration_status",
+    "qr_status", "source", "team_id",
+}  # fmt: skip
+CHOICE_ENUMS: dict[str, type[StrEnum]] = {
+    "telemarketing_status": TelemarketingStatus,
+    "registration_status": RegistrationStatus,
+    "qr_status": QrStatus,
+    "source": LeadSource,
+    "attend": Attend,
+    "buyer_type": BuyerType,
+}
+CHOICE_IDS = {"lead_source_id", "lead_owner_id", "team_id"}
+MAX_CONDITIONS = 20

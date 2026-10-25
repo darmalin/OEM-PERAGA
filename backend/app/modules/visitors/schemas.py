@@ -1,15 +1,35 @@
+import json
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    TypeAdapter,
+    WithJsonSchema,
+    field_validator,
+    model_validator,
+)
 
 from app.core.pagination import PageParams
 from app.modules.exhibitions.schemas import Country
 from app.modules.visitors.rules import (
+    CHOICE_ENUMS,
+    CHOICE_IDS,
+    CONDITION_FIELDS,
+    CONDITION_OPS,
     FIELD_KEY_RE,
+    MAX_CONDITIONS,
+    NEVER_EMPTY,
     Attend,
     BuyerType,
+    ConditionKind,
+    ConditionOp,
     CustomFieldType,
     Gender,
     LeadSource,
@@ -171,6 +191,98 @@ SortParam = Literal[
 ]  # fmt: skip
 
 
+_DATE = TypeAdapter(date)
+_DATES = TypeAdapter(tuple[date, date])
+_UUID = TypeAdapter(uuid.UUID)
+
+
+class LeadCondition(BaseModel):
+    """One row of the Filter button: field, operator, value. Fields and operators are a
+    fixed list (rules.CONDITION_FIELDS); the value is checked and typed for the field."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field: str
+    op: ConditionOp
+    value: Any = None
+
+    @model_validator(mode="after")
+    def _check(self) -> "LeadCondition":
+        kind = CONDITION_FIELDS.get(self.field)
+        if kind is None:
+            raise ValueError(f"Unknown filter field: {self.field}.")
+        if self.op not in CONDITION_OPS[kind] or (
+            self.op in (ConditionOp.IS_SET, ConditionOp.NOT_SET) and self.field in NEVER_EMPTY
+        ):
+            raise ValueError(f"Operator {self.op} does not apply to {self.field}.")
+        if self.op in (ConditionOp.IS_SET, ConditionOp.NOT_SET):
+            self.value = None
+            return self
+        self.value = _condition_value(self.field, kind, self.op, self.value)
+        return self
+
+
+def _condition_value(field: str, kind: ConditionKind, op: ConditionOp, value: Any) -> Any:
+    if kind is ConditionKind.TEXT:
+        if not isinstance(value, str) or not value.strip() or len(value) > 200:
+            raise ValueError(f"Enter text to filter {field} by (up to 200 characters).")
+        if field == "phone":
+            digits = "".join(ch for ch in value if ch.isdigit())
+            if len(digits) < 4:
+                raise ValueError("Enter at least 4 digits of the phone number.")
+            return digits
+        return value.strip().lower()
+    if kind is ConditionKind.CHOICE:
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"Choose a value for {field}.")
+        if field in CHOICE_IDS:
+            return _UUID.validate_python(value)
+        if field == "country":
+            if len(value) != 2 or not value.isalpha():
+                raise ValueError("Use a two-letter country code.")
+            return value.upper()
+        return CHOICE_ENUMS[field](value).value
+    if kind is ConditionKind.BOOL:
+        if not isinstance(value, bool):
+            raise ValueError(f"Choose yes or no for {field}.")
+        return value
+    if kind is ConditionKind.DATE:
+        if op is ConditionOp.BETWEEN:
+            start, end = _DATES.validate_python(value)
+            if end < start:
+                raise ValueError("The end date is before the start date.")
+            return (start, end)
+        return _DATE.validate_python(value)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"Enter a whole number for {field}.")
+    return value
+
+
+def _conditions_json(v: Any) -> Any:
+    # A query string carries the list as one JSON string (FastAPI hands it over as a list).
+    if isinstance(v, list) and len(v) == 1 and isinstance(v[0], str):
+        v = v[0]
+    if isinstance(v, str):
+        try:
+            return json.loads(v) if v else None
+        except json.JSONDecodeError as e:
+            raise ValueError("Filters must be a JSON list.") from e
+    return v
+
+
+Conditions = Annotated[
+    list[LeadCondition],
+    Field(max_length=MAX_CONDITIONS),
+    BeforeValidator(_conditions_json),
+    WithJsonSchema(
+        {
+            "type": "string",
+            "description": 'JSON list of {"field", "op", "value"}, all of which must match.',
+        }
+    ),
+]
+
+
 class LeadFilters(BaseModel):
     """Filters shared by the list, assignments by filter, reports, and exports."""
 
@@ -192,6 +304,26 @@ class LeadFilters(BaseModel):
     buyer_type: BuyerType | None = None
     lead_date_from: datetime | None = None
     lead_date_to: datetime | None = None
+    filters: Conditions | None = None
+
+
+class LeadFilterOptionsParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    edition_id: uuid.UUID | None = None  # None: every edition the caller may read
+
+
+class FilterChoice(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class LeadFilterOptions(BaseModel):
+    """Choices for the list filters, taken from the leads the caller can see."""
+
+    countries: list[str]
+    owners: list[FilterChoice]
+    teams: list[FilterChoice]
 
 
 class LeadListParams(PageParams, LeadFilters):

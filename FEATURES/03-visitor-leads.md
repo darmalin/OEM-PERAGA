@@ -39,6 +39,23 @@ System fields: `id` (UUID), `edition_id`, `telemarketing_status`, `registration_
 ## List across editions
 `GET /visitor-leads` without `edition_id` lists every edition the caller may read, each with its own scope (the Exhibition Type filter set to All). Items carry `edition_id`.
 
+## Search per field and stacked filters (owner request 2026-10-25)
+Like Frappe: a row of per-field inputs above the list, plus a **Filter** button that stacks conditions (all must match).
+- `filters` on `GET /visitor-leads` (and in export / assign-by-filter bodies) is a JSON list of `{"field", "op", "value"}`, at most 20.
+- Fields and operators are a fixed list in `visitors/rules.py` (`CONDITION_FIELDS`, `CONDITION_OPS`); anything else is `422`. Values are checked and typed per field, never put into SQL as text.
+
+| Kind | Fields | Operators |
+|---|---|---|
+| text | Name, Company, Email, Phone, Registration ID, Job Title, City | contains, equals, starts with, is set, not set |
+| choice | Status, Registration, QR, Channel, Source, Country, Attend, Type of Buyers, Lead Owner, Team | is, is not, is set, not set |
+| yes/no | Valid Lead, Invalid, B2B Matching | is |
+| date | Lead Date, Last Call, Next Follow-up, Created | between, before, after, is set, not set |
+| number | Call Attempts | equals, greater than, less than |
+
+- Text matches ignore case; `%` and `_` are literal; phone compares digits only (at least 4). Dates are calendar days in `report_timezone`. Required fields (Name, Registration ID, statuses) do not offer is set / not set.
+- `GET /visitor-leads/filter-options` gives countries, lead owners, and their teams found in the leads the caller can see.
+- `pg_trgm` GIN indexes (migration 0019) serve "contains" on name, company, email, phone, and Registration ID.
+
 ## Registration ID
 - Format: edition code + 6-digit counter, e.g. `IBTE2027000001`.
 - Generated from a per-edition counter row: `UPDATE edition_counters SET last_value = last_value + 1 WHERE edition_id = :id RETURNING last_value` inside the same transaction. Never `COUNT(*)`.
