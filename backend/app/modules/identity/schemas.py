@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -141,14 +142,29 @@ class RoleOut(BaseModel):
     name: str
     description: str
     is_system: bool
+    sort_order: int
     permissions: list[str]
+
+
+SortOrder = Annotated[int, Field(ge=1, le=9999)]
 
 
 class RoleCreateIn(BaseModel):
     code: str = Field(pattern=r"^[A-Z][A-Z0-9_]{1,99}$")
     name: str = Field(min_length=1, max_length=200)
     description: str = ""
+    sort_order: SortOrder = 100
     permissions: list[str] = []
+
+
+class RoleUpdateIn(BaseModel):
+    """Name, description, and list position. The code never changes (grants refer to it)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    sort_order: SortOrder | None = None
 
 
 class RolePermissionsIn(BaseModel):

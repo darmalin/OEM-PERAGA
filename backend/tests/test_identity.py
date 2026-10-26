@@ -280,3 +280,45 @@ async def test_exhibition_admin_cannot_edit_roles() -> None:
     assert (await admin.get("/api/v1/roles")).status_code == 200
     r = await admin.post("/api/v1/roles", json={"code": "X_ROLE", "name": "X"})
     assert r.status_code == 403
+
+
+async def test_roles_listed_by_order_highest_access_first() -> None:
+    _, admin = await actor(RoleGrant("SUPER_ADMIN"))
+    roles = (await admin.get("/api/v1/roles")).json()
+    baseline = [r["code"] for r in roles if r["is_system"]]
+    assert baseline == [
+        "SUPER_ADMIN", "EXHIBITION_ADMIN", "TELEMARKETING_MANAGER",
+        "TELEMARKETING_AGENT", "GATE_SUPERVISOR", "GATE_STAFF",
+    ]  # fmt: skip
+    assert [r["sort_order"] for r in roles] == sorted(r["sort_order"] for r in roles)
+
+    # Roles are shared by every test run's database: unique codes, baseline left untouched.
+    code = f"DESK_{uuid.uuid4().hex[:8].upper()}"
+    r = await admin.post("/api/v1/roles", json={"code": code, "name": "Desk", "sort_order": 3})
+    assert r.status_code == 201 and r.json()["sort_order"] == 3
+    role_id = r.json()["id"]
+    order = [x["code"] for x in (await admin.get("/api/v1/roles")).json()]
+    assert order.index("EXHIBITION_ADMIN") < order.index(code) < order.index("TELEMARKETING_AGENT")
+
+    r = await admin.patch(
+        f"/api/v1/roles/{role_id}", json={"sort_order": 50, "name": " Registration Desk "}
+    )
+    assert r.status_code == 200, r.text
+    assert (r.json()["sort_order"], r.json()["name"], r.json()["code"]) == (
+        50,
+        "Registration Desk",
+        code,
+    )
+    assert (
+        await admin.patch(f"/api/v1/roles/{role_id}", json={"sort_order": 0})
+    ).status_code == 422
+    assert (await admin.patch(f"/api/v1/roles/{role_id}", json={"code": "X"})).status_code == 422
+
+    edition = await make_edition()
+    _, scoped = await actor(RoleGrant("SUPER_ADMIN", "EDITION", edition.id))
+    _, edition_admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", edition.id))
+    assert (
+        await scoped.patch(f"/api/v1/roles/{role_id}", json={"sort_order": 1})
+    ).status_code == 403
+    r = await edition_admin.patch(f"/api/v1/roles/{role_id}", json={"sort_order": 1})
+    assert r.status_code == 403

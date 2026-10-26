@@ -105,6 +105,16 @@ BASELINE_ROLES: dict[str, tuple[str, list[str]]] = {
     "GATE_STAFF": ("Gate Staff", ["edition.read", "gate.scan"]),
 }
 
+# Default display order of the baseline roles, highest access first. Custom roles get 100.
+BASELINE_ROLE_ORDER: dict[str, int] = {
+    "SUPER_ADMIN": 1,
+    "EXHIBITION_ADMIN": 2,
+    "TELEMARKETING_MANAGER": 3,
+    "TELEMARKETING_AGENT": 4,
+    "GATE_SUPERVISOR": 5,
+    "GATE_STAFF": 6,
+}
+
 _COMMON_PASSWORDS = frozenset(
     {
         "password1234",

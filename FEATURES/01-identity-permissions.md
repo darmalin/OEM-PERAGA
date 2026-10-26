@@ -14,6 +14,9 @@ Seed every permission listed in §9.1 (`exhibition.*`, `edition.*`, `visitor.*`,
 ## Scopes
 `EDITION`, `TEAM`, `OWNED`, `GATE`. Super Admin may hold cross-edition scope.
 
+## Role order (owner request 2026-10-26)
+Roles carry `sort_order` (1–9999). Every role list and the Add Role picker show them by it, highest access first: Super Admin 1, Exhibition Admin 2, Telemarketing Manager 3, Telemarketing Agent 4, Gate Supervisor 5, Gate Staff 6; new roles default to 100. Global role managers change it, with name and description, through `PATCH /roles/{id}` (the code never changes).
+
 ## Admin boundaries (fixed 2026-10-25)
 Super Admin (global) is held by the development team. An Exhibition Admin manages users only inside their editions:
 - **No role above your own:** granting or revoking a role needs every permission of that role in the caller's own full-scope access for that edition (globally for cross-edition grants). Else `403 ROLE_ABOVE_YOURS`. Closes the hole where an edition admin could make anyone, themselves included, Super Admin of their edition.

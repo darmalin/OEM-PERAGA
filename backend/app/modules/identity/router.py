@@ -23,6 +23,7 @@ from app.modules.identity.schemas import (
     RoleCreateIn,
     RoleOut,
     RolePermissionsIn,
+    RoleUpdateIn,
     TeamIn,
     TeamMemberIn,
     TeamOut,
@@ -166,6 +167,16 @@ async def create_role(
     data: RoleCreateIn, session: Session, ctx: AuthContext = Depends(require("role.manage"))
 ) -> RoleOut:
     return await service.create_role(session, data, ctx)
+
+
+@router.patch("/roles/{role_id}", response_model=RoleOut)
+async def update_role(
+    role_id: uuid.UUID,
+    data: RoleUpdateIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("role.manage")),
+) -> RoleOut:
+    return await service.update_role(session, role_id, data, ctx)
 
 
 @router.put("/roles/{role_id}/permissions", response_model=RoleOut)

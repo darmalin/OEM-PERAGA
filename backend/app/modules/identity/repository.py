@@ -157,7 +157,9 @@ async def get_role_by_code(session: AsyncSession, code: str) -> Role | None:
 async def list_roles_with_permissions(
     session: AsyncSession,
 ) -> list[tuple[Role, list[str]]]:
-    roles = (await session.scalars(select(Role).order_by(Role.code))).all()
+    roles = (
+        await session.scalars(select(Role).order_by(Role.sort_order, Role.name, Role.code))
+    ).all()
     rows = await session.execute(
         select(RolePermission.role_id, Permission.code).join(
             Permission, Permission.id == RolePermission.permission_id

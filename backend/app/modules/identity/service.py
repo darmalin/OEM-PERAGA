@@ -45,6 +45,7 @@ from app.modules.identity.schemas import (
     RoleAssignmentOut,
     RoleCreateIn,
     RoleOut,
+    RoleUpdateIn,
     TeamOut,
     UserBrief,
     UserCreateIn,
@@ -521,6 +522,7 @@ def _role_out(role: Role, perms: list[str]) -> RoleOut:
         name=role.name,
         description=role.description,
         is_system=role.is_system,
+        sort_order=role.sort_order,
         permissions=perms,
     )
 
@@ -547,7 +549,13 @@ async def create_role(session: AsyncSession, data: RoleCreateIn, ctx: AuthContex
     require_global_role_manage(ctx)
     if await repo.get_role_by_code(session, data.code):
         raise Conflict("Role code already exists.", fields={"code": "Already exists."})
-    role = Role(code=data.code, name=data.name, description=data.description, is_system=False)
+    role = Role(
+        code=data.code,
+        name=data.name,
+        description=data.description,
+        sort_order=data.sort_order,
+        is_system=False,
+    )
     session.add(role)
     await session.flush()
     await repo.replace_role_permissions(
@@ -562,6 +570,33 @@ async def create_role(session: AsyncSession, data: RoleCreateIn, ctx: AuthContex
         after={"code": role.code, "name": role.name, "permissions": sorted(set(data.permissions))},
     )
     return _role_out(role, sorted(set(data.permissions)))
+
+
+async def update_role(
+    session: AsyncSession, role_id: uuid.UUID, data: RoleUpdateIn, ctx: AuthContext
+) -> RoleOut:
+    """Rename a role, edit its description, or move it in the lists."""
+    require_global_role_manage(ctx)
+    role = await repo.get_role(session, role_id)
+    if role is None:
+        raise NotFound("Role not found.")
+    fields = ("name", "description", "sort_order")
+    before = audit.snapshot(role, fields)
+    for key, value in data.model_dump(exclude_unset=True, exclude_none=True).items():
+        setattr(role, key, value.strip() if isinstance(value, str) else value)
+    await session.flush()
+    after = audit.snapshot(role, fields)
+    if after != before:
+        await audit.record(
+            session,
+            entity_type="role",
+            entity_id=role.id,
+            action="update",
+            before=before,
+            after=after,
+        )
+    perms = next(p for r, p in await repo.list_roles_with_permissions(session) if r.id == role.id)
+    return _role_out(role, perms)
 
 
 async def set_role_permissions(

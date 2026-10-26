@@ -2,12 +2,16 @@ import { api, call, type Schemas } from "@ems/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 import { PermissionMatrix } from "@/features/permission-matrix";
+import { ORDER_HELP, ORDER_RULES } from "@/features/role-order";
 import { canGlobal, meQuery, useMe } from "@/lib/auth";
+import { handleFormError } from "@/lib/forms";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { Button } from "@/ui/button";
-import { Section } from "@/ui/field";
+import { Field, FieldGrid, Section } from "@/ui/field";
+import { Input } from "@/ui/input";
 import { FormActions, Page, PageHead, Panel } from "@/ui/page";
 import { EmptyState, FormSkeleton } from "@/ui/states";
 
@@ -25,10 +29,45 @@ function Role() {
       <Panel>
         {roles.isPending || perms.isPending ? <FormSkeleton /> : !role || !perms.data ? <EmptyState title="Role not found." /> : (
           // Remount when the saved permissions change, so the editor starts from them.
-          <RoleEditor key={role.permissions.join()} role={role} permissions={perms.data} editable={canGlobal(me, "role.manage")} />
+          <>
+            <RoleDetails key={`${role.name}|${role.description}|${role.sort_order}`} role={role} editable={canGlobal(me, "role.manage")} />
+            <RoleEditor key={role.permissions.join()} role={role} permissions={perms.data} editable={canGlobal(me, "role.manage")} />
+          </>
         )}
       </Panel>
     </Page>
+  );
+}
+
+function RoleDetails({ role, editable }: { role: Schemas["RoleOut"]; editable: boolean }) {
+  const queryClient = useQueryClient();
+  const form = useForm<{ name: string; description: string; sort_order: string }>({
+    defaultValues: { name: role.name, description: role.description, sort_order: String(role.sort_order) },
+  });
+  const onSubmit = form.handleSubmit(async (v) => {
+    try {
+      await call(api.PATCH("/api/v1/roles/{role_id}", { params: { path: { role_id: role.id } }, body: { name: v.name.trim(), description: v.description.trim(), sort_order: Number(v.sort_order) } }));
+      await queryClient.invalidateQueries({ queryKey: ["roles"] });
+      notifySuccess("Role saved");
+    } catch (e) {
+      handleFormError(e, form.setError, ["name", "description", "sort_order"]);
+    }
+  });
+  return (
+    <form onSubmit={onSubmit} noValidate className="border-b border-line">
+      <Section title="Role">
+        <FieldGrid>
+          <Field label="Name" required error={form.formState.errors.name?.message}>{(p) => <Input {...p} readOnly={!editable} {...form.register("name", { required: "Enter a name." })} />}</Field>
+          <Field label="Description">{(p) => <Input {...p} readOnly={!editable} {...form.register("description")} />}</Field>
+          <Field label="No." required help={ORDER_HELP} error={form.formState.errors.sort_order?.message}>{(p) => <Input {...p} type="number" min={1} max={9999} inputMode="numeric" readOnly={!editable} {...form.register("sort_order", ORDER_RULES)} />}</Field>
+        </FieldGrid>
+      </Section>
+      {editable ? (
+        <FormActions>
+          <Button type="submit" variant="primary" disabled={!form.formState.isDirty} loading={form.formState.isSubmitting}>Save Role</Button>
+        </FormActions>
+      ) : null}
+    </form>
   );
 }
 

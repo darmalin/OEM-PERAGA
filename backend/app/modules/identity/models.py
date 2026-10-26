@@ -6,6 +6,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Integer,
     String,
     Text,
     func,
@@ -42,6 +43,8 @@ class Role(UUIDPk, Timestamps, Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Lists show roles by this number, highest access first (1 = Super Admin).
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
 
 
 class RolePermission(Base):
