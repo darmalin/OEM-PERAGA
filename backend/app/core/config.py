@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     login_max_attempts_per_ip: int = 30
     login_window_seconds: int = 15 * 60
     password_reset_ttl_seconds: int = 30 * 60
-    password_min_length: int = 12
+    password_min_length: int = 8  # owner decision 2026-10-26
 
     public_registration_per_ip_per_hour: int = 20
 

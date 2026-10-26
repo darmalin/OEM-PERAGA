@@ -5,7 +5,7 @@
 - Cookie: `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`. Rotate the session ID on login and privilege change.
 - Idle timeout and absolute timeout (values in config). Logout deletes the session server-side.
 - CSRF: token bound to the session, sent in `X-CSRF-Token` on every unsafe method, compared in constant time.
-- Passwords: Argon2id. Minimum length 12, check against a common-password list. No password in logs, audit, or responses.
+- Passwords: Argon2id. Minimum length 8 (owner decision 2026-10-26; `EMS_PASSWORD_MIN_LENGTH`), check against a common-password list. No password in logs, audit, or responses.
 - Login and password reset are rate limited; failed logins are audited.
 - Scanner devices authenticate with a device credential (hashed in DB), not with a user session, plus the gate staff's session for attribution when available.
 

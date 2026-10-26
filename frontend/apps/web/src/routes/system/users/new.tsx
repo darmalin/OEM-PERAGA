@@ -35,7 +35,7 @@ function NewUser() {
             <FieldGrid>
               <Field label="Full Name" required error={form.formState.errors.full_name?.message}>{(p) => <Input {...p} {...form.register("full_name", { required: "Enter a name." })} />}</Field>
               <Field label="Email" required error={form.formState.errors.email?.message}>{(p) => <Input {...p} type="email" autoComplete="off" {...form.register("email", { required: "Enter an email." })} />}</Field>
-              <Field label="Password" required help="At least 12 characters." error={form.formState.errors.password?.message}>{(p) => <Input {...p} type="password" autoComplete="new-password" {...form.register("password", { required: "Enter a password.", minLength: { value: 12, message: "Use at least 12 characters." } })} />}</Field>
+              <Field label="Password" required help="At least 8 characters." error={form.formState.errors.password?.message}>{(p) => <Input {...p} type="password" autoComplete="new-password" {...form.register("password", { required: "Enter a password.", minLength: { value: 8, message: "Use at least 8 characters." } })} />}</Field>
             </FieldGrid>
           </Section>
           <FormActions>

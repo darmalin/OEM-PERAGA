@@ -56,10 +56,25 @@ def test_seeded_roles_only_reference_known_permissions() -> None:
 
 @pytest.mark.parametrize(
     ("password", "ok"),
-    [("short", False), ("password1234", False), ("aaaaaaaaaaaaaaaa", False), (PASSWORD, True)],
+    [
+        ("short", False),
+        ("Seven7!", False),  # 7 characters
+        ("Pameran8", True),  # 8 is enough
+        ("password", False),
+        ("12345678", False),
+        ("password1234", False),
+        ("aaaaaaaaaaaaaaaa", False),
+        (PASSWORD, True),
+    ],
 )
 def test_password_policy(password: str, ok: bool) -> None:
-    assert (password_problems(password, 12) == []) is ok
+    assert (password_problems(password, 8) == []) is ok
+
+
+def test_password_minimum_is_eight() -> None:
+    from app.core.config import Settings
+
+    assert Settings().password_min_length == 8
 
 
 def _ctx(*grants: Grant) -> AuthContext:

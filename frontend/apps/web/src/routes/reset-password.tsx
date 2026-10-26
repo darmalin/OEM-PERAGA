@@ -35,8 +35,8 @@ function ResetPassword() {
           <p className="mt-3 text-[14px] text-muted">This link is incomplete. Open the link from the email again.</p>
         ) : (
           <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-4" noValidate>
-            <Field label="New password" required help="At least 12 characters." error={formState.errors.password?.message}>
-              {(p) => <Input {...p} type="password" autoComplete="new-password" {...register("password", { required: "Enter a password.", minLength: { value: 12, message: "Use at least 12 characters." } })} />}
+            <Field label="New password" required help="At least 8 characters." error={formState.errors.password?.message}>
+              {(p) => <Input {...p} type="password" autoComplete="new-password" {...register("password", { required: "Enter a password.", minLength: { value: 8, message: "Use at least 8 characters." } })} />}
             </Field>
             <Field label="Repeat new password" required error={formState.errors.confirm?.message}>
               {(p) => <Input {...p} type="password" autoComplete="new-password" {...register("confirm", { validate: (v) => v === watch("password") || "The passwords do not match." })} />}
