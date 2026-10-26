@@ -1,4 +1,6 @@
 import uuid
+from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
@@ -57,7 +59,6 @@ _EDITION_FIELDS = (
     "email_sender_name",
     "email_reply_to",
     "email_account_id",
-    "public_registration_open",
     "scanner_cache_ttl_minutes",
     "remarks",
     *EXHIBITOR_DATE_FIELDS,
@@ -389,3 +390,37 @@ async def edition_summaries(
     """Editions for /auth/me (edition switcher)."""
     rows, _ = await repo.list_editions(session, edition_ids, None, None, None, 0, 500)
     return [_edition_out(e, code) for e, code in rows]
+
+
+@dataclass(frozen=True)
+class PublicEditionInfo:
+    """What a public campaign form may show about its edition (no internal settings)."""
+
+    code: str
+    name: str
+    start_date: date
+    end_date: date
+    venue_name: str | None
+    city: str | None
+    country: str | None
+    timezone: str
+    active: bool
+
+
+async def public_edition_info(session: AsyncSession, edition_id: uuid.UUID) -> PublicEditionInfo:
+    """System use (campaign forms): the edition behind a valid campaign link."""
+    edition = await repo.get_edition(session, edition_id)
+    if edition is None:
+        raise NotFound("Edition not found.")
+    venue = await session.get(Venue, edition.venue_id) if edition.venue_id else None
+    return PublicEditionInfo(
+        code=edition.code,
+        name=edition.name,
+        start_date=edition.start_date,
+        end_date=edition.end_date,
+        venue_name=venue.name if venue else None,
+        city=edition.city,
+        country=edition.country,
+        timezone=edition.timezone,
+        active=edition.status == EditionStatus.ACTIVE,
+    )

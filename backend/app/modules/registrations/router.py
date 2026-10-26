@@ -1,23 +1,19 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Query, Request, status
+from fastapi import APIRouter, Depends, Header, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import idempotency
 from app.core.authorization import AuthContext, require
-from app.core.context import Source, source_var
 from app.core.db import get_session
 from app.core.pagination import Page
-from app.modules.identity.router import client_ip
 from app.modules.mail.schemas import EmailJobOut
 from app.modules.registrations import service
 from app.modules.registrations.schemas import (
     EmailTemplateIn,
     EmailTemplateOut,
     EmailTemplateParams,
-    PublicRegistrationAccepted,
-    PublicRegistrationIn,
     RegistrationDetailOut,
     RegistrationIn,
     RegistrationListParams,
@@ -26,7 +22,6 @@ from app.modules.registrations.schemas import (
 )
 
 router = APIRouter(tags=["registrations"])
-public_router = APIRouter(prefix="/public", tags=["public"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 IdempotencyHeader = Annotated[str | None, Header(alias="Idempotency-Key")]
 
@@ -109,15 +104,3 @@ async def create_email_template(
     ctx: AuthContext = Depends(require("edition.manage")),
 ) -> EmailTemplateOut:
     return await service.create_template_version(session, ctx, data)
-
-
-@public_router.post(
-    "/editions/{edition_code}/registrations",
-    response_model=PublicRegistrationAccepted,
-    status_code=status.HTTP_202_ACCEPTED,
-)
-async def public_registration(
-    edition_code: str, data: PublicRegistrationIn, request: Request, session: Session
-) -> PublicRegistrationAccepted:
-    source_var.set(Source.API)
-    return await service.public_register(session, edition_code, data, client_ip(request))

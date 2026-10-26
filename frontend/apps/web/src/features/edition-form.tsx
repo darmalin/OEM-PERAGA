@@ -1,10 +1,9 @@
 import { api, call } from "@ems/api";
 import { useQuery } from "@tanstack/react-query";
-import type { FieldErrors, UseFormRegister, UseFormSetValue, UseFormWatch } from "react-hook-form";
+import type { FieldErrors, UseFormRegister, UseFormWatch } from "react-hook-form";
 
 import { COUNTRIES } from "@/lib/countries";
 import { options } from "@/lib/labels";
-import { Checkbox } from "@/ui/checkbox";
 import { Field, FieldGrid, Section } from "@/ui/field";
 import { Input, Select, Textarea } from "@/ui/input";
 
@@ -24,7 +23,6 @@ export interface EditionValues {
   email_reply_to: string;
   /** Account QR emails go out through; empty = the default account. */
   email_account_id: string;
-  public_registration_open: boolean;
   scanner_cache_ttl_minutes: string;
   remarks: string;
   price_regular_from: string;
@@ -79,7 +77,6 @@ export function editionPayload(v: EditionValues) {
     email_sender_name: blank(v.email_sender_name),
     email_reply_to: blank(v.email_reply_to),
     email_account_id: blank(v.email_account_id),
-    public_registration_open: v.public_registration_open,
     scanner_cache_ttl_minutes: v.scanner_cache_ttl_minutes ? Number(v.scanner_cache_ttl_minutes) : null,
     ...Object.fromEntries(EXHIBITOR_FIELDS.map((f) => [f, blank(v[f])])),
   };
@@ -88,14 +85,12 @@ export function editionPayload(v: EditionValues) {
 export function EditionFields({
   register,
   watch,
-  setValue,
   errors,
   creating,
   readOnly,
 }: {
   register: UseFormRegister<EditionValues>;
   watch: UseFormWatch<EditionValues>;
-  setValue: UseFormSetValue<EditionValues>;
   errors: FieldErrors<EditionValues>;
   creating: boolean;
   readOnly?: boolean;
@@ -219,13 +214,6 @@ export function EditionFields({
           <Field label="Reply-To Email" error={errors.email_reply_to?.message}>
             {(p) => <Input {...p} type="email" readOnly={readOnly} {...register("email_reply_to")} />}
           </Field>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-label">Website registration</span>
-            <label className="flex h-8 items-center gap-2 text-[14px]">
-              <Checkbox checked={watch("public_registration_open")} disabled={readOnly} onCheckedChange={(c) => setValue("public_registration_open", c === true, { shouldDirty: true })} />
-              Open while the edition is Active
-            </label>
-          </div>
           <Field label="Scanner Cache Lifetime (minutes)" help="Empty uses the system default (12 hours)." error={errors.scanner_cache_ttl_minutes?.message}>
             {(p) => <Input {...p} type="number" min={5} max={10080} readOnly={readOnly} {...register("scanner_cache_ttl_minutes")} />}
           </Field>

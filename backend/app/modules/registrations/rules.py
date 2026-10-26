@@ -14,6 +14,7 @@ class RegistrationChannel(StrEnum):
     TELEMARKETING = "TELEMARKETING"
     API = "API"
     IMPORT = "IMPORT"
+    CAMPAIGN = "CAMPAIGN"
 
 
 # Channels a logged-in user may pick; WEBSITE and IMPORT are set by their own flows.

@@ -21,6 +21,7 @@ from app.modules.visitors.models import (
     VisitorLead,
 )
 from app.modules.visitors.rules import (
+    UTM_FIELDS,
     CustomFieldDef,
     CustomFieldType,
     LeadSource,
@@ -70,6 +71,7 @@ AUDIT_FIELDS = (
     "exhibition_type",
     "source",
     "lead_source_id",
+    "campaign_link_id",
     "lead_owner_id",
     "product_categories",
     "comment",
@@ -154,6 +156,15 @@ async def scoped_lead_ids(
 ) -> list[uuid.UUID]:
     """Lead IDs visible in the scope, by explicit IDs or by list filter."""
     return await repo.scoped_lead_ids(session, scope, lead_ids, filters, limit)
+
+
+async def lead_source_active(session: AsyncSession, source_id: uuid.UUID) -> bool:
+    found = await repo.get_lead_source(session, source_id)
+    return found is not None and found.is_active
+
+
+async def lead_source_names(session: AsyncSession) -> dict[uuid.UUID, str]:
+    return {s.id: s.name for s in await repo.list_lead_sources(session, True)}
 
 
 async def unassigned_import_lead_ids(
@@ -380,8 +391,13 @@ async def insert_lead(
     external_source: str | None = None,
     external_id: str | None = None,
     import_job_id: uuid.UUID | None = None,
+    campaign_link_id: uuid.UUID | None = None,
+    utm: dict[str, str] | None = None,
 ) -> VisitorLead:
-    """Create a lead after normalization and duplicate checks. Used by API, import, website."""
+    """Create a lead after normalization and duplicate checks. Used by API, import, campaigns.
+
+    campaign_link_id and utm are system fields: set here by the campaign module, never by
+    the person filling a form (they are not part of LeadFields)."""
     await exhibitions_service.ensure_writable(session, edition_id)
     clean = await normalize_fields(session, edition_id, values)
     await _raise_if_duplicate(
@@ -395,6 +411,8 @@ async def insert_lead(
         external_source=clean_text(external_source),
         external_id=clean_text(external_id),
         import_job_id=import_job_id,
+        campaign_link_id=campaign_link_id,
+        **{k: clean_text(v) for k, v in (utm or {}).items() if k in UTM_FIELDS},
         created_by=actor,
         updated_by=actor,
         **{k: v for k, v in clean.items() if v is not None or k == "custom_fields"},

@@ -35,7 +35,9 @@ class Settings(BaseSettings):
     password_reset_ttl_seconds: int = 30 * 60
     password_min_length: int = 8  # owner decision 2026-10-26
 
-    public_registration_per_ip_per_hour: int = 20
+    # Campaign link forms (public, no login).
+    campaign_submissions_per_ip_per_hour: int = 20
+    campaign_submissions_per_link_per_hour: int = 1000
 
     s3_endpoint_url: str | None = None
     s3_access_key: SecretStr = SecretStr("")

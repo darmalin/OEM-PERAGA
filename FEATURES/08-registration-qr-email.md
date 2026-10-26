@@ -3,9 +3,9 @@
 Spec §7. Open decisions D1, D2.
 
 ## Registration
-- Owner decision 2026-10-22: every lead is registered when it is created (manual, Excel import, API, website), so it can enter the gate whether or not telemarketing worked it. The channel follows the lead source. No QR email is sent for these, except the public website form; staff send it with Resend QR Email.
+- Owner decision 2026-10-22: every lead is registered when it is created (manual, Excel import, API, website), so it can enter the gate whether or not telemarketing worked it. The channel follows the lead source. No QR email is sent for these (campaign link forms included); staff send it with Resend QR Email.
 - Leads created before that decision: `python -m app.cli register-backlog` registers them (no email), skipping archived editions.
-- Channels: Website (public API), Admin manual, Telemarketing, API, Excel import.
+- Channels: Campaign link (public form, FEATURES/12), Admin manual, Telemarketing, API, Excel import. Website is kept only for older rows.
 - QR issued right after successful registration; does not wait for telemarketing.
 - `visitor_registrations`: `visitor_lead_id`, `edition_id`, `channel`, `status`, `registered_at`, `idempotency_key`. Unique `(edition_id, visitor_lead_id)` for an active registration.
 - `POST /visitor-registrations` requires an `Idempotency-Key` header; same key + same body returns the original result.
@@ -32,9 +32,8 @@ Since only the hash is stored, the email job must receive the raw token at issue
 - Retry with backoff; retry never creates a second registration.
 - Resend button (needs `registration.resend_qr`).
 
-## Public website registration
-- Rate limit per IP, honeypot field + optional captcha, same duplicate rules.
-- Duplicate on public form returns a neutral message (no confirmation that an email exists).
+## Public registration
+Replaced by campaign links (FEATURES/12, 2026-10-26): the website endpoint by edition code is removed.
 
 ## Tasks
 - [ ] Tables, outbox table `outbox_events`, dispatcher task.

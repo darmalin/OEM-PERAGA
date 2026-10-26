@@ -7,7 +7,6 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select, text
 
-from app.core.config import get_settings
 from app.core.crypto import decrypt, sha256_hex
 from app.core.db import get_sessionmaker
 from app.core.email import (
@@ -417,83 +416,3 @@ async def test_template_html_is_escaped(mailbox: MemorySender) -> None:
     await run_email_events()
     assert "<script>" not in mailbox.outbox[0].html
     assert "&lt;script&gt;" in mailbox.outbox[0].html
-
-
-# --- public website registration ------------------------------------------------------------
-
-
-async def open_edition() -> Edition:
-    edition = await make_edition()
-    async with get_sessionmaker()() as session, session.begin():
-        row = await session.get(Edition, edition.id)
-        assert row is not None
-        row.public_registration_open = True
-    return edition
-
-
-def public_url(edition: Edition) -> str:
-    return f"/api/v1/public/editions/{edition.code}/registrations"
-
-
-async def test_public_registration_creates_lead_and_registration(
-    client: AsyncClient, mailbox: MemorySender
-) -> None:
-    edition = await open_edition()
-    r = await client.post(
-        public_url(edition), json={"first_name": "Web", "email": "Web-001@Example.test"}
-    )
-    assert r.status_code == 202, r.text
-    assert r.json()["status"] == "RECEIVED"
-    async with get_sessionmaker()() as session:
-        lead = await session.scalar(select(VisitorLead))
-        reg = await session.scalar(select(VisitorRegistration))
-    assert lead is not None and lead.source == "WEBSITE"
-    assert lead.email_normalized == "web-001@example.test"
-    assert reg is not None and reg.channel == "WEBSITE"
-    await run_email_events()
-    assert mailbox.outbox[0].to == "Web-001@Example.test"
-
-
-async def test_public_duplicate_gets_same_answer(client: AsyncClient) -> None:
-    edition = await open_edition()
-    body = {"first_name": "Web", "email": "web-002@example.test"}
-    first = await client.post(public_url(edition), json=body)
-    second = await client.post(public_url(edition), json={**body, "first_name": "Other"})
-    assert first.status_code == second.status_code == 202
-    assert first.json() == second.json()
-    assert await scalar("SELECT count(*) FROM visitor_leads") == 1
-    assert await scalar("SELECT count(*) FROM visitor_registrations") == 1
-
-
-async def test_public_closed_edition_and_honeypot(client: AsyncClient) -> None:
-    closed = await make_edition()
-    r = await client.post(public_url(closed), json={"first_name": "Web", "email": "a@example.test"})
-    assert r.status_code == 404
-    assert r.json()["error"]["code"] == "REGISTRATION_CLOSED"
-    r = await client.post(
-        "/api/v1/public/editions/NOPE2027/registrations", json={"first_name": "x"}
-    )
-    assert r.status_code == 404
-
-    edition = await open_edition()
-    r = await client.post(
-        public_url(edition),
-        json={"first_name": "Bot", "email": "bot@example.test", "contact_fax": "123"},
-    )
-    assert r.status_code == 202
-    assert await scalar("SELECT count(*) FROM visitor_leads") == 0
-
-
-async def test_public_validation_and_rate_limit(client: AsyncClient) -> None:
-    edition = await open_edition()
-    r = await client.post(public_url(edition), json={"first_name": "No contact"})
-    assert r.status_code == 422
-    limit = get_settings().public_registration_per_ip_per_hour
-    for i in range(limit - 1):
-        await client.post(
-            public_url(edition), json={"first_name": "Web", "email": f"web-{i:03d}@example.test"}
-        )
-    r = await client.post(
-        public_url(edition), json={"first_name": "Web", "email": "web-999@example.test"}
-    )
-    assert r.status_code == 429

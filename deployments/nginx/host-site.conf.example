@@ -2,6 +2,9 @@
 # Copy to /etc/nginx/sites-available/<name>, then replace:
 #   DOMAIN  the address people open, e.g. ems.example.com / staging.ems.example.com
 #   PORT    the port from EMS_HTTP_PORT in that clone's .env (staging 8080, prod 8081)
+# X-Forwarded-For is SET to the visitor's address, never appended: the app takes the first
+# entry as the client, so appending would let anyone fake their IP past the rate limits
+# (login, campaign forms).
 # Start with only the port-80 server; `certbot --nginx -d DOMAIN` adds the certificate and
 # the redirect, then add the headers below to the 443 server it creates.
 
@@ -16,7 +19,7 @@ server {
         proxy_pass http://127.0.0.1:PORT;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_hide_header Permissions-Policy;
         add_header Permissions-Policy "camera=(self), microphone=(), geolocation=()" always;
@@ -26,7 +29,7 @@ server {
         proxy_pass http://127.0.0.1:PORT;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 60s;
     }

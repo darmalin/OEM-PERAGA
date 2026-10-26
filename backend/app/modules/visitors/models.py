@@ -62,7 +62,7 @@ class VisitorLead(UUIDPk, Timestamps, Versioned, Base):
         ),
         CheckConstraint("NOT (is_valid_lead AND is_invalid)", name="valid_xor_invalid"),
         CheckConstraint(
-            _in("source", ["EXCEL", "API", "MANUAL", "WEBSITE", "TELEMARKETING"]),
+            _in("source", ["EXCEL", "API", "MANUAL", "WEBSITE", "TELEMARKETING", "CAMPAIGN"]),
             name="source_valid",
         ),
         CheckConstraint(
@@ -158,6 +158,15 @@ class VisitorLead(UUIDPk, Timestamps, Versioned, Base):
     import_job_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("import_jobs.id"), index=True
     )
+    # Campaign link the visitor registered through, and the UTM tags of the URL they opened.
+    campaign_link_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("campaign_links.id"), index=True
+    )
+    utm_source: Mapped[str | None] = mapped_column(String(200))
+    utm_medium: Mapped[str | None] = mapped_column(String(200))
+    utm_campaign: Mapped[str | None] = mapped_column(String(200))
+    utm_term: Mapped[str | None] = mapped_column(String(200))
+    utm_content: Mapped[str | None] = mapped_column(String(200))
     custom_fields: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, server_default="{}", default=dict
     )

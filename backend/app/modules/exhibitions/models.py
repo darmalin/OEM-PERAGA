@@ -71,7 +71,6 @@ class Edition(UUIDPk, Timestamps, Versioned, Base):
     # Account QR emails go out through (mail module); NULL or inactive means the default account.
     email_account_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("email_accounts.id"))
     # Registration settings.
-    public_registration_open: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Gate settings: offline cache lifetime override (D6), NULL = system default.
     scanner_cache_ttl_minutes: Mapped[int | None] = mapped_column(Integer)
     # Free text shown with the edition (old system "Remarks").

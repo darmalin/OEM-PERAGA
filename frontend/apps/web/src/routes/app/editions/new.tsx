@@ -24,7 +24,7 @@ function NewEdition() {
     defaultValues: {
       exhibition_id: exhibition_id ?? "", year: String(new Date().getFullYear() + 1), name: "", start_date: "", end_date: "", venue_id: "", country: "",
       city: "", timezone: "Asia/Jakarta", default_currency: "IDR", status: "DRAFT", email_sender_name: "", email_reply_to: "", email_account_id: "",
-      public_registration_open: false, scanner_cache_ttl_minutes: "", ...exhibitorValues(),
+      scanner_cache_ttl_minutes: "", ...exhibitorValues(),
     },
   });
   const onSubmit = form.handleSubmit(async (v) => {
@@ -44,7 +44,7 @@ function NewEdition() {
       <PageHead title="New Edition" meta="The edition code is the exhibition code plus the year." back={{ to: "/app/editions", label: "Editions" }} />
       <form onSubmit={onSubmit} noValidate>
         <Panel>
-          <EditionFields register={form.register} watch={form.watch} setValue={form.setValue} errors={form.formState.errors} creating />
+          <EditionFields register={form.register} watch={form.watch} errors={form.formState.errors} creating />
           <FormActions>
             <Button asChild variant="ghost"><Link to="/app/editions">Cancel</Link></Button>
             <Button type="submit" variant="primary" loading={form.formState.isSubmitting}>Save Edition</Button>

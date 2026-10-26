@@ -17,6 +17,7 @@ class LeadSource(StrEnum):
     MANUAL = "MANUAL"
     WEBSITE = "WEBSITE"
     TELEMARKETING = "TELEMARKETING"
+    CAMPAIGN = "CAMPAIGN"  # public form behind a campaign link
 
 
 class Gender(StrEnum):
@@ -257,6 +258,10 @@ CONDITION_FIELDS: dict[str, ConditionKind] = {
     "qr_status": ConditionKind.CHOICE,
     "source": ConditionKind.CHOICE,
     "lead_source_id": ConditionKind.CHOICE,
+    "campaign_link_id": ConditionKind.CHOICE,
+    "utm_source": ConditionKind.TEXT,
+    "utm_medium": ConditionKind.TEXT,
+    "utm_campaign": ConditionKind.TEXT,
     "country": ConditionKind.CHOICE,
     "attend": ConditionKind.CHOICE,
     "buyer_type": ConditionKind.CHOICE,
@@ -293,5 +298,8 @@ CHOICE_ENUMS: dict[str, type[StrEnum]] = {
     "attend": Attend,
     "buyer_type": BuyerType,
 }
-CHOICE_IDS = {"lead_source_id", "lead_owner_id", "team_id"}
+CHOICE_IDS = {"lead_source_id", "lead_owner_id", "team_id", "campaign_link_id"}
+
+# UTM parameters a campaign form keeps on the lead (from the link people opened).
+UTM_FIELDS = ("utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content")
 MAX_CONDITIONS = 20

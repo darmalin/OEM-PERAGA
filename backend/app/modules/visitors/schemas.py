@@ -138,6 +138,12 @@ class LeadOut(BaseModel):
     next_followup_at: datetime | None
     external_source: str | None
     external_id: str | None
+    campaign_link_id: uuid.UUID | None
+    utm_source: str | None
+    utm_medium: str | None
+    utm_campaign: str | None
+    utm_term: str | None
+    utm_content: str | None
     custom_fields: dict[str, Any]
     created_by: uuid.UUID | None
     updated_by: uuid.UUID | None
@@ -160,6 +166,7 @@ class LeadListItem(BaseModel):
     country: str | None
     source: LeadSource
     lead_source_id: uuid.UUID | None
+    campaign_link_id: uuid.UUID | None
     lead_owner_id: uuid.UUID | None
     lead_owner_name: str | None = None
     telemarketing_status: TelemarketingStatus
@@ -297,6 +304,7 @@ class LeadFilters(BaseModel):
     unassigned: bool | None = None
     source: LeadSource | None = None
     lead_source_id: uuid.UUID | None = None
+    campaign_link_id: uuid.UUID | None = None
     country: str | None = Field(default=None, max_length=2)
     is_valid_lead: bool | None = None
     is_invalid: bool | None = None

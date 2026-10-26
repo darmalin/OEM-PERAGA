@@ -119,7 +119,6 @@ class EditionIn(BaseModel):
     email_sender_name: str | None = Field(default=None, max_length=200)
     email_reply_to: Email | None = None
     email_account_id: uuid.UUID | None = None
-    public_registration_open: bool = False
     scanner_cache_ttl_minutes: int | None = Field(default=None, ge=5, le=7 * 24 * 60)
     remarks: str | None = Field(default=None, max_length=2000)
     price_regular_from: date | None = None
@@ -152,7 +151,6 @@ class EditionUpdateIn(BaseModel):
     email_sender_name: str | None = Field(default=None, max_length=200)
     email_reply_to: Email | None = None
     email_account_id: uuid.UUID | None = None
-    public_registration_open: bool | None = None
     scanner_cache_ttl_minutes: int | None = Field(default=None, ge=5, le=7 * 24 * 60)
     remarks: str | None = Field(default=None, max_length=2000)
     price_regular_from: date | None = None
@@ -186,7 +184,6 @@ class EditionOut(BaseModel):
     email_sender_name: str | None
     email_reply_to: str | None
     email_account_id: uuid.UUID | None
-    public_registration_open: bool
     scanner_cache_ttl_minutes: int | None
     remarks: str | None
     price_regular_from: date | None

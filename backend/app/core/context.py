@@ -11,6 +11,7 @@ class Source(StrEnum):
     IMPORT = "IMPORT"
     WORKER = "WORKER"
     SCANNER = "SCANNER"
+    PUBLIC = "PUBLIC"  # campaign forms: no login
 
 
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)

@@ -1,11 +1,10 @@
 import uuid
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.pagination import PageParams
-from app.modules.exhibitions.schemas import Country
 from app.modules.mail.rules import EmailJobStatus
 from app.modules.mail.schemas import EmailJobOut
 from app.modules.registrations.rules import (
@@ -14,7 +13,6 @@ from app.modules.registrations.rules import (
     RegistrationState,
 )
 from app.modules.visitors.rules import QrStatus
-from app.modules.visitors.schemas import Website
 
 StaffChannel = Literal["ADMIN", "TELEMARKETING", "API"]
 # Only the QR email has an editable template; system emails are written in code.
@@ -112,30 +110,3 @@ class EmailTemplateParams(BaseModel):
 
     edition_id: uuid.UUID | None = None
     template_key: TemplateKey = "QR_CONFIRMATION"
-
-
-class PublicRegistrationIn(BaseModel):
-    """Website form. `contact_fax` is a honeypot: the form hides it, bots fill it."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    first_name: str = Field(min_length=1, max_length=200)
-    email: str | None = Field(default=None, max_length=320)
-    phone: str | None = Field(default=None, max_length=50)
-    company_name: str | None = Field(default=None, max_length=300)
-    job_title: str | None = Field(default=None, max_length=200)
-    country: Country | None = None
-    city: str | None = Field(default=None, max_length=120)
-    website: Website = Field(default=None, max_length=500)
-    product_categories: str | None = Field(default=None, max_length=2000)
-    custom_fields: dict[str, Any] | None = None
-    contact_fax: str | None = Field(default=None, max_length=100)
-
-
-class PublicRegistrationAccepted(BaseModel):
-    """Same answer for new and duplicate visitors, so the form never reveals who exists."""
-
-    status: Literal["RECEIVED"] = "RECEIVED"
-    message: str = (
-        "Thank you. If the details are valid, a confirmation email with your QR code will follow."
-    )

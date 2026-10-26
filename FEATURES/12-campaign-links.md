@@ -1,0 +1,34 @@
+# 12 — Campaign links (public lead forms)
+
+Owner request 2026-10-26. Each edition has any number of campaign links ("IG October", "WA blast", "Poster Hall A"). Anyone with a link fills a public form; the visitor becomes a lead of that edition.
+
+## Decisions
+- Many links per edition; the lead keeps its **campaign** (`campaign_link_id`) and the **UTM** tags of the URL opened (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`). Both filterable on Visitor Leads and exported.
+- New leads are **registered with an active QR, but no email is sent** and **nobody is assigned**: Resend QR Email and Assign To stay manual.
+- The edition's custom fields appear on the form; their rules apply.
+- The old website endpoint `/public/editions/{code}/registrations` and the edition's "Website registration" flag are removed (unused, guessable by edition code, sent email at once).
+- Per link: Google Tag Manager container ID only (`GTM-XXXX`, no free script field). Same domain as the app (option B): the form page gets its own strict CSP (phase 3). Test campaign links in a private window, not one logged in to EMS.
+- Form in English and Indonesian, switchable by the visitor (phase 3); standard consent text, versioned (`CONSENT_VERSION`).
+
+## Link
+`name` (unique per edition), `token` (12 random URL-safe characters; **New URL** replaces it and the old one stops), `lead_source_id` (master Source given to its leads), `is_active`, `starts_at`/`ends_at`, `max_submissions`, `submission_count`, `gtm_container_id`. State: OPEN, INACTIVE, NOT_STARTED, ENDED, FULL, EDITION_CLOSED (edition not Active).
+
+## API
+- Admin (`edition.manage`; list also `visitor.read`): `GET/POST /campaign-links`, `PATCH /campaign-links/{id}`, `POST /campaign-links/{id}/new-url`. Every change is audited (GTM included).
+- Public, no login: `GET /public/campaigns/{token}` (edition name, dates, venue; custom fields; GTM ID; a signed `ticket`), `POST /public/campaigns/{token}/registrations`.
+
+## Public form safety
+| Risk | Rule |
+|---|---|
+| Guessing links | Random token; unknown and closed links both answer `404 CAMPAIGN_CLOSED`. |
+| Bots | Honeypot field; the signed ticket must be 3 s to 2 h old; per IP and per link hourly limits (`EMS_CAMPAIGN_SUBMISSIONS_PER_IP_PER_HOUR`, `..._PER_LINK_PER_HOUR`). |
+| Probing who exists | New, duplicate, and bot posts all get `202 {"status":"RECEIVED"}`. |
+| Setting internal fields | Body allows only the form fields (`extra="forbid"`); owner, status, source are refused. |
+| Consent | `consent: true` required; its version is stored with the submission. |
+| Abuse review | `campaign_submissions`: time, outcome (CREATED / DUPLICATE / BOT), keyed hash of the IP (never the address). |
+| Faked IPs | The host nginx must **set** `X-Forwarded-For $remote_addr` (deployments/nginx/host-site.conf.example). |
+
+## Phases
+1. Backend (this file's API and rules, migration 0022, tests `tests/test_campaigns.py`).
+2. Admin UI: Campaign Links on the edition page (copy link, QR for posters, edit, new URL); Campaign and UTM on Visitor Leads.
+3. Public form page `/r/{token}` with its own CSP, GTM data layer events (`campaign_form_view`, `campaign_form_start`, `campaign_form_submit`, no personal data), UTM from the URL, EN/ID switch.

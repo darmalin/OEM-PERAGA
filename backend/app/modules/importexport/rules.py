@@ -139,6 +139,12 @@ EXPORT_COLUMNS: list[tuple[str, str]] = [
     ("buyer_type", "Type of Buyers"),
     ("registration_status", "Registration Status"),
     ("qr_status", "QR Status"),
+    ("campaign", "Campaign"),
+    ("utm_source", "UTM Source"),
+    ("utm_medium", "UTM Medium"),
+    ("utm_campaign", "UTM Campaign"),
+    ("utm_term", "UTM Term"),
+    ("utm_content", "UTM Content"),
     ("updated_at", "Updated At"),
 ]
 

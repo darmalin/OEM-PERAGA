@@ -24,6 +24,7 @@ from app.core.errors import NotFound
 from app.core.excel import WorkbookWriter
 from app.core.pagination import Page
 from app.core.storage import get_storage, new_object_key
+from app.modules.campaigns import service as campaigns_service
 from app.modules.identity import service as identity_service
 from app.modules.importexport.models import ExportJob
 from app.modules.importexport.rules import EXPORT_COLUMNS, ExportKind, ExportStatus, display_value
@@ -218,13 +219,20 @@ async def _visitor_sheet(
     writer.sheet(
         "Visitor Leads", [label for _, label in EXPORT_COLUMNS] + [d.label for d in custom]
     )
+    campaigns = await campaigns_service.link_names(session, job.edition_id)
     after: tuple[datetime, uuid.UUID] | None = None
     count = 0
     while batch := await visitors_service.export_batch(session, scope, filters, after, BATCH):
         for lead, owner in batch:
+            computed = {
+                "lead_owner": owner,
+                "campaign": campaigns.get(lead.campaign_link_id) if lead.campaign_link_id else None,
+            }
             row = [
                 _local(
-                    display_value(field, owner if field == "lead_owner" else getattr(lead, field)),
+                    display_value(
+                        field, computed[field] if field in computed else getattr(lead, field)
+                    ),
                     tz,
                 )
                 for field, _ in EXPORT_COLUMNS

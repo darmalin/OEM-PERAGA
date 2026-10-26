@@ -32,7 +32,7 @@ class VisitorRegistration(UUIDPk, Timestamps, Versioned, Base):
         ),
         Index("ix_visitor_registrations_edition_registered", "edition_id", "registered_at"),
         CheckConstraint(
-            "channel IN ('WEBSITE', 'ADMIN', 'TELEMARKETING', 'API', 'IMPORT')",
+            "channel IN ('WEBSITE', 'ADMIN', 'TELEMARKETING', 'API', 'IMPORT', 'CAMPAIGN')",
             name="channel_valid",
         ),
         CheckConstraint("status IN ('REGISTERED', 'CANCELLED')", name="status_valid"),

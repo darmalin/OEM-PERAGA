@@ -6,6 +6,7 @@ from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import install_middleware
 from app.modules.audit import router as audit
+from app.modules.campaigns import router as campaigns
 from app.modules.checkin import router as checkin
 from app.modules.exhibitions import router as exhibitions
 from app.modules.identity import router as identity
@@ -31,7 +32,8 @@ def build_api_router() -> APIRouter:
     router.include_router(visitors.router)
     router.include_router(registrations.router)
     router.include_router(mail.router)
-    router.include_router(registrations.public_router)
+    router.include_router(campaigns.router)
+    router.include_router(campaigns.public_router)
     router.include_router(checkin.router)
     router.include_router(checkin.device_router)
     router.include_router(reporting.router)

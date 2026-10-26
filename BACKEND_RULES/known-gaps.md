@@ -19,8 +19,7 @@ Priority: **P1** must be closed before production, **P2** before the first event
 |---|---|---|---|---|
 | S1 | P1 | No dependency vulnerability scan has been run. `pip-audit` is not in the image. | CI, `pyproject.toml` | Add `pip-audit` (or equivalent) to the dev group and CI; fix or document findings. |
 | S2 | P1 | No HSTS / TLS config. nginx listens on plain port 80. | `deployments/nginx/default.conf` | Configure TLS at the terminator in front of nginx (or in nginx) with HSTS. |
-| S3 | P1 | Public website registration has no CORS allowance for the website origin, so a browser form on another domain cannot call it. | `app/main.py`, `/api/v1/public/*` | CORS only for the configured website origin, only on `/public/*` (BACKEND_RULES/security-permissions.md). |
-| S4 | P2 | Public registration has rate limit + honeypot but no captcha. | `app/modules/registrations/service.py` `public_register` | Optional captcha check behind a setting, verified server-side. |
+| S4 | P2 | Campaign forms have rate limits, a honeypot, and a signed fill-time ticket, but no captcha. | `app/modules/campaigns/service.py` `public_submit` | Optional captcha check behind a setting, verified server-side. |
 | S5 | P2 | nginx sends `Permissions-Policy: camera=()`, which will block the scanner PWA camera once it is served from nginx. | `deployments/nginx/default.conf` | `camera=(self)` on the scanner location only. |
 | S6 | P2 | No penetration test or external security review yet. | | Schedule before go-live. |
 

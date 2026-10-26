@@ -9,9 +9,8 @@ import structlog
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core import audit, idempotency, ratelimit
+from app.core import audit, idempotency
 from app.core.authorization import AuthContext, Scope
-from app.core.config import get_settings
 from app.core.context import current_actor_id
 from app.core.crypto import encrypt
 from app.core.errors import Conflict, NotFound, PermissionDenied, ValidationFailed
@@ -40,8 +39,6 @@ from app.modules.registrations.schemas import (
     CredentialOut,
     EmailTemplateIn,
     EmailTemplateOut,
-    PublicRegistrationAccepted,
-    PublicRegistrationIn,
     RegistrationDetailOut,
     RegistrationIn,
     RegistrationListParams,
@@ -243,6 +240,7 @@ CHANNEL_FOR_SOURCE = {
     LeadSource.API: RegistrationChannel.API,
     LeadSource.WEBSITE: RegistrationChannel.WEBSITE,
     LeadSource.TELEMARKETING: RegistrationChannel.TELEMARKETING,
+    LeadSource.CAMPAIGN: RegistrationChannel.CAMPAIGN,
 }
 
 
@@ -456,36 +454,6 @@ async def create_template_version(
 
 
 # --- public website registration -----------------------------------------------------------
-
-
-async def public_register(
-    session: AsyncSession, edition_code: str, data: PublicRegistrationIn, client_ip: str
-) -> PublicRegistrationAccepted:
-    """POST /public/editions/{code}/registrations. Neutral answer for duplicates (FEATURES/08)."""
-    s = get_settings()
-    await ratelimit.hit(f"public_reg:ip:{client_ip}", s.public_registration_per_ip_per_hour, 3600)
-    accepted = PublicRegistrationAccepted()
-    if data.contact_fax:
-        logger.info("public_registration_honeypot", ip=client_ip)
-        return accepted
-    edition = await exhibitions_service.get_edition_by_code(session, edition_code)
-    if (
-        edition is None
-        or edition.status != EditionStatus.ACTIVE
-        or not edition.public_registration_open
-    ):
-        raise NotFound("Registration is not open for this event.", code="REGISTRATION_CLOSED")
-    values = data.model_dump(exclude_unset=True, exclude={"contact_fax"})
-    try:
-        lead = await visitors_service.insert_lead(
-            session, edition.id, values, source=LeadSource.WEBSITE
-        )
-    except visitors_service.DuplicateVisitor:
-        # Do not reveal that the email or phone is already known.
-        logger.info("public_registration_duplicate", edition=edition.code)
-        return accepted
-    await register_lead(session, lead, RegistrationChannel.WEBSITE)
-    return accepted
 
 
 # --- lookups for the gate module (callers check device or user scope first) -----------------

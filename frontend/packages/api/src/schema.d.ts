@@ -1219,7 +1219,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/public/editions/{edition_code}/registrations": {
+    "/api/v1/campaign-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Links */
+        get: operations["list_links_api_v1_campaign_links_get"];
+        put?: never;
+        /** Create Link */
+        post: operations["create_link_api_v1_campaign_links_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campaign-links/{link_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1228,8 +1246,59 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Public Registration */
-        post: operations["public_registration_api_v1_public_editions__edition_code__registrations_post"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Link */
+        patch: operations["update_link_api_v1_campaign_links__link_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/campaign-links/{link_id}/new-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** New Url */
+        post: operations["new_url_api_v1_campaign_links__link_id__new_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/campaigns/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public Form */
+        get: operations["public_form_api_v1_public_campaigns__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/campaigns/{token}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Public Submit */
+        post: operations["public_submit_api_v1_public_campaigns__token__registrations_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2095,6 +2164,103 @@ export interface components {
             b2b_matching?: boolean | null;
             buyer_type?: components["schemas"]["BuyerType"] | null;
         };
+        /** CampaignLinkIn */
+        CampaignLinkIn: {
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /** Name */
+            name: string;
+            /** Lead Source Id */
+            lead_source_id?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Starts At */
+            starts_at?: string | null;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Max Submissions */
+            max_submissions?: number | null;
+            /** Gtm Container Id */
+            gtm_container_id?: string | null;
+        };
+        /** CampaignLinkOut */
+        CampaignLinkOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /** Name */
+            name: string;
+            /** Token */
+            token: string;
+            /**
+             * Url
+             * @default
+             */
+            url: string;
+            /** Lead Source Id */
+            lead_source_id: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Starts At */
+            starts_at: string | null;
+            /** Ends At */
+            ends_at: string | null;
+            /** Max Submissions */
+            max_submissions: number | null;
+            /** Submission Count */
+            submission_count: number;
+            /** Gtm Container Id */
+            gtm_container_id: string | null;
+            /** @default OPEN */
+            state: components["schemas"]["LinkState"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * CampaignLinkUpdateIn
+         * @description Only the fields sent change; null clears an optional one.
+         */
+        CampaignLinkUpdateIn: {
+            /** Name */
+            name?: string | null;
+            /** Lead Source Id */
+            lead_source_id?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Starts At */
+            starts_at?: string | null;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Max Submissions */
+            max_submissions?: number | null;
+            /** Gtm Container Id */
+            gtm_container_id?: string | null;
+            /** Version */
+            version: number;
+        };
         /**
          * ConditionOp
          * @enum {string}
@@ -2597,11 +2763,6 @@ export interface components {
             email_reply_to?: string | null;
             /** Email Account Id */
             email_account_id?: string | null;
-            /**
-             * Public Registration Open
-             * @default false
-             */
-            public_registration_open: boolean;
             /** Scanner Cache Ttl Minutes */
             scanner_cache_ttl_minutes?: number | null;
             /** Remarks */
@@ -2672,8 +2833,6 @@ export interface components {
             email_reply_to: string | null;
             /** Email Account Id */
             email_account_id: string | null;
-            /** Public Registration Open */
-            public_registration_open: boolean;
             /** Scanner Cache Ttl Minutes */
             scanner_cache_ttl_minutes: number | null;
             /** Remarks */
@@ -2757,8 +2916,6 @@ export interface components {
             email_reply_to?: string | null;
             /** Email Account Id */
             email_account_id?: string | null;
-            /** Public Registration Open */
-            public_registration_open?: boolean | null;
             /** Scanner Cache Ttl Minutes */
             scanner_cache_ttl_minutes?: number | null;
             /** Remarks */
@@ -3785,6 +3942,8 @@ export interface components {
             source?: components["schemas"]["LeadSource"] | null;
             /** Lead Source Id */
             lead_source_id?: string | null;
+            /** Campaign Link Id */
+            campaign_link_id?: string | null;
             /** Country */
             country?: string | null;
             /** Is Valid Lead */
@@ -3832,6 +3991,8 @@ export interface components {
             source: components["schemas"]["LeadSource"];
             /** Lead Source Id */
             lead_source_id: string | null;
+            /** Campaign Link Id */
+            campaign_link_id: string | null;
             /** Lead Owner Id */
             lead_owner_id: string | null;
             /** Lead Owner Name */
@@ -3932,6 +4093,18 @@ export interface components {
             external_source: string | null;
             /** External Id */
             external_id: string | null;
+            /** Campaign Link Id */
+            campaign_link_id: string | null;
+            /** Utm Source */
+            utm_source: string | null;
+            /** Utm Medium */
+            utm_medium: string | null;
+            /** Utm Campaign */
+            utm_campaign: string | null;
+            /** Utm Term */
+            utm_term: string | null;
+            /** Utm Content */
+            utm_content: string | null;
             /** Custom Fields */
             custom_fields: {
                 [key: string]: unknown;
@@ -3963,7 +4136,7 @@ export interface components {
          * LeadSource
          * @enum {string}
          */
-        LeadSource: "EXCEL" | "API" | "MANUAL" | "WEBSITE" | "TELEMARKETING";
+        LeadSource: "EXCEL" | "API" | "MANUAL" | "WEBSITE" | "TELEMARKETING" | "CAMPAIGN";
         /** LeadSourceIn */
         LeadSourceIn: {
             /** Name */
@@ -4076,6 +4249,11 @@ export interface components {
             /** By Country */
             by_country: components["schemas"]["Count"][];
         };
+        /**
+         * LinkState
+         * @enum {string}
+         */
+        LinkState: "OPEN" | "INACTIVE" | "NOT_STARTED" | "ENDED" | "FULL" | "EDITION_CLOSED";
         /** LoginIn */
         LoginIn: {
             /** Email */
@@ -4325,27 +4503,58 @@ export interface components {
             sample_rows: number;
         };
         /**
-         * PublicRegistrationAccepted
-         * @description Same answer for new and duplicate visitors, so the form never reveals who exists.
+         * PublicCampaignOut
+         * @description What the form needs. No campaign name, counts, or other internal settings.
          */
-        PublicRegistrationAccepted: {
+        PublicCampaignOut: {
+            edition: components["schemas"]["PublicEdition"];
+            /** Custom Fields */
+            custom_fields: components["schemas"]["PublicField"][];
+            /** Gtm Container Id */
+            gtm_container_id: string | null;
+            /** Consent Version */
+            consent_version: string;
+            /** Ticket */
+            ticket: string;
+        };
+        /** PublicEdition */
+        PublicEdition: {
+            /** Name */
+            name: string;
             /**
-             * Status
-             * @default RECEIVED
-             * @constant
+             * Start Date
+             * Format: date
              */
-            status: "RECEIVED";
+            start_date: string;
             /**
-             * Message
-             * @default Thank you. If the details are valid, a confirmation email with your QR code will follow.
+             * End Date
+             * Format: date
              */
-            message: string;
+            end_date: string;
+            /** Venue Name */
+            venue_name: string | null;
+            /** City */
+            city: string | null;
+            /** Country */
+            country: string | null;
+        };
+        /** PublicField */
+        PublicField: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            type: components["schemas"]["CustomFieldType"];
+            /** Required */
+            required: boolean;
+            /** Options */
+            options: string[];
         };
         /**
-         * PublicRegistrationIn
-         * @description Website form. `contact_fax` is a honeypot: the form hides it, bots fill it.
+         * PublicSubmissionIn
+         * @description Only the form's own fields. Owner, status, source, and the rest are not accepted.
          */
-        PublicRegistrationIn: {
+        PublicSubmissionIn: {
             /** First Name */
             first_name: string;
             /** Email */
@@ -4360,16 +4569,41 @@ export interface components {
             country?: string | null;
             /** City */
             city?: string | null;
-            /** Website */
-            website?: string | null;
-            /** Product Categories */
-            product_categories?: string | null;
             /** Custom Fields */
             custom_fields?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Consent
+             * @constant
+             */
+            consent: true;
+            /** Ticket */
+            ticket: string;
+            /** Utm Source */
+            utm_source?: string | null;
+            /** Utm Medium */
+            utm_medium?: string | null;
+            /** Utm Campaign */
+            utm_campaign?: string | null;
+            /** Utm Term */
+            utm_term?: string | null;
+            /** Utm Content */
+            utm_content?: string | null;
             /** Contact Fax */
             contact_fax?: string | null;
+        };
+        /**
+         * PublicSubmissionOut
+         * @description Same answer for new, duplicate, and bot submissions: the form reveals nothing.
+         */
+        PublicSubmissionOut: {
+            /**
+             * Status
+             * @default RECEIVED
+             * @constant
+             */
+            status: "RECEIVED";
         };
         /**
          * QrStatus
@@ -4380,7 +4614,7 @@ export interface components {
          * RegistrationChannel
          * @enum {string}
          */
-        RegistrationChannel: "WEBSITE" | "ADMIN" | "TELEMARKETING" | "API" | "IMPORT";
+        RegistrationChannel: "WEBSITE" | "ADMIN" | "TELEMARKETING" | "API" | "IMPORT" | "CAMPAIGN";
         /** RegistrationDetailOut */
         RegistrationDetailOut: {
             /**
@@ -4537,6 +4771,8 @@ export interface components {
             source?: components["schemas"]["LeadSource"] | null;
             /** Lead Source Id */
             lead_source_id?: string | null;
+            /** Campaign Link Id */
+            campaign_link_id?: string | null;
             /** Country */
             country?: string | null;
             /** Is Valid Lead */
@@ -5131,6 +5367,8 @@ export interface components {
             source?: components["schemas"]["LeadSource"] | null;
             /** Lead Source Id */
             lead_source_id?: string | null;
+            /** Campaign Link Id */
+            campaign_link_id?: string | null;
             /** Country */
             country?: string | null;
             /** Is Valid Lead */
@@ -7090,6 +7328,7 @@ export interface operations {
                 unassigned?: boolean | null;
                 source?: components["schemas"]["LeadSource"] | null;
                 lead_source_id?: string | null;
+                campaign_link_id?: string | null;
                 country?: string | null;
                 is_valid_lead?: boolean | null;
                 is_invalid?: boolean | null;
@@ -8099,18 +8338,179 @@ export interface operations {
             };
         };
     };
-    public_registration_api_v1_public_editions__edition_code__registrations_post: {
+    list_links_api_v1_campaign_links_get: {
+        parameters: {
+            query?: {
+                edition_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignLinkOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_link_api_v1_campaign_links_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignLinkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignLinkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_link_api_v1_campaign_links__link_id__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                edition_code: string;
+                link_id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PublicRegistrationIn"];
+                "application/json": components["schemas"]["CampaignLinkUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignLinkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    new_url_api_v1_campaign_links__link_id__new_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignLinkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_form_api_v1_public_campaigns__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicCampaignOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_submit_api_v1_public_campaigns__token__registrations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicSubmissionIn"];
             };
         };
         responses: {
@@ -8120,7 +8520,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PublicRegistrationAccepted"];
+                    "application/json": components["schemas"]["PublicSubmissionOut"];
                 };
             };
             /** @description Validation Error */
@@ -8622,6 +9022,7 @@ export interface operations {
                 unassigned?: boolean | null;
                 source?: components["schemas"]["LeadSource"] | null;
                 lead_source_id?: string | null;
+                campaign_link_id?: string | null;
                 country?: string | null;
                 is_valid_lead?: boolean | null;
                 is_invalid?: boolean | null;

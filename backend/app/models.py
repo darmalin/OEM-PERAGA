@@ -4,6 +4,7 @@ from app.core.audit import AuditLog
 from app.core.db import Base
 from app.core.idempotency import IdempotencyKey
 from app.core.outbox import OutboxEvent
+from app.modules.campaigns.models import CampaignLink, CampaignSubmission
 from app.modules.checkin.models import Gate, ScanAttempt, ScannerDevice, VisitorCheckin
 from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition, Venue
 from app.modules.identity.models import (
@@ -49,6 +50,8 @@ __all__ = [
     "AssignmentJob",
     "AuditLog",
     "Base",
+    "CampaignLink",
+    "CampaignSubmission",
     "Edition",
     "EditionCounter",
     "EditionFieldOption",

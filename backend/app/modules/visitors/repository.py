@@ -66,6 +66,8 @@ def filter_clause(f: LeadFilters) -> ColumnElement[bool]:
         conds.append(or_(*options))
     if f.lead_source_id:
         conds.append(VisitorLead.lead_source_id == f.lead_source_id)
+    if f.campaign_link_id:
+        conds.append(VisitorLead.campaign_link_id == f.campaign_link_id)
     if f.telemarketing_status:
         conds.append(
             VisitorLead.telemarketing_status.in_([s.value for s in f.telemarketing_status])
@@ -115,6 +117,9 @@ _TEXT_COLUMNS: dict[str, Any] = {
     "registration_code": func.lower(VisitorLead.registration_code),
     "job_title": func.lower(VisitorLead.job_title),
     "city": func.lower(VisitorLead.city),
+    "utm_source": func.lower(VisitorLead.utm_source),
+    "utm_medium": func.lower(VisitorLead.utm_medium),
+    "utm_campaign": func.lower(VisitorLead.utm_campaign),
 }
 
 
