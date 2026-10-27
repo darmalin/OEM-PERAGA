@@ -1,10 +1,11 @@
 import type { Schemas } from "@ems/api";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { MoveRight } from "lucide-react";
+import { CalendarClock, Phone, Plus, QrCode } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "@/lib/cn";
+import { relative } from "@/lib/format";
 import { label } from "@/lib/labels";
 import { moves, type TmStatus } from "@/lib/transitions";
 import { Button } from "@/ui/button";
@@ -74,8 +75,8 @@ export function BoardColumn({
       <div className="flex min-h-[120px] flex-col gap-2 px-2 pb-2">
         {query.isPending ? (
           <>
-            <Skeleton className="h-[76px]" />
-            <Skeleton className="h-[76px]" />
+            <Skeleton className="h-[180px]" />
+            <Skeleton className="h-[180px]" />
           </>
         ) : query.isError ? (
           <ErrorState error={query.error} onRetry={() => void query.refetch()} />
@@ -96,8 +97,25 @@ export function BoardColumn({
   );
 }
 
+/** First letter of a name for the round avatar ("Đinh" -> "Đ"). */
+const initial = (name: string | null | undefined) => (name?.trim().charAt(0) || "?").toUpperCase();
+
+function Avatar({ name, square }: { name: string | null | undefined; square?: boolean }) {
+  return (
+    <span aria-hidden className={cn("grid size-5 shrink-0 place-items-center bg-input text-[11px] font-medium text-muted", square ? "rounded-[5px]" : "rounded-full")}>
+      {initial(name)}
+    </span>
+  );
+}
+
+const shortDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+
+/** Frappe CRM style card: name, company, contact, owner, last change, then counts and actions. */
 function Card({ lead, edition, canMove, onMove }: { lead: LeadItem; edition?: Edition; canMove: boolean; onMove: (leadId: string, to?: TmStatus) => void }) {
   const targets = canMove ? moves(lead.telemarketing_status) : [];
+  const [now] = useState(Date.now); // read once: a card does not tick while it is open
+  const followup = lead.next_followup_at ? new Date(lead.next_followup_at) : null;
+  const overdue = followup !== null && followup.getTime() < now;
   return (
     <article
       draggable={targets.length > 0}
@@ -109,17 +127,59 @@ function Card({ lead, edition, canMove, onMove }: { lead: LeadItem; edition?: Ed
       onDragEnd={() => {
         dragging = null;
       }}
-      className={cn("rounded-[8px] border border-line bg-bg p-3 text-[13px]", targets.length > 0 && "cursor-grab active:cursor-grabbing")}
+      className={cn("relative rounded-[10px] border border-line bg-bg text-[13px]", targets.length > 0 && "cursor-grab active:cursor-grabbing")}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center gap-2 border-b border-line px-3 py-2.5">
+        <Avatar name={lead.first_name} />
         <Link to="/app/visitor-leads/$leadId" params={{ leadId: lead.id }} className="min-w-0 font-medium text-ink hover:underline">
           <span className="block truncate">{lead.first_name}</span>
         </Link>
+      </div>
+      <div className="flex flex-col gap-1.5 px-3 py-2.5">
+        {lead.company_name ? (
+          <p className="flex min-w-0 items-center gap-2" title={lead.company_name}>
+            <Avatar name={lead.company_name} square />
+            <span className="truncate">{lead.company_name}</span>
+          </p>
+        ) : null}
+        {lead.email ? <p className="truncate" title={lead.email}>{lead.email}</p> : null}
+        {lead.phone ? <p className="truncate tabular">{lead.phone}</p> : null}
+        <p className="flex min-w-0 items-center gap-2">
+          {lead.lead_owner_name ? (
+            <>
+              <Avatar name={lead.lead_owner_name} />
+              <span className="truncate">{lead.lead_owner_name}</span>
+            </>
+          ) : (
+            <span className="text-label">Unassigned</span>
+          )}
+        </p>
+        {/* The Registration ID starts with the edition code, so it also shows the Exhibition Type. */}
+        <p className="flex items-center justify-between gap-2 text-[12px] text-label">
+          <span className="truncate tabular" title={edition?.name}>{lead.registration_code}</span>
+          <span className="shrink-0" title={`Updated ${lead.updated_at}`}>{relative(lead.updated_at)}</span>
+        </p>
+      </div>
+      <div className="flex items-center gap-3 border-t border-line px-3 py-1.5 text-[12px] text-label">
+        <span className="flex items-center gap-1" title={`${lead.call_attempts} ${lead.call_attempts === 1 ? "call" : "calls"}`}>
+          <Phone className="size-3.5" aria-hidden />
+          <span className="tabular">{lead.call_attempts}</span>
+          <span className="sr-only">{lead.call_attempts === 1 ? "call" : "calls"}</span>
+        </span>
+        <span className={cn("flex items-center gap-1", overdue && "text-[var(--red-fg)]")} title={followup ? `Next follow-up ${followup.toLocaleString()}${overdue ? " (overdue)" : ""}` : "No follow-up"}>
+          <CalendarClock className="size-3.5" aria-hidden />
+          <span className="tabular">{followup ? shortDate.format(followup) : "–"}</span>
+          <span className="sr-only">{followup ? (overdue ? "follow-up overdue" : "next follow-up") : "no follow-up"}</span>
+        </span>
+        <span className={cn("flex items-center gap-1", lead.qr_status === "ACTIVE" && "text-[var(--green-fg)]")} title={label("qr_status", lead.qr_status)}>
+          <QrCode className="size-3.5" aria-hidden />
+          <span className="sr-only">{label("qr_status", lead.qr_status)}</span>
+        </span>
         {canMove ? (
           <Menu>
             <MenuTrigger asChild>
-              <Button size="icon" variant="ghost" className="-mt-1 -mr-1 size-7" aria-label={`Move or log a call for ${lead.first_name}`}>
-                <MoveRight aria-hidden />
+              <Button size="icon" variant="ghost" className="ml-auto size-7" aria-label={`Actions for ${lead.first_name}`}>
+                <Plus aria-hidden />
               </Button>
             </MenuTrigger>
             <MenuContent>
@@ -137,10 +197,6 @@ function Card({ lead, edition, canMove, onMove }: { lead: LeadItem; edition?: Ed
           </Menu>
         ) : null}
       </div>
-      {lead.company_name ? <p className="truncate text-label">{lead.company_name}</p> : null}
-      {/* The Registration ID starts with the edition code, so it also shows the Exhibition Type. */}
-      <p className="mt-2 truncate text-[12px] text-label tabular" title={edition?.name}>{lead.registration_code}</p>
-      <p className="truncate text-[12px] text-label">{lead.lead_owner_name ?? "Unassigned"}</p>
     </article>
   );
 }

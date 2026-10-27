@@ -175,6 +175,7 @@ class LeadListItem(BaseModel):
     is_valid_lead: bool
     is_invalid: bool
     attend: Attend | None
+    call_attempts: int
     last_call_at: datetime | None
     next_followup_at: datetime | None
     updated_at: datetime

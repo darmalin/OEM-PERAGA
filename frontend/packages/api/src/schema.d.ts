@@ -4168,6 +4168,8 @@ export interface components {
             /** Is Invalid */
             is_invalid: boolean;
             attend: components["schemas"]["Attend"] | null;
+            /** Call Attempts */
+            call_attempts: number;
             /** Last Call At */
             last_call_at: string | null;
             /** Next Followup At */
