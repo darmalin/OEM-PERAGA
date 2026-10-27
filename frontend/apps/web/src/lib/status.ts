@@ -43,6 +43,12 @@ const TONES: Record<string, Tone> = {
   ARCHIVED: "gray",
   OPEN: "blue",
   DONE: "green",
+  // campaign links
+  INACTIVE: "gray",
+  NOT_STARTED: "amber",
+  ENDED: "gray",
+  FULL: "amber",
+  EDITION_CLOSED: "gray",
 };
 
 export function toneFor(status: string | null | undefined): Tone {

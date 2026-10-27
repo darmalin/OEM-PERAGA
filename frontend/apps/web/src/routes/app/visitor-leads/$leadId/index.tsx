@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { campaignLinksQuery } from "@/features/campaigns/queries";
 import { PERSON_FIELDS, personPayload, PersonFields, type PersonValues } from "@/features/leads/person-form";
 import { type Lead, leadQuery } from "@/features/leads/queries";
 import { can, useMe } from "@/lib/auth";
@@ -145,6 +146,7 @@ function LeadDetail() {
               />
             </div>
           </Panel>
+          {l.campaign_link_id || l.utm_source || l.utm_medium || l.utm_campaign ? <CampaignFacts lead={l} /> : null}
           <Panel>
             <PanelHeader title="Record" />
             <div className="p-5">
@@ -183,6 +185,29 @@ function toValues(l: Lead, tz?: string): PersonValues {
     comment: l.comment ?? "",
     custom_fields: l.custom_fields,
   };
+}
+
+/** Where a campaign-form lead came from: the link and the UTM tags of the URL opened. */
+function CampaignFacts({ lead }: { lead: Lead }) {
+  const links = useQuery({ ...campaignLinksQuery(lead.edition_id), enabled: Boolean(lead.campaign_link_id) });
+  const name = links.data?.find((c) => c.id === lead.campaign_link_id)?.name;
+  return (
+    <Panel>
+      <PanelHeader title="Campaign" />
+      <div className="p-5">
+        <Facts
+          items={[
+            ["Campaign", lead.campaign_link_id ? (name ?? "Campaign link") : null],
+            ["UTM Source", lead.utm_source],
+            ["UTM Medium", lead.utm_medium],
+            ["UTM Campaign", lead.utm_campaign],
+            ["UTM Term", lead.utm_term],
+            ["UTM Content", lead.utm_content],
+          ].filter(([, v]) => v) as [string, string][]}
+        />
+      </div>
+    </Panel>
+  );
 }
 
 function PersonTab({ lead, timezone }: { lead: Lead; timezone?: string }) {

@@ -30,5 +30,5 @@ Owner request 2026-10-26. Each edition has any number of campaign links ("IG Oct
 
 ## Phases
 1. Backend (this file's API and rules, migration 0022, tests `tests/test_campaigns.py`).
-2. Admin UI: Campaign Links on the edition page (copy link, QR for posters, edit, new URL); Campaign and UTM on Visitor Leads.
+2. Admin UI (done): Campaign Links panel on the edition page (Copy Link, QR Code PNG from `GET /campaign-links/{id}/qr.png`, Edit, New URL with a second click); new/edit pages under `/app/campaign-links`; Campaign column, Campaign and UTM fields in the Filter button, and a Campaign panel on the lead detail.
 3. Public form page `/r/{token}` with its own CSP, GTM data layer events (`campaign_form_view`, `campaign_form_start`, `campaign_form_submit`, no personal data), UTM from the URL, EN/ID switch.

@@ -28,6 +28,7 @@ const LABELS: Record<string, Record<string, string>> = {
     MANUAL: "Manual",
     WEBSITE: "Website",
     TELEMARKETING: "Telemarketing",
+    CAMPAIGN: "Campaign Link",
   },
   channel: {
     WEBSITE: "Website",
@@ -35,6 +36,15 @@ const LABELS: Record<string, Record<string, string>> = {
     TELEMARKETING: "Telemarketing",
     API: "API",
     IMPORT: "Import",
+    CAMPAIGN: "Campaign Link",
+  },
+  campaign_state: {
+    OPEN: "Open",
+    INACTIVE: "Inactive",
+    NOT_STARTED: "Not Started",
+    ENDED: "Ended",
+    FULL: "Full",
+    EDITION_CLOSED: "Edition Closed",
   },
   email_kind: {
     QR_CONFIRMATION: "QR Confirmation",

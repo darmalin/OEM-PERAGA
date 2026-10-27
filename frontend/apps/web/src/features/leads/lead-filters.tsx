@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
+import { campaignLinksQuery } from "@/features/campaigns/queries";
 import { useMe } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { useEdition } from "@/lib/edition";
@@ -71,11 +72,13 @@ export function filterQuery(s: LeadFilterSearch, meId: string, board = false) {
 function useChoiceData(edition: string | undefined): ChoiceData {
   const sources = useQuery(leadSourcesQuery(true));
   const filterOptions = useQuery(leadFilterOptionsQuery(edition));
+  const campaigns = useQuery(campaignLinksQuery(edition));
   return {
     leadSources: (sources.data ?? []).map((o) => ({ id: o.id, name: o.is_active ? o.name : `${o.name} (inactive)` })),
     countries: filterOptions.data?.countries ?? [],
     owners: filterOptions.data?.owners ?? [],
     teams: filterOptions.data?.teams ?? [],
+    campaigns: (campaigns.data ?? []).map((c) => ({ id: c.id, name: c.name })),
   };
 }
 

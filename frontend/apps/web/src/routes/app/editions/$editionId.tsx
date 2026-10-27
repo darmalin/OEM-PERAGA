@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 
+import { CampaignLinksPanel } from "@/features/campaigns/campaign-links-panel";
 import { EditionTeamPanel } from "@/features/edition-team";
 import { EditionFields, editionPayload, type EditionValues, EXHIBITOR_FIELDS, exhibitorValues } from "@/features/edition-form";
 import { can, meQuery, useMe } from "@/lib/auth";
@@ -61,6 +62,7 @@ function Edition() {
             </Panel>
           </form>
           <EditionTeamPanel editionId={editionId} manage={manage} />
+          <CampaignLinksPanel editionId={editionId} timezone={ed.data.timezone} manage={manage} />
         </div>
       )}
     </Page>

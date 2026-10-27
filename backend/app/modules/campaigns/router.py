@@ -57,6 +57,23 @@ async def new_url(
     return await service.new_link_token(session, ctx, link_id)
 
 
+@router.get("/{link_id}/qr.png", response_class=Response)
+async def poster_qr(
+    link_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("visitor.read", "edition.manage")),
+) -> Response:
+    png, name = await service.poster_qr(session, ctx, link_id)
+    return Response(
+        png,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 # --- public: no login, no session cookie needed --------------------------------------------
 
 

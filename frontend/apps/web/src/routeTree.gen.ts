@@ -23,6 +23,8 @@ import { Route as AppReportsRouteImport } from './routes/app/reports'
 import { Route as AppScansRouteImport } from './routes/app/scans'
 import { Route as SystemIndexRouteImport } from './routes/system/index'
 import { Route as SystemAuditLogRouteImport } from './routes/system/audit-log'
+import { Route as AppCampaignLinksLinkIdRouteImport } from './routes/app/campaign-links/$linkId'
+import { Route as AppCampaignLinksNewRouteImport } from './routes/app/campaign-links/new'
 import { Route as AppCustomFieldsIndexRouteImport } from './routes/app/custom-fields/index'
 import { Route as AppCustomFieldsFieldIdRouteImport } from './routes/app/custom-fields/$fieldId'
 import { Route as AppCustomFieldsNewRouteImport } from './routes/app/custom-fields/new'
@@ -154,6 +156,16 @@ const SystemAuditLogRoute = SystemAuditLogRouteImport.update({
   id: '/audit-log',
   path: '/audit-log',
   getParentRoute: () => SystemRoute,
+} as any)
+const AppCampaignLinksLinkIdRoute = AppCampaignLinksLinkIdRouteImport.update({
+  id: '/campaign-links/$linkId',
+  path: '/campaign-links/$linkId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCampaignLinksNewRoute = AppCampaignLinksNewRouteImport.update({
+  id: '/campaign-links/new',
+  path: '/campaign-links/new',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppCustomFieldsIndexRoute = AppCustomFieldsIndexRouteImport.update({
   id: '/custom-fields/',
@@ -488,6 +500,8 @@ export interface FileRoutesByFullPath {
   '/system/audit-log': typeof SystemAuditLogRoute
   '/app/': typeof AppIndexRoute
   '/system/': typeof SystemIndexRoute
+  '/app/campaign-links/$linkId': typeof AppCampaignLinksLinkIdRoute
+  '/app/campaign-links/new': typeof AppCampaignLinksNewRoute
   '/app/custom-fields/$fieldId': typeof AppCustomFieldsFieldIdRoute
   '/app/custom-fields/new': typeof AppCustomFieldsNewRoute
   '/app/devices/new': typeof AppDevicesNewRoute
@@ -563,6 +577,8 @@ export interface FileRoutesByTo {
   '/system/audit-log': typeof SystemAuditLogRoute
   '/app': typeof AppIndexRoute
   '/system': typeof SystemIndexRoute
+  '/app/campaign-links/$linkId': typeof AppCampaignLinksLinkIdRoute
+  '/app/campaign-links/new': typeof AppCampaignLinksNewRoute
   '/app/custom-fields/$fieldId': typeof AppCustomFieldsFieldIdRoute
   '/app/custom-fields/new': typeof AppCustomFieldsNewRoute
   '/app/devices/new': typeof AppDevicesNewRoute
@@ -641,6 +657,8 @@ export interface FileRoutesById {
   '/system/audit-log': typeof SystemAuditLogRoute
   '/app/': typeof AppIndexRoute
   '/system/': typeof SystemIndexRoute
+  '/app/campaign-links/$linkId': typeof AppCampaignLinksLinkIdRoute
+  '/app/campaign-links/new': typeof AppCampaignLinksNewRoute
   '/app/custom-fields/$fieldId': typeof AppCustomFieldsFieldIdRoute
   '/app/custom-fields/new': typeof AppCustomFieldsNewRoute
   '/app/devices/new': typeof AppDevicesNewRoute
@@ -720,6 +738,8 @@ export interface FileRouteTypes {
     | '/system/audit-log'
     | '/app/'
     | '/system/'
+    | '/app/campaign-links/$linkId'
+    | '/app/campaign-links/new'
     | '/app/custom-fields/$fieldId'
     | '/app/custom-fields/new'
     | '/app/devices/new'
@@ -795,6 +815,8 @@ export interface FileRouteTypes {
     | '/system/audit-log'
     | '/app'
     | '/system'
+    | '/app/campaign-links/$linkId'
+    | '/app/campaign-links/new'
     | '/app/custom-fields/$fieldId'
     | '/app/custom-fields/new'
     | '/app/devices/new'
@@ -872,6 +894,8 @@ export interface FileRouteTypes {
     | '/system/audit-log'
     | '/app/'
     | '/system/'
+    | '/app/campaign-links/$linkId'
+    | '/app/campaign-links/new'
     | '/app/custom-fields/$fieldId'
     | '/app/custom-fields/new'
     | '/app/devices/new'
@@ -1043,6 +1067,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/system/audit-log'
       preLoaderRoute: typeof SystemAuditLogRouteImport
       parentRoute: typeof SystemRoute
+    }
+    '/app/campaign-links/$linkId': {
+      id: '/app/campaign-links/$linkId'
+      path: '/campaign-links/$linkId'
+      fullPath: '/app/campaign-links/$linkId'
+      preLoaderRoute: typeof AppCampaignLinksLinkIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/campaign-links/new': {
+      id: '/app/campaign-links/new'
+      path: '/campaign-links/new'
+      fullPath: '/app/campaign-links/new'
+      preLoaderRoute: typeof AppCampaignLinksNewRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/custom-fields/': {
       id: '/app/custom-fields/'
@@ -1481,6 +1519,8 @@ interface AppRouteChildren {
   AppReportsRoute: typeof AppReportsRoute
   AppScansRoute: typeof AppScansRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppCampaignLinksLinkIdRoute: typeof AppCampaignLinksLinkIdRoute
+  AppCampaignLinksNewRoute: typeof AppCampaignLinksNewRoute
   AppCustomFieldsFieldIdRoute: typeof AppCustomFieldsFieldIdRoute
   AppCustomFieldsNewRoute: typeof AppCustomFieldsNewRoute
   AppDevicesNewRoute: typeof AppDevicesNewRoute
@@ -1534,6 +1574,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppReportsRoute: AppReportsRoute,
   AppScansRoute: AppScansRoute,
   AppIndexRoute: AppIndexRoute,
+  AppCampaignLinksLinkIdRoute: AppCampaignLinksLinkIdRoute,
+  AppCampaignLinksNewRoute: AppCampaignLinksNewRoute,
   AppCustomFieldsFieldIdRoute: AppCustomFieldsFieldIdRoute,
   AppCustomFieldsNewRoute: AppCustomFieldsNewRoute,
   AppDevicesNewRoute: AppDevicesNewRoute,

@@ -85,6 +85,10 @@ async def test_admin_manages_links() -> None:
     r = await admin.patch(f"{LINKS}/{link['id']}", json={"name": "x", "version": 1})
     assert r.status_code == 409  # stale version
 
+    r = await admin.get(f"{LINKS}/{link['id']}/qr.png")
+    assert r.status_code == 200 and r.content.startswith(b"\x89PNG")
+    assert r.headers["content-disposition"] == 'attachment; filename="qr-ig-oct.png"'
+
     old = link["token"]
     r = await admin.post(f"{LINKS}/{link['id']}/new-url")
     assert r.status_code == 200 and r.json()["token"] != old

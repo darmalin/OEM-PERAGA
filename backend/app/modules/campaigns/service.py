@@ -28,6 +28,7 @@ from app.modules.campaigns.rules import (
     ip_hash,
     link_state,
     new_token,
+    poster_qr_png,
     ticket_ok,
 )
 from app.modules.campaigns.schemas import (
@@ -103,6 +104,22 @@ async def list_links(
 async def link_names(session: AsyncSession, edition_id: uuid.UUID) -> dict[uuid.UUID, str]:
     """System use (exports): campaign names of an edition by id."""
     return {link.id: link.name for link in await repo.list_links(session, {edition_id})}
+
+
+async def poster_qr(
+    session: AsyncSession, ctx: AuthContext, link_id: uuid.UUID
+) -> tuple[bytes, str]:
+    """(PNG, file name) of the link's QR, for anyone who may see the edition's links."""
+    link = await repo.get_link(session, link_id)
+    if link is None:
+        raise NotFound("Campaign link not found.")
+    try:
+        ctx.scope_for(link.edition_id)
+    except NotFound as e:
+        raise NotFound("Campaign link not found.") from e
+    out = await _out(session, link)
+    safe = "".join(ch if ch.isalnum() else "-" for ch in link.name).strip("-").lower() or "campaign"
+    return poster_qr_png(out.url), f"qr-{safe[:60]}.png"
 
 
 async def _check_source(session: AsyncSession, source_id: uuid.UUID | None) -> None:

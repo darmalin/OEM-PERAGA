@@ -24,7 +24,7 @@ Out (do not build, §1.2 and §18): exhibitor CRM, booth inventory, proposals, c
 | 09 | [09-gate-scanner.md](09-gate-scanner.md) | §8 | M5 |
 | 10 | [10-reporting-export.md](10-reporting-export.md) | §11 | M6 |
 | 11 | [11-exhibitor-portal.md](11-exhibitor-portal.md) | outside §1.2 | not planned; decisions E1 to E6 first |
-| 12 | [12-campaign-links.md](12-campaign-links.md) | owner request 2026-10-26 | phase 1 (backend) done; admin UI and public form next |
+| 12 | [12-campaign-links.md](12-campaign-links.md) | owner request 2026-10-26 | phases 1–2 done (backend, admin UI); public form next |
 
 ## Milestones (§15)
 

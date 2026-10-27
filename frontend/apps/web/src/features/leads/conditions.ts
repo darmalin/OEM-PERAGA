@@ -8,7 +8,7 @@ export type Value = string | number | boolean | string[];
 export type Condition = { field: string; op: Op; value?: Value };
 
 /** Where a choice field gets its options: a label group, or data loaded for the page. */
-type ChoiceSource = LabelGroup | "lead_sources" | "countries" | "owners" | "teams";
+type ChoiceSource = LabelGroup | "lead_sources" | "countries" | "owners" | "teams" | "campaigns";
 
 export type FieldDef = { key: string; label: string; kind: Kind; choices?: ChoiceSource; required?: boolean };
 
@@ -25,6 +25,10 @@ export const FIELDS: FieldDef[] = [
   { key: "qr_status", label: "QR Status", kind: "choice", choices: "qr_status", required: true },
   { key: "lead_source_id", label: "Source", kind: "choice", choices: "lead_sources" },
   { key: "source", label: "Channel", kind: "choice", choices: "source", required: true },
+  { key: "campaign_link_id", label: "Campaign", kind: "choice", choices: "campaigns" },
+  { key: "utm_source", label: "UTM Source", kind: "text" },
+  { key: "utm_medium", label: "UTM Medium", kind: "text" },
+  { key: "utm_campaign", label: "UTM Campaign", kind: "text" },
   { key: "country", label: "Country", kind: "choice", choices: "countries" },
   { key: "attend", label: "Attend", kind: "choice", choices: "attend" },
   { key: "buyer_type", label: "Type of Buyers", kind: "choice", choices: "buyer_type" },
@@ -111,6 +115,7 @@ export type ChoiceData = {
   countries: string[];
   owners: { id: string; name: string }[];
   teams: { id: string; name: string }[];
+  campaigns: { id: string; name: string }[];
 };
 
 export function choicesFor(f: FieldDef, data: ChoiceData): { value: string; label: string }[] {
@@ -125,6 +130,8 @@ export function choicesFor(f: FieldDef, data: ChoiceData): { value: string; labe
       return data.owners.map((o) => ({ value: o.id, label: o.name }));
     case "teams":
       return data.teams.map((o) => ({ value: o.id, label: o.name }));
+    case "campaigns":
+      return data.campaigns.map((o) => ({ value: o.id, label: o.name }));
     default:
       return options(f.choices);
   }

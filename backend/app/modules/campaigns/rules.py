@@ -2,10 +2,13 @@
 
 import hashlib
 import hmac
+import io
 import re
 import secrets
 from datetime import datetime, timedelta
 from enum import StrEnum
+
+import segno
 
 # 12 URL-safe characters (72 random bits): links cannot be guessed or enumerated.
 TOKEN_BYTES = 9
@@ -86,3 +89,10 @@ def ticket_ok(key: bytes, token: str, ticket: str | None, now: datetime) -> bool
 def ip_hash(key: bytes, ip: str) -> str:
     """Keyed hash: the same visitor IP links submissions, the IP itself is never stored."""
     return _sign(key, f"ip:{ip}")
+
+
+def poster_qr_png(url: str) -> bytes:
+    """Large QR of the link for posters and banners (high error correction: survives print)."""
+    buf = io.BytesIO()
+    segno.make(url, error="h").save(buf, kind="png", scale=16, border=4)
+    return buf.getvalue()

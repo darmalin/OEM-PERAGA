@@ -281,6 +281,20 @@ await step("System: New Team -> add member -> toast", async () => {
   await page.getByRole("button", { name: "Add Member" }).click();
   return await toast("Member added");
 });
+await step("Edition: Add Campaign Link -> listed with Copy Link and QR", async () => {
+  await goto("/app/editions");
+  await page.getByRole("link", { name: EDITION }).first().click();
+  await page.getByRole("link", { name: "Add Campaign Link" }).click();
+  // The edition page has a Name field too: wait for the new page first.
+  await page.getByRole("heading", { name: "New Campaign Link" }).waitFor();
+  await page.getByRole("textbox", { name: /^Name/ }).fill(`Flow campaign ${run}`);
+  await page.getByPlaceholder("GTM-XXXXXXX").fill("gtm-flow123");
+  await page.getByRole("button", { name: "Create Link" }).click();
+  await toast("Campaign link added");
+  await page.getByText(`Flow campaign ${run}`).waitFor();
+  await page.getByText("GTM GTM-FLOW123").first().waitFor();
+  return "link created";
+});
 await step("Role page shows the permission matrix", async () => {
   await goto("/system/roles");
   await page.getByRole("link", { name: "Telemarketing Agent" }).click();
