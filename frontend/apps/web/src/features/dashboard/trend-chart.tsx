@@ -20,8 +20,26 @@ function niceStep(v: number): number {
   return ([1, 2, 5, 10].find((m) => m * mag >= raw) ?? 10) * mag;
 }
 
+export interface Series {
+  key: string;
+  label: string;
+  color: string;
+}
+
 /** Calls per day: one line per call outcome, crosshair tooltip, direct labels at the end. */
 export function TrendChart({ days, byDay }: { days: string[]; byDay: Map<string, Row> }) {
+  return (
+    <LineChart
+      days={days}
+      series={SERIES}
+      value={(day, key) => byDay.get(day)?.[key as Metric] ?? 0}
+      what="Calls per day"
+    />
+  );
+}
+
+/** Lines per day with a crosshair tooltip, keyboard reading, and direct labels at the end. */
+export function LineChart({ days, series: SERIES, value: valueOf, what }: { days: string[]; series: Series[]; value: (day: string, key: string) => number; what: string }) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(720);
   const [hover, setHover] = useState<number | null>(null);
@@ -34,7 +52,7 @@ export function TrendChart({ days, byDay }: { days: string[]; byDay: Map<string,
     return () => ro.disconnect();
   }, []);
 
-  const value = (i: number, k: Metric) => byDay.get(days[i]!)?.[k] ?? 0;
+  const value = (i: number, k: string) => valueOf(days[i]!, k);
   const step = niceStep(Math.max(0, ...days.flatMap((_, i) => SERIES.map((s) => value(i, s.key)))));
   const max = step * 4;
   const plotW = width - M.left - M.right;
@@ -70,7 +88,7 @@ export function TrendChart({ days, byDay }: { days: string[]; byDay: Map<string,
         height={H}
         role="img"
         tabIndex={0}
-        aria-label={`Calls per day from ${days[0] ? dayLabel(days[0]) : ""} to ${days[last] ? dayLabel(days[last]) : ""}. Use the left and right arrow keys to read each day.`}
+        aria-label={`${what} from ${days[0] ? dayLabel(days[0]) : ""} to ${days[last] ? dayLabel(days[last]) : ""}. Use the left and right arrow keys to read each day.`}
         className="block rounded-[8px] outline-offset-2"
         onPointerMove={(e) => pick(e.clientX)}
         onPointerLeave={() => setHover(null)}

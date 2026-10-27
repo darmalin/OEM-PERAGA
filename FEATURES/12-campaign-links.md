@@ -38,3 +38,16 @@ Owner request 2026-10-26. Each edition has any number of campaign links ("IG Oct
    - Pages: form, thank you, closed (unknown, inactive, ended, full, or edition not Active).
    - `deployments/nginx/default.conf` gives `/r/` its own CSP: GTM, Google, Meta, and TikTok script and beacon hosts allowed; `connect-src` is only `<host>/api/v1/public/` plus those hosts (no `'self'`), so a tag cannot call the admin API with a signed-in user's cookie; no framing of this origin (`frame-src` without `'self'`). Checked against the production image: `/api/v1/auth/me` from the form page is blocked by the browser, the public API works. A tag that needs another host is blocked until that host is added to the policy.
    - Dev: `make campaign` runs the form's dev server on the host (port 5175); the dev nginx sends `/r/` there, so the admin's links (http://localhost:8080/r/{token}) open as they are. Without `make campaign` running they answer 502. `make e2e-campaign` runs the flow.
+
+## Marketing menu and dashboard (owner decision 2026-10-27)
+- Sidebar group **Marketing**: **Campaigns** (links of the chosen Exhibition Type, same actions as the edition page) and **Campaign Dashboard**. Permission `campaign.view`: Super Admin, Exhibition Admin, Telemarketing Manager (migration 0023). Managing links still needs `edition.manage`.
+- Form opens are counted per link and edition-local day, once per visitor (keyed IP hash in Redis, 26 h) in `campaign_views`.
+- `GET /reports/campaigns?edition_id=&campaign_link_id=&date_from=&date_to=`: opens, registrations, duplicates, bots, conversion (registrations ÷ opens; over 100% when one device registers several people), per day, the funnel, UTM source/medium/campaign (top 10), and every campaign of the edition side by side.
+- Funnel of the campaign leads the caller can see: Registered → Called (a call logged) → Answered (status Answer or Recontacted) → Valid lead → Plans to attend (Attend or Attend Sourcing) → Checked in at the gate (scanned in at least once, any day, Manual Entry included).
+
+### How a campaign lead reaches "Checked in"
+1. The visitor fills the form: the lead is Registered with an active QR (no email yet).
+2. Telemarketing assigns and calls the lead, logging the result and verification (Lead Quality, Attend).
+3. Staff send the QR: Registrations → the visitor → Resend QR Email.
+4. On the event day the visitor shows the QR at a gate; the scanner records a First Entry. If the QR cannot be read, a Gate Supervisor uses Manual Entry.
+5. The dashboard counts the lead as Checked in from then on.

@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SystemRouteImport } from './routes/system'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppCampaignDashboardRouteImport } from './routes/app/campaign-dashboard'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppMyCallsRouteImport } from './routes/app/my-calls'
 import { Route as AppReconciliationRouteImport } from './routes/app/reconciliation'
@@ -25,6 +26,7 @@ import { Route as SystemIndexRouteImport } from './routes/system/index'
 import { Route as SystemAuditLogRouteImport } from './routes/system/audit-log'
 import { Route as AppCampaignLinksLinkIdRouteImport } from './routes/app/campaign-links/$linkId'
 import { Route as AppCampaignLinksNewRouteImport } from './routes/app/campaign-links/new'
+import { Route as AppCampaignsIndexRouteImport } from './routes/app/campaigns/index'
 import { Route as AppCustomFieldsIndexRouteImport } from './routes/app/custom-fields/index'
 import { Route as AppCustomFieldsFieldIdRouteImport } from './routes/app/custom-fields/$fieldId'
 import { Route as AppCustomFieldsNewRouteImport } from './routes/app/custom-fields/new'
@@ -122,6 +124,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCampaignDashboardRoute = AppCampaignDashboardRouteImport.update({
+  id: '/campaign-dashboard',
+  path: '/campaign-dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -165,6 +172,11 @@ const AppCampaignLinksLinkIdRoute = AppCampaignLinksLinkIdRouteImport.update({
 const AppCampaignLinksNewRoute = AppCampaignLinksNewRouteImport.update({
   id: '/campaign-links/new',
   path: '/campaign-links/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCampaignsIndexRoute = AppCampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCustomFieldsIndexRoute = AppCustomFieldsIndexRouteImport.update({
@@ -492,6 +504,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/system': typeof SystemRouteWithChildren
+  '/app/campaign-dashboard': typeof AppCampaignDashboardRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/my-calls': typeof AppMyCallsRoute
   '/app/reconciliation': typeof AppReconciliationRoute
@@ -534,6 +547,7 @@ export interface FileRoutesByFullPath {
   '/system/teams/$teamId': typeof SystemTeamsTeamIdRoute
   '/system/teams/new': typeof SystemTeamsNewRoute
   '/system/users/new': typeof SystemUsersNewRoute
+  '/app/campaigns/': typeof AppCampaignsIndexRoute
   '/app/custom-fields/': typeof AppCustomFieldsIndexRoute
   '/app/devices/': typeof AppDevicesIndexRoute
   '/app/editions/': typeof AppEditionsIndexRoute
@@ -569,6 +583,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/campaign-dashboard': typeof AppCampaignDashboardRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/my-calls': typeof AppMyCallsRoute
   '/app/reconciliation': typeof AppReconciliationRoute
@@ -611,6 +626,7 @@ export interface FileRoutesByTo {
   '/system/teams/$teamId': typeof SystemTeamsTeamIdRoute
   '/system/teams/new': typeof SystemTeamsNewRoute
   '/system/users/new': typeof SystemUsersNewRoute
+  '/app/campaigns': typeof AppCampaignsIndexRoute
   '/app/custom-fields': typeof AppCustomFieldsIndexRoute
   '/app/devices': typeof AppDevicesIndexRoute
   '/app/editions': typeof AppEditionsIndexRoute
@@ -649,6 +665,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/system': typeof SystemRouteWithChildren
+  '/app/campaign-dashboard': typeof AppCampaignDashboardRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/my-calls': typeof AppMyCallsRoute
   '/app/reconciliation': typeof AppReconciliationRoute
@@ -691,6 +708,7 @@ export interface FileRoutesById {
   '/system/teams/$teamId': typeof SystemTeamsTeamIdRoute
   '/system/teams/new': typeof SystemTeamsNewRoute
   '/system/users/new': typeof SystemUsersNewRoute
+  '/app/campaigns/': typeof AppCampaignsIndexRoute
   '/app/custom-fields/': typeof AppCustomFieldsIndexRoute
   '/app/devices/': typeof AppDevicesIndexRoute
   '/app/editions/': typeof AppEditionsIndexRoute
@@ -730,6 +748,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/system'
+    | '/app/campaign-dashboard'
     | '/app/dashboard'
     | '/app/my-calls'
     | '/app/reconciliation'
@@ -772,6 +791,7 @@ export interface FileRouteTypes {
     | '/system/teams/$teamId'
     | '/system/teams/new'
     | '/system/users/new'
+    | '/app/campaigns/'
     | '/app/custom-fields/'
     | '/app/devices/'
     | '/app/editions/'
@@ -807,6 +827,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/app/campaign-dashboard'
     | '/app/dashboard'
     | '/app/my-calls'
     | '/app/reconciliation'
@@ -849,6 +870,7 @@ export interface FileRouteTypes {
     | '/system/teams/$teamId'
     | '/system/teams/new'
     | '/system/users/new'
+    | '/app/campaigns'
     | '/app/custom-fields'
     | '/app/devices'
     | '/app/editions'
@@ -886,6 +908,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/system'
+    | '/app/campaign-dashboard'
     | '/app/dashboard'
     | '/app/my-calls'
     | '/app/reconciliation'
@@ -928,6 +951,7 @@ export interface FileRouteTypes {
     | '/system/teams/$teamId'
     | '/system/teams/new'
     | '/system/users/new'
+    | '/app/campaigns/'
     | '/app/custom-fields/'
     | '/app/devices/'
     | '/app/editions/'
@@ -1019,6 +1043,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/campaign-dashboard': {
+      id: '/app/campaign-dashboard'
+      path: '/campaign-dashboard'
+      fullPath: '/app/campaign-dashboard'
+      preLoaderRoute: typeof AppCampaignDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/dashboard': {
       id: '/app/dashboard'
       path: '/dashboard'
@@ -1080,6 +1111,13 @@ declare module '@tanstack/react-router' {
       path: '/campaign-links/new'
       fullPath: '/app/campaign-links/new'
       preLoaderRoute: typeof AppCampaignLinksNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/campaigns/': {
+      id: '/app/campaigns/'
+      path: '/campaigns'
+      fullPath: '/app/campaigns/'
+      preLoaderRoute: typeof AppCampaignsIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/custom-fields/': {
@@ -1513,6 +1551,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCampaignDashboardRoute: typeof AppCampaignDashboardRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppMyCallsRoute: typeof AppMyCallsRoute
   AppReconciliationRoute: typeof AppReconciliationRoute
@@ -1544,6 +1583,7 @@ interface AppRouteChildren {
   AppVisitorLeadsAssignRoute: typeof AppVisitorLeadsAssignRoute
   AppVisitorLeadsBoardRoute: typeof AppVisitorLeadsBoardRoute
   AppVisitorLeadsNewRoute: typeof AppVisitorLeadsNewRoute
+  AppCampaignsIndexRoute: typeof AppCampaignsIndexRoute
   AppCustomFieldsIndexRoute: typeof AppCustomFieldsIndexRoute
   AppDevicesIndexRoute: typeof AppDevicesIndexRoute
   AppEditionsIndexRoute: typeof AppEditionsIndexRoute
@@ -1568,6 +1608,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCampaignDashboardRoute: AppCampaignDashboardRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppMyCallsRoute: AppMyCallsRoute,
   AppReconciliationRoute: AppReconciliationRoute,
@@ -1599,6 +1640,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppVisitorLeadsAssignRoute: AppVisitorLeadsAssignRoute,
   AppVisitorLeadsBoardRoute: AppVisitorLeadsBoardRoute,
   AppVisitorLeadsNewRoute: AppVisitorLeadsNewRoute,
+  AppCampaignsIndexRoute: AppCampaignsIndexRoute,
   AppCustomFieldsIndexRoute: AppCustomFieldsIndexRoute,
   AppDevicesIndexRoute: AppDevicesIndexRoute,
   AppEditionsIndexRoute: AppEditionsIndexRoute,

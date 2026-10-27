@@ -15,6 +15,7 @@ import {
   ListChecks,
   Mail,
   MapPin,
+  Megaphone,
   PhoneCall,
   ScanLine,
   ScrollText,
@@ -24,6 +25,7 @@ import {
   Signpost,
   Tags,
   Ticket,
+  TrendingUp,
   UserCog,
   Users,
   type LucideIcon,
@@ -75,6 +77,13 @@ export const PANELS: PanelDef[] = [
           { label: "Registrations", to: "/app/registrations", icon: Ticket, perms: ["registration.read"] },
           { label: "Imports", to: "/app/imports", icon: FileUp, perms: ["visitor.import"] },
           { label: "Exports", to: "/app/exports", icon: FileDown, perms: ["visitor.export", "report.export"] },
+        ],
+      },
+      {
+        label: "Marketing",
+        items: [
+          { label: "Campaigns", to: "/app/campaigns", icon: Megaphone, perms: ["campaign.view"] },
+          { label: "Campaign Dashboard", to: "/app/campaign-dashboard", icon: TrendingUp, perms: ["campaign.view"] },
         ],
       },
       {

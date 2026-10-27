@@ -14,12 +14,34 @@ import { EmptyState, ErrorState, TableSkeleton } from "@/ui/states";
 
 import { type CampaignLink, campaignLinksQuery } from "./queries";
 
-/** Campaign links of an edition: shareable public forms (FEATURES/12). */
-export function CampaignLinksPanel({ editionId, timezone, manage }: { editionId: string; timezone: string; manage: boolean }) {
+/** Short help shown above campaign link lists. */
+export function CampaignHelp() {
+  return (
+    <p className="border-b border-line px-5 py-3 text-[13px] text-muted max-md:px-4">
+      Share a link on Instagram, WhatsApp, or a poster. People who fill its form become leads of this edition with the link&apos;s Source and campaign. Their QR is active at once; the QR email and the assignment stay manual. Test links in a private window, not one signed in here.
+    </p>
+  );
+}
+
+/** The links of one edition, with Copy Link, QR Code, Edit, and New URL. */
+export function CampaignLinkList({ editionId, timezone, manage }: { editionId: string; timezone: string; manage: boolean }) {
   const q = useQuery(campaignLinksQuery(editionId));
   const sources = useQuery(leadSourcesQuery(true));
   const sourceName = (id: string | null | undefined) => sources.data?.find((s) => s.id === id)?.name;
+  if (q.isPending) return <TableSkeleton rows={3} />;
+  if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
+  if (q.data.length === 0) return <EmptyState title="No campaign links yet." />;
+  return (
+    <ul className="divide-y divide-line">
+      {q.data.map((link) => (
+        <LinkRow key={link.id} link={link} sourceName={sourceName(link.lead_source_id)} timezone={timezone} manage={manage} />
+      ))}
+    </ul>
+  );
+}
 
+/** Campaign links on the edition page; the full view is Marketing > Campaigns. */
+export function CampaignLinksPanel({ editionId, timezone, manage }: { editionId: string; timezone: string; manage: boolean }) {
   return (
     <Panel>
       <PanelHeader
@@ -32,18 +54,8 @@ export function CampaignLinksPanel({ editionId, timezone, manage }: { editionId:
           ) : null
         }
       />
-      <p className="border-b border-line px-5 py-3 text-[13px] text-muted max-md:px-4">
-        Share a link on Instagram, WhatsApp, or a poster. People who fill its form become leads of this edition with the link&apos;s Source and campaign. Their QR is active at once; the QR email and the assignment stay manual. Test links in a private window, not one signed in here.
-      </p>
-      {q.isPending ? <TableSkeleton rows={3} /> : q.isError ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : q.data.length === 0 ? (
-        <EmptyState title="No campaign links yet." />
-      ) : (
-        <ul className="divide-y divide-line">
-          {q.data.map((link) => (
-            <LinkRow key={link.id} link={link} sourceName={sourceName(link.lead_source_id)} timezone={timezone} manage={manage} />
-          ))}
-        </ul>
-      )}
+      <CampaignHelp />
+      <CampaignLinkList editionId={editionId} timezone={timezone} manage={manage} />
     </Panel>
   );
 }

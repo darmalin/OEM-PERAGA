@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { emptyLink, LINK_FIELDS, linkBody, LinkFields, type LinkValues } from "@/features/campaigns/link-form";
-import { useEditionById } from "@/lib/edition";
+import { useEdition, useEditionById } from "@/lib/edition";
 import { handleFormError } from "@/lib/forms";
 import { notifySuccess } from "@/lib/notify";
 import { Button } from "@/ui/button";
@@ -20,10 +20,11 @@ export const Route = createFileRoute("/app/campaign-links/new")({
 function NewLink() {
   const { edition: editionId } = Route.useSearch();
   const edition = useEditionById(editionId);
+  const { setEditionId } = useEdition();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const form = useForm<LinkValues>({ defaultValues: emptyLink });
-  const back = { to: "/app/editions/$editionId", params: { editionId }, label: edition?.code ?? "Edition" } as const;
+  const back = { to: "/app/campaigns", label: "Campaigns" } as const;
 
   const onSubmit = form.handleSubmit(async (v) => {
     if (!edition) return;
@@ -31,7 +32,8 @@ function NewLink() {
       const link = await call(api.POST("/api/v1/campaign-links", { body: { edition_id: editionId, ...linkBody(v, edition.timezone) } }));
       void queryClient.invalidateQueries({ queryKey: ["campaign-links"] });
       notifySuccess("Campaign link added", link.url);
-      await navigate({ to: "/app/editions/$editionId", params: { editionId } });
+      setEditionId(editionId); // Campaigns opens on this link's edition
+      await navigate({ to: "/app/campaigns" });
     } catch (e) {
       handleFormError(e, form.setError, [...LINK_FIELDS]);
     }
@@ -45,7 +47,7 @@ function NewLink() {
           <form onSubmit={onSubmit} noValidate>
             <LinkFields register={form.register} control={form.control} errors={form.formState.errors} timezone={edition.timezone} />
             <FormActions>
-              <Button asChild variant="ghost"><Link to="/app/editions/$editionId" params={{ editionId }}>Cancel</Link></Button>
+              <Button asChild variant="ghost"><Link to="/app/campaigns">Cancel</Link></Button>
               <Button type="submit" variant="primary" loading={form.formState.isSubmitting}>Create Link</Button>
             </FormActions>
           </form>
