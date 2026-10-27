@@ -78,9 +78,11 @@ async def poster_qr(
 
 
 @public_router.get("/{token}", response_model=PublicCampaignOut)
-async def public_form(token: str, session: Session, response: Response) -> PublicCampaignOut:
+async def public_form(
+    token: str, request: Request, session: Session, response: Response
+) -> PublicCampaignOut:
     response.headers["Cache-Control"] = "no-store"
-    return await service.public_form(session, token)
+    return await service.public_form(session, token, client_ip(request))
 
 
 @public_router.post(

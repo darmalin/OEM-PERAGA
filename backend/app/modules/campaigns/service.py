@@ -9,6 +9,7 @@ import hashlib
 import uuid
 from datetime import UTC, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +18,7 @@ from app.core.authorization import AuthContext
 from app.core.config import get_settings
 from app.core.context import current_actor_id
 from app.core.errors import Conflict, NotFound, ValidationFailed, check_version
+from app.core.redis import get_redis
 from app.modules.campaigns import repository as repo
 from app.modules.campaigns.models import CampaignLink, CampaignSubmission
 from app.modules.campaigns.rules import (
@@ -253,10 +255,26 @@ async def _open_link(
     return link
 
 
-async def public_form(session: AsyncSession, token: str) -> PublicCampaignOut:
+async def _count_view(
+    link: CampaignLink, timezone: str, client_ip: str, now: datetime, session: AsyncSession
+) -> None:
+    """One open per visitor (keyed IP hash) per link per edition-local day."""
+    day = now.astimezone(ZoneInfo(timezone)).date()
+    first = await get_redis().set(
+        f"campaign:view:{link.id}:{day.isoformat()}:{ip_hash(_key(), client_ip)}",
+        1,
+        nx=True,
+        ex=26 * 3600,
+    )
+    if first:
+        await repo.count_view(session, link.id, day)
+
+
+async def public_form(session: AsyncSession, token: str, client_ip: str) -> PublicCampaignOut:
     now = datetime.now(UTC)
     link = await _open_link(session, token, now)
     edition = await exhibitions_service.public_edition_info(session, link.edition_id)
+    await _count_view(link, edition.timezone, client_ip, now, session)
     fields = await visitors_service.custom_field_definitions(session, link.edition_id)
     return PublicCampaignOut(
         edition=PublicEdition(

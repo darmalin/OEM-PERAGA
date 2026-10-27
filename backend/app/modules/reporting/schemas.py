@@ -333,3 +333,68 @@ class EmailReportOut(BaseModel):
     by_status: list[Count]
     waiting: list[EmailReportJob]
     recent_failed: list[EmailReportJob]
+
+
+# --- campaign dashboard (Marketing menu) ---------------------------------------------------
+
+
+class CampaignDashboardParams(BaseModel):
+    """One edition; one campaign or all of them; edition-local days, both ends included."""
+
+    model_config = {"extra": "forbid"}
+
+    edition_id: uuid.UUID
+    campaign_link_id: uuid.UUID | None = None
+    date_from: date | None = None
+    date_to: date | None = None
+
+    @model_validator(mode="after")
+    def _range(self) -> "CampaignDashboardParams":
+        if self.date_from and self.date_to and self.date_to < self.date_from:
+            raise ValueError("date_to is before date_from.")
+        return self
+
+
+class CampaignTotals(BaseModel):
+    views: int = 0  # form opens, one per visitor per day
+    registrations: int = 0  # new leads from the form
+    duplicates: int = 0  # already in the edition; answered like a registration
+    bots: int = 0  # stopped by the honeypot or the fill-time check
+    conversion: float | None = None  # registrations / views
+
+
+class CampaignDay(BaseModel):
+    day: date
+    views: int = 0
+    registrations: int = 0
+
+
+class CampaignFunnel(BaseModel):
+    """Campaign leads the caller can see, by how far they got."""
+
+    registered: int = 0
+    called: int = 0
+    answered: int = 0
+    valid: int = 0
+    attend: int = 0  # Attend or Attend Sourcing
+    checked_in: int = 0  # scanned in at a gate at least once
+
+
+class CampaignRow(BaseModel):
+    id: uuid.UUID
+    name: str
+    views: int = 0
+    registrations: int = 0
+    valid: int = 0
+    checked_in: int = 0
+
+
+class CampaignDashboardOut(BaseModel):
+    timezone: str
+    totals: CampaignTotals
+    days: list[CampaignDay]
+    funnel: CampaignFunnel
+    utm_source: list[Count]
+    utm_medium: list[Count]
+    utm_campaign: list[Count]
+    campaigns: list[CampaignRow]

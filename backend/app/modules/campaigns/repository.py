@@ -1,10 +1,12 @@
 import uuid
 from collections.abc import Sequence
+from datetime import date
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.campaigns.models import CampaignLink
+from app.modules.campaigns.models import CampaignLink, CampaignView
 
 
 async def list_links(
@@ -38,3 +40,13 @@ async def name_taken(
     if exclude is not None:
         stmt = stmt.where(CampaignLink.id != exclude)
     return await session.scalar(stmt) is not None
+
+
+async def count_view(session: AsyncSession, link_id: uuid.UUID, day: date) -> None:
+    stmt = insert(CampaignView).values(campaign_link_id=link_id, day=day, views=1)
+    await session.execute(
+        stmt.on_conflict_do_update(
+            index_elements=["campaign_link_id", "day"],
+            set_={"views": CampaignView.views + 1},
+        )
+    )

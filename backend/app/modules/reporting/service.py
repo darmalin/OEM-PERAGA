@@ -19,6 +19,12 @@ from app.modules.reporting.schemas import (
     AgentsReport,
     AttendanceDay,
     AttendanceReport,
+    CampaignDashboardOut,
+    CampaignDashboardParams,
+    CampaignDay,
+    CampaignFunnel,
+    CampaignRow,
+    CampaignTotals,
     Count,
     DashboardKey,
     DashboardOption,
@@ -427,4 +433,85 @@ async def email_report(
                 session, visible, f, ("FAILED",), newest_first=True, limit=10
             )
         ],
+    )
+
+
+# --- campaign dashboard (Marketing menu) ---------------------------------------------------
+
+
+async def campaign_dashboard(
+    session: AsyncSession, ctx: AuthContext, params: CampaignDashboardParams
+) -> CampaignDashboardOut:
+    """Form opens and posts per campaign link (link-level counts, no personal data), and the
+    funnel of the campaign leads the caller may see, from registered to checked in."""
+    scope = ctx.scope_for(params.edition_id, "campaign.view")
+    edition = await exhibitions_service.public_edition_info(session, params.edition_id)
+    w = repo.CampaignWindow(
+        edition_id=params.edition_id,
+        link_id=params.campaign_link_id,
+        date_from=params.date_from,
+        date_to=params.date_to,
+        timezone=edition.timezone,
+    )
+    visible = visitors_service.lead_visibility([scope])
+    views = await repo.campaign_views(session, w)
+    posts = await repo.campaign_submissions(session, w)
+    funnel_rows = await repo.campaign_funnel(session, w, visible)
+
+    totals = CampaignTotals(views=sum(views.values()))
+    days: dict[date, CampaignDay] = {}
+    for (day, _), n in views.items():
+        days.setdefault(day, CampaignDay(day=day)).views += n
+    per_link: dict[uuid.UUID, dict[str, int]] = {}
+    for day, link, outcome, n in posts:
+        stats = per_link.setdefault(link, {})
+        stats[outcome] = stats.get(outcome, 0) + n
+        if outcome == "CREATED":
+            totals.registrations += n
+            days.setdefault(day, CampaignDay(day=day)).registrations += n
+        elif outcome == "DUPLICATE":
+            totals.duplicates += n
+        else:
+            totals.bots += n
+    if totals.views:
+        totals.conversion = round(totals.registrations / totals.views, 4)
+
+    funnel = CampaignFunnel()
+    by_link: dict[uuid.UUID, tuple[int, ...]] = {}
+    for link, *counts in funnel_rows:
+        by_link[link] = tuple(counts)
+        for name, n in zip(CampaignFunnel.model_fields, counts, strict=True):
+            setattr(funnel, name, getattr(funnel, name) + n)
+
+    link_views: dict[uuid.UUID, int] = {}
+    for (_, link), n in views.items():
+        link_views[link] = link_views.get(link, 0) + n
+    names = await repo.campaign_link_names(session, params.edition_id)
+    campaigns = [
+        CampaignRow(
+            id=link_id,
+            name=name,
+            views=link_views.get(link_id, 0),
+            registrations=per_link.get(link_id, {}).get("CREATED", 0),
+            valid=by_link.get(link_id, (0, 0, 0, 0, 0, 0))[3],
+            checked_in=by_link.get(link_id, (0, 0, 0, 0, 0, 0))[5],
+        )
+        for link_id, name in names
+        if params.campaign_link_id in (None, link_id)
+    ]
+
+    async def utm(field: str) -> list[Count]:
+        return [
+            Count(key=k, count=n) for k, n in await repo.campaign_utm(session, w, visible, field)
+        ]
+
+    return CampaignDashboardOut(
+        timezone=edition.timezone,
+        totals=totals,
+        days=sorted(days.values(), key=lambda d: d.day),
+        funnel=funnel,
+        utm_source=await utm("utm_source"),
+        utm_medium=await utm("utm_medium"),
+        utm_campaign=await utm("utm_campaign"),
+        campaigns=campaigns,
     )

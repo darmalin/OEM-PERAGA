@@ -26,6 +26,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import Scope
+from app.modules.campaigns.models import CampaignLink, CampaignSubmission, CampaignView
 from app.modules.checkin.models import Gate, ScanAttempt, VisitorCheckin
 from app.modules.checkin.repository import gate_scope_clause
 from app.modules.exhibitions.models import Edition
@@ -755,3 +756,121 @@ async def email_report_jobs(
         .limit(limit)
     )
     return (await session.execute(stmt)).all()
+
+
+# --- campaign dashboard ----------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class CampaignWindow:
+    edition_id: uuid.UUID
+    link_id: uuid.UUID | None
+    date_from: Any  # date | None, edition-local
+    date_to: Any
+    timezone: str
+
+
+def _day_range(column: Any, w: CampaignWindow) -> list[ColumnElement[bool]]:
+    conds: list[ColumnElement[bool]] = []
+    if w.date_from:
+        conds.append(column >= w.date_from)
+    if w.date_to:
+        conds.append(column <= w.date_to)
+    return conds
+
+
+def _campaign_links(w: CampaignWindow) -> Any:
+    stmt = select(CampaignLink.id).where(CampaignLink.edition_id == w.edition_id)
+    if w.link_id:
+        stmt = stmt.where(CampaignLink.id == w.link_id)
+    return stmt
+
+
+async def campaign_link_names(
+    session: AsyncSession, edition_id: uuid.UUID
+) -> list[tuple[uuid.UUID, str]]:
+    rows = await session.execute(
+        select(CampaignLink.id, CampaignLink.name)
+        .where(CampaignLink.edition_id == edition_id)
+        .order_by(CampaignLink.created_at)
+    )
+    return [(i, n) for i, n in rows.all()]
+
+
+async def campaign_views(
+    session: AsyncSession, w: CampaignWindow
+) -> dict[tuple[Any, uuid.UUID], int]:
+    """(day, link) -> form opens."""
+    rows = await session.execute(
+        select(CampaignView.day, CampaignView.campaign_link_id, CampaignView.views).where(
+            CampaignView.campaign_link_id.in_(_campaign_links(w)), *_day_range(CampaignView.day, w)
+        )
+    )
+    return {(d, link): v for d, link, v in rows.all()}
+
+
+async def campaign_submissions(
+    session: AsyncSession, w: CampaignWindow
+) -> list[tuple[Any, uuid.UUID, str, int]]:
+    """(day, link, outcome, count) of form posts."""
+    day = local_day(CampaignSubmission.created_at, w.timezone)
+    rows = await session.execute(
+        select(day, CampaignSubmission.campaign_link_id, CampaignSubmission.outcome, func.count())
+        .where(CampaignSubmission.campaign_link_id.in_(_campaign_links(w)), *_day_range(day, w))
+        .group_by(day, CampaignSubmission.campaign_link_id, CampaignSubmission.outcome)
+    )
+    return [(d, link, o, n) for d, link, o, n in rows.all()]
+
+
+def _campaign_leads(w: CampaignWindow, visible: ColumnElement[bool]) -> list[ColumnElement[bool]]:
+    conds: list[ColumnElement[bool]] = [
+        visible,
+        VisitorLead.edition_id == w.edition_id,
+        VisitorLead.campaign_link_id.is_not(None),
+        *_day_range(local_day(VisitorLead.created_at, w.timezone), w),
+    ]
+    if w.link_id:
+        conds.append(VisitorLead.campaign_link_id == w.link_id)
+    return conds
+
+
+_CHECKED_IN = (
+    select(VisitorCheckin.id)
+    .join(VisitorRegistration, VisitorRegistration.id == VisitorCheckin.registration_id)
+    .where(VisitorRegistration.visitor_lead_id == VisitorLead.id)
+    .exists()
+)
+
+
+async def campaign_funnel(
+    session: AsyncSession, w: CampaignWindow, visible: ColumnElement[bool]
+) -> list[tuple[uuid.UUID, int, int, int, int, int, int]]:
+    """Per link: (link, registered, called, answered, valid, attend, checked_in)."""
+    rows = await session.execute(
+        select(
+            VisitorLead.campaign_link_id,
+            func.count(),
+            func.count().filter(VisitorLead.call_attempts > 0),
+            func.count().filter(VisitorLead.telemarketing_status.in_(("ANSWER", "RECONTACTED"))),
+            func.count().filter(VisitorLead.is_valid_lead.is_(True)),
+            func.count().filter(VisitorLead.attend.in_(("ATTEND", "ATTEND_SOURCING"))),
+            func.count().filter(_CHECKED_IN),
+        )
+        .where(*_campaign_leads(w, visible))
+        .group_by(VisitorLead.campaign_link_id)
+    )
+    return [tuple(r) for r in rows.all()]  # type: ignore[misc]
+
+
+async def campaign_utm(
+    session: AsyncSession, w: CampaignWindow, visible: ColumnElement[bool], field: str
+) -> list[tuple[str | None, int]]:
+    column = getattr(VisitorLead, field)
+    rows = await session.execute(
+        select(column, func.count())
+        .where(*_campaign_leads(w, visible))
+        .group_by(column)
+        .order_by(func.count().desc(), column)
+        .limit(10)
+    )
+    return [(v, n) for v, n in rows.all()]

@@ -1625,6 +1625,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Campaign Dashboard
+         * @description Marketing > Campaigns dashboard: opens, registrations, funnel, UTM, per campaign.
+         */
+        get: operations["campaign_dashboard_api_v1_reports_campaigns_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exports/visitors": {
         parameters: {
             query?: never;
@@ -2181,6 +2201,77 @@ export interface components {
             b2b_matching?: boolean | null;
             buyer_type?: components["schemas"]["BuyerType"] | null;
         };
+        /** CampaignDashboardOut */
+        CampaignDashboardOut: {
+            /** Timezone */
+            timezone: string;
+            totals: components["schemas"]["CampaignTotals"];
+            /** Days */
+            days: components["schemas"]["CampaignDay"][];
+            funnel: components["schemas"]["CampaignFunnel"];
+            /** Utm Source */
+            utm_source: components["schemas"]["Count"][];
+            /** Utm Medium */
+            utm_medium: components["schemas"]["Count"][];
+            /** Utm Campaign */
+            utm_campaign: components["schemas"]["Count"][];
+            /** Campaigns */
+            campaigns: components["schemas"]["CampaignRow"][];
+        };
+        /** CampaignDay */
+        CampaignDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Views
+             * @default 0
+             */
+            views: number;
+            /**
+             * Registrations
+             * @default 0
+             */
+            registrations: number;
+        };
+        /**
+         * CampaignFunnel
+         * @description Campaign leads the caller can see, by how far they got.
+         */
+        CampaignFunnel: {
+            /**
+             * Registered
+             * @default 0
+             */
+            registered: number;
+            /**
+             * Called
+             * @default 0
+             */
+            called: number;
+            /**
+             * Answered
+             * @default 0
+             */
+            answered: number;
+            /**
+             * Valid
+             * @default 0
+             */
+            valid: number;
+            /**
+             * Attend
+             * @default 0
+             */
+            attend: number;
+            /**
+             * Checked In
+             * @default 0
+             */
+            checked_in: number;
+        };
         /** CampaignLinkIn */
         CampaignLinkIn: {
             /**
@@ -2277,6 +2368,61 @@ export interface components {
             gtm_container_id?: string | null;
             /** Version */
             version: number;
+        };
+        /** CampaignRow */
+        CampaignRow: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Views
+             * @default 0
+             */
+            views: number;
+            /**
+             * Registrations
+             * @default 0
+             */
+            registrations: number;
+            /**
+             * Valid
+             * @default 0
+             */
+            valid: number;
+            /**
+             * Checked In
+             * @default 0
+             */
+            checked_in: number;
+        };
+        /** CampaignTotals */
+        CampaignTotals: {
+            /**
+             * Views
+             * @default 0
+             */
+            views: number;
+            /**
+             * Registrations
+             * @default 0
+             */
+            registrations: number;
+            /**
+             * Duplicates
+             * @default 0
+             */
+            duplicates: number;
+            /**
+             * Bots
+             * @default 0
+             */
+            bots: number;
+            /** Conversion */
+            conversion?: number | null;
         };
         /**
          * ConditionOp
@@ -9211,6 +9357,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardOptions"];
+                };
+            };
+        };
+    };
+    campaign_dashboard_api_v1_reports_campaigns_get: {
+        parameters: {
+            query: {
+                edition_id: string;
+                campaign_link_id?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignDashboardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

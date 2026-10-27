@@ -1,9 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -67,3 +68,15 @@ class CampaignSubmission(UUIDPk, Base):
     outcome: Mapped[str] = mapped_column(String(20), nullable=False)
     consent_version: Mapped[str | None] = mapped_column(String(20))
     visitor_lead_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("visitor_leads.id"))
+
+
+class CampaignView(Base):
+    """Form opens per link and edition-local day; one per visitor (keyed IP hash) per day."""
+
+    __tablename__ = "campaign_views"
+
+    campaign_link_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("campaign_links.id", ondelete="CASCADE"), primary_key=True
+    )
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    views: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -7,6 +7,8 @@ from app.core.authorization import AuthContext, require
 from app.core.db import get_session
 from app.modules.reporting import service
 from app.modules.reporting.schemas import (
+    CampaignDashboardOut,
+    CampaignDashboardParams,
     DashboardOptions,
     DashboardOut,
     DashboardParams,
@@ -54,3 +56,13 @@ async def dashboard_options(
     ctx: AuthContext = Depends(require("report.view")),
 ) -> DashboardOptions:
     return await service.dashboard_options(session, ctx)
+
+
+@router.get("/reports/campaigns", response_model=CampaignDashboardOut)
+async def campaign_dashboard(
+    params: Annotated[CampaignDashboardParams, Query()],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    ctx: AuthContext = Depends(require("campaign.view")),
+) -> CampaignDashboardOut:
+    """Marketing > Campaigns dashboard: opens, registrations, funnel, UTM, per campaign."""
+    return await service.campaign_dashboard(session, ctx, params)

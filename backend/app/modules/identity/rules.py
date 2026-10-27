@@ -41,6 +41,7 @@ PERMISSIONS: dict[str, str] = {
     "audit_log.read": "Read the audit log",
     "email_account.manage": "Manage email sending accounts",
     "email_log.read": "View the email log",
+    "campaign.view": "View campaign links and the campaign dashboard",
 }
 
 _TM_MANAGER = [
@@ -62,6 +63,7 @@ _TM_MANAGER = [
     "registration.resend_qr",
     "report.view",
     "report.export",
+    "campaign.view",
 ]
 
 BASELINE_ROLES: dict[str, tuple[str, list[str]]] = {

@@ -1,5 +1,6 @@
 """Campaign links: admin management and the public form's safety rules."""
 
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -16,7 +17,7 @@ from app.modules.exhibitions.models import Edition
 from app.modules.mail.models import EmailJob
 from app.modules.registrations.models import VisitorRegistration
 from app.modules.visitors.models import VisitorLead
-from tests.factories import RoleGrant, actor, make_edition
+from tests.factories import RoleGrant, actor, make_edition, make_gate
 from tests.test_exports import rows, run_exports, workbook
 
 LINKS = "/api/v1/campaign-links"
@@ -286,3 +287,86 @@ async def test_export_has_campaign_and_utm(client: AsyncClient, storage: MemoryS
     assert (data["Campaign"], data["UTM Medium"], data["UTM Source"]) == (
         "Poster Hall A", "poster", None,
     )  # fmt: skip
+
+
+async def test_campaign_dashboard(client: AsyncClient) -> None:
+    edition = await make_edition()
+    gate = await make_gate(edition)
+    _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", edition.id))
+    a = await make_link(admin, edition, name="IG")
+    b = await make_link(admin, edition, name="WA")
+
+    # Two opens from one visitor on one day count once.
+    assert (await client.get(public(a["token"]))).status_code == 200
+    assert (await client.get(public(a["token"]))).status_code == 200
+    assert (await client.get(public(b["token"]))).status_code == 200
+
+    async def post(link: Any, **fields: Any) -> None:
+        r = await client.post(
+            f"{public(link['token'])}/registrations", json=body(link["token"], **fields)
+        )
+        assert r.status_code == 202
+
+    await post(a, email="one@example.test", utm_source="instagram", utm_medium="story")
+    await post(a, email="two@example.test", utm_source="instagram", utm_medium="feed")
+    await post(a, email="ONE@example.test")  # duplicate
+    await post(a, email="bot@example.test", contact_fax="x")  # bot
+    await post(b, email="three@example.test", utm_source="wa")
+
+    # Lead "one" is called, answered, valid, plans to attend, and is let in at the gate.
+    async with get_sessionmaker()() as session, session.begin():
+        lead = await session.scalar(
+            select(VisitorLead).where(VisitorLead.email == "one@example.test")
+        )
+        assert lead is not None
+        lead.call_attempts, lead.telemarketing_status = 1, "ANSWER"
+        lead.is_valid_lead, lead.attend = True, "ATTEND"
+        reg_id = await session.scalar(
+            select(VisitorRegistration.id).where(VisitorRegistration.visitor_lead_id == lead.id)
+        )
+    r = await admin.post(
+        "/api/v1/gate/overrides",
+        json={"scan_event_id": str(uuid.uuid4()), "gate_id": str(gate.id),
+              "registration_id": str(reg_id), "reason": "Dashboard test"},
+    )  # fmt: skip
+    assert r.status_code == 201, r.text
+
+    url = "/api/v1/reports/campaigns"
+    r = await admin.get(url, params={"edition_id": str(edition.id)})
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert d["totals"] == {
+        "views": 2,
+        "registrations": 3,
+        "duplicates": 1,
+        "bots": 1,
+        "conversion": 1.5,
+    }
+    assert sum(day["registrations"] for day in d["days"]) == 3
+    assert d["funnel"] == {"registered": 3, "called": 1, "answered": 1, "valid": 1, "attend": 1,
+                           "checked_in": 1}  # fmt: skip
+    assert d["utm_source"][0] == {"key": "instagram", "count": 2}
+    rows = {c["name"]: c for c in d["campaigns"]}
+    assert (rows["IG"]["views"], rows["IG"]["registrations"], rows["IG"]["checked_in"]) == (1, 2, 1)
+    assert (rows["WA"]["views"], rows["WA"]["registrations"], rows["WA"]["valid"]) == (1, 1, 0)
+
+    one = (
+        await admin.get(url, params={"edition_id": str(edition.id), "campaign_link_id": b["id"]})
+    ).json()
+    assert one["totals"]["registrations"] == 1 and [c["name"] for c in one["campaigns"]] == ["WA"]
+    future = (datetime.now(UTC) + timedelta(days=2)).date().isoformat()
+    empty = (
+        await admin.get(url, params={"edition_id": str(edition.id), "date_from": future})
+    ).json()
+    assert empty["totals"]["registrations"] == 0 and empty["funnel"]["registered"] == 0
+
+    # Who may open it: edition managers and telemarketing managers, not gate or agents.
+    _, manager = await actor(RoleGrant("TELEMARKETING_MANAGER", "EDITION", edition.id))
+    _, supervisor = await actor(RoleGrant("GATE_SUPERVISOR", "EDITION", edition.id))
+    _, agent = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", edition.id))
+    assert (await manager.get(url, params={"edition_id": str(edition.id)})).status_code == 200
+    assert (await supervisor.get(url, params={"edition_id": str(edition.id)})).status_code == 403
+    assert (await agent.get(url, params={"edition_id": str(edition.id)})).status_code == 403
+    other = await make_edition()
+    r = await admin.get(url, params={"edition_id": str(other.id)})
+    assert r.status_code == 404
