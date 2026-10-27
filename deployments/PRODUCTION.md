@@ -187,5 +187,6 @@ Jalankan dari folder prod supaya yang di-backup adalah stack prod:
 - RAM: dua stack lengkap butuh kira-kira 2× satu stack. Pantau dengan `docker stats`. Staging boleh
   dimatikan saat tidak dipakai (`docker compose stop`).
 - nginx host harus **mengganti** `X-Forwarded-For` dengan `$remote_addr`, bukan menambahkan (`$proxy_add_x_forwarded_for`). Kalau server dipasang dari template lama, ubah baris itu. Tanpa ini, orang bisa memalsukan IP untuk melewati batas login dan batas form campaign.
+- Form Campaign Link (`/r/...`) disajikan oleh container web, jadi nginx host tidak perlu diubah. Kalau tim marketing memasang tag di GTM yang memakai domain di luar Google, Meta, atau TikTok, tag itu diblokir browser sampai domainnya ditambahkan ke CSP `location /r/` di `deployments/nginx/default.conf`.
 - Storage (`storage`, port 9000) tidak dibuka ke luar dan memang tidak perlu. Download Export dan
   Error Report import dialirkan lewat API.

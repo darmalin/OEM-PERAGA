@@ -3,7 +3,7 @@ TEST_DB_URL = postgresql+asyncpg://ems:ems@postgres:5432/ems_test
 RUN_BACKEND = $(COMPOSE) run --rm --no-deps -T
 TEST_ENV = -e EMS_ENVIRONMENT=test -e EMS_DATABASE_URL=$(TEST_DB_URL) -e EMS_REDIS_URL=redis://redis:6379/15 -e EMS_EMAIL_BACKEND=memory
 
-.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell web scanner web-check e2e e2e-scanner
+.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell web scanner campaign web-check e2e e2e-scanner e2e-campaign
 
 up:
 	$(COMPOSE) up -d --build
@@ -45,6 +45,10 @@ web:
 scanner:
 	cd frontend && pnpm install && pnpm dev:scanner
 
+# Public campaign form dev server at http://localhost:5175/r/{token}.
+campaign:
+	cd frontend && pnpm install && pnpm dev:campaign
+
 web-check:
 	cd frontend && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
@@ -58,6 +62,11 @@ e2e:
 e2e-scanner:
 	cd frontend/apps/scanner && set -a && . ../../../.env && set +a && \
 	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/offline.mjs
+
+# Public campaign form flow; needs `make campaign` running and an Active edition.
+e2e-campaign:
+	cd frontend/apps/campaign && set -a && . ../../../.env && set +a && \
+	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/form.mjs
 
 shell:
 	$(COMPOSE) exec api sh

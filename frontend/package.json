@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "pnpm --filter @ems/web dev",
     "dev:scanner": "pnpm --filter @ems/scanner dev",
-    "build": "pnpm --filter @ems/web --filter @ems/scanner build",
+    "build": "pnpm --filter @ems/web --filter @ems/scanner --filter @ems/campaign build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
-    "gen:api": "pnpm --filter @ems/api gen"
+    "gen:api": "pnpm --filter @ems/api gen",
+    "dev:campaign": "pnpm --filter @ems/campaign dev"
   }
 }

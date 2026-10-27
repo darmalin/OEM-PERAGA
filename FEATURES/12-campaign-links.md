@@ -31,4 +31,10 @@ Owner request 2026-10-26. Each edition has any number of campaign links ("IG Oct
 ## Phases
 1. Backend (this file's API and rules, migration 0022, tests `tests/test_campaigns.py`).
 2. Admin UI (done): Campaign Links panel on the edition page (Copy Link, QR Code PNG from `GET /campaign-links/{id}/qr.png`, Edit, New URL with a second click); new/edit pages under `/app/campaign-links`; Campaign column, Campaign and UTM fields in the Filter button, and a Campaign panel on the lead detail.
-3. Public form page `/r/{token}` with its own CSP, GTM data layer events (`campaign_form_view`, `campaign_form_start`, `campaign_form_submit`, no personal data), UTM from the URL, EN/ID switch.
+3. Public form (done): `frontend/apps/campaign`, built into `/r/` of the web image.
+   - English and Indonesian, switched by the visitor (kept in the browser); country names in that language.
+   - GTM loads only when the link has a container ID. Data layer events `campaign_form_view`, `campaign_form_start`, `campaign_form_submit` carry the edition name and form language, never personal data.
+   - UTM tags are read from the URL (only the five `utm_*`, 200 characters each). Requests use `credentials: "omit"`.
+   - Pages: form, thank you, closed (unknown, inactive, ended, full, or edition not Active).
+   - `deployments/nginx/default.conf` gives `/r/` its own CSP: GTM, Google, Meta, and TikTok script and beacon hosts allowed; `connect-src` is only `<host>/api/v1/public/` plus those hosts (no `'self'`), so a tag cannot call the admin API with a signed-in user's cookie; no framing of this origin (`frame-src` without `'self'`). Checked against the production image: `/api/v1/auth/me` from the form page is blocked by the browser, the public API works. A tag that needs another host is blocked until that host is added to the policy.
+   - Dev: `make campaign` serves the form at http://localhost:5175/r/{token} (links in the admin show port 8080, the Docker nginx, which serves the form only in the production image). `make e2e-campaign` runs the flow.
