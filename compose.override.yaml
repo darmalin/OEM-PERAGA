@@ -63,6 +63,9 @@ services:
     image: nginx:1.27-alpine
     volumes:
       - ./deployments/nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+    # The campaign form dev server runs on the host (`make campaign`).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Vite dev server in Docker (optional): docker compose --profile frontend up -d web
   # Without it, run `pnpm dev` in frontend/ on the host and open http://localhost:5173.
