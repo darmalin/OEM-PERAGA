@@ -122,7 +122,7 @@ Lucide via `lucide-react`, size 16, `stroke-width: 1.5`. Reason: Frappe's icon s
 └────────────┴─────────────────────────────────────────────────────────┘
 ```
 
-- Top bar 48px: product name as text (`[LOGO]` placeholder until the owner supplies a logo, R-23), edition switcher, breadcrumbs, command bar, notifications, user menu (Theme, Logout).
+- Top bar 48px: PERAGA Expo logo (since 2026-10-28; see the end of this file), edition switcher, breadcrumbs, command bar, notifications, user menu (Theme, Logout).
 - Sidebar 232px, collapsible. Items come from the user's permissions: only routes that exist and the user can open appear (R-24).
 
 ### Panels
@@ -131,7 +131,7 @@ Three groups of pages, each with its own sidebar and URL prefix. A user sees a p
 
 | Panel | Prefix | For | Pages |
 |---|---|---|---|
-| Admin | `/app` | Owner, exhibition admins, telemarketing, gate supervisors | Overview, Visitor Leads, My Calls, Follow-ups, Registrations, Imports, Exports, Gates, Devices, Scan History, Reconciliation, Reports, Exhibitions, Editions, Custom Fields, Field Options |
+| Admin | `/app` | Owner, exhibition admins, telemarketing, gate supervisors | Overview, Visitor Leads, Imports, Exports, Form, Form Dashboard, Gates, Devices, Scan History, Reconciliation, Reports, Exhibitions, Editions, Custom Fields, Field Options |
 | System | `/system` | Developer and support | Health, Users, Roles and Permissions, Teams, Audit Log, Email Templates |
 | Exhibitor | `/exhibitor` | Booth exhibitors | Not built: outside phase 1 (spec 1.2) and no backend. Requirements draft in `FEATURES/11-exhibitor-portal.md`. No link appears until it exists (R-24). |
 - Mobile (< 768px): sidebar becomes a drawer opened from a menu button in the top bar; command bar collapses to a search icon.
@@ -206,7 +206,7 @@ Not a generic stat grid. Each role lands on the screen that answers its question
 
 | Role | Lands on | Question it answers |
 |---|---|---|
-| Telemarketing Agent | My Calls | Who do I call next? (overdue follow-ups first) |
+| Telemarketing Agent | Overview, with Open My Leads (Visitor Leads, Lead Owner = Me); My Calls removed 2026-10-28 | Who do I call next? |
 | Telemarketing Manager | Team overview | Which agents are behind, and how many leads are unassigned? |
 | Exhibition Admin | Edition overview | How many leads, registrations, QR emails failed? |
 | Gate Supervisor | Gate live | Scans per gate this hour, devices with pending sync |

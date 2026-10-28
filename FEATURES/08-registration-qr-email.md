@@ -26,6 +26,11 @@ Since only the hash is stored, the email job must receive the raw token at issue
 - **Email Log** (System > Email Log, permission `email_log.read`): every email (QR, password reset, follow-up reminder, test) with recipient, subject, account, From, status, attempts, safe error summary, and the attempt trail. Edition admins see their editions' emails; system emails (no edition) need `email_account.manage`.
 - Not built: scheduled send ("send after", as in Frappe's Email Queue). Nothing needs it yet; follow-up reminders are timed by Celery Beat.
 
+## Email tab on the lead (owner request 2026-10-28)
+- Visitor Lead detail has an **Email** tab: counts of Sent, Pending (queued or sending), Failed, Cancelled, and Total, then a paged list with subject, recipient, From, queued and sent time, status, attempts, and the safe error summary.
+- API: `GET /visitor-leads/{id}/emails` (permission `visitor.read`, same lead scope as the lead itself). Only emails of that lead in its edition; no account settings or system emails. Counts cover every page.
+- The Email Log in System stays the full view for admins.
+
 ## Email
 - `email_templates` (versioned), `email_jobs`, `email_logs`: recipient, template + version, registration, queued_at, sent_at, provider message ID, delivery status, safe error summary.
 - Sent by the worker via the outbox. Never inside the registration request.

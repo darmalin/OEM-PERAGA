@@ -57,6 +57,12 @@ Like Frappe: a row of per-field inputs above the list, plus a **Filter** button 
 - `GET /visitor-leads/filter-options` gives countries, lead owners, and their teams found in the leads the caller can see.
 - `pg_trgm` GIN indexes (migration 0019) serve "contains" on name, company, email, phone, and Registration ID.
 
+## Lead list, board, and detail (owner request 2026-10-28)
+- Visitor Leads opens straight on the leads list; the Leads/Registrations tabs are gone. `/app/registrations` and `/app/visitor-leads/registrations` redirect to the list. Registered leads: filter Registration Status = Registered.
+- The Registration status column and the repeated Registered/Registration badges were removed; Registration ID stays.
+- Registering a visitor, logging a call, and adding a follow-up are done from the lead detail. Its tabs: Person, Verification, Calls, Registration, Email (FEATURES/08), Activity.
+- Board cards (2026-10-27): name, company, email, phone, Lead Owner, Registration ID with last update, and a footer with call count, next follow-up (red when overdue), QR status, and a + menu. Moving a card opens Log Call in a modal (FEATURES/07).
+
 ## Registration ID
 - Format: edition code + 6-digit counter, e.g. `IBTE2027000001`.
 - Generated from a per-edition counter row: `UPDATE edition_counters SET last_value = last_value + 1 WHERE edition_id = :id RETURNING last_value` inside the same transaction. Never `COUNT(*)`.

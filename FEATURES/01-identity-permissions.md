@@ -27,6 +27,14 @@ Super Admin (global) is held by the development team. An Exhibition Admin manage
 - System menu: `/auth/me` returns `global_permissions`. Health and Email Accounts show only to global holders; Roles is read-only unless `role.manage` is global. The System panel opens on the first page the user can see.
 - Tests: `tests/test_admin_boundaries.py`.
 
+## User management (owner request 2026-10-28)
+- User detail (System > Users > user) has **Change Password** (new password typed twice; same rules as everywhere, minimum 8) and **Disable User** / **Enable User**.
+- API: `PATCH /users/{id}` accepts `password` next to `full_name` and `is_active`. The password is never stored in the audit snapshot; a separate `password_change` audit entry records that it changed.
+- Changing the password or disabling a user ends all of that user's sessions at once. Changing your own password signs you out too.
+- You cannot disable yourself (`422`).
+- The admin boundaries above apply: an Exhibition Admin cannot change the password of, or disable, a user with access outside their editions or above their own (`403 USER_OUTSIDE_SCOPE`).
+- Tests: `tests/test_identity.py` (`test_admin_changes_password_and_ends_sessions`, weak passwords, permission and version checks).
+
 ## Tasks
 - [ ] Models + migration + seed (roles, permissions, role_permissions).
 - [ ] Login / logout / current user (`GET /api/v1/auth/me` returns user, permissions, scopes, allowed editions).

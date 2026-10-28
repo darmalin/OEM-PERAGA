@@ -11,6 +11,7 @@ Priority: **P1** must be closed before production, **P2** before the first event
 
 | # | Pri | Gap | Where | Fix |
 |---|---|---|---|---|
+| B2 | P2 | The status table changed on 2026-10-28 (Answer + missed call → Retry No Answer) without recomputing stored statuses. Leads that already had Answer then a missed call still show Answer, and boards, filters, and reports count them as Answer until their next call recomputes them. | `telemarketing.rules.TRANSITIONS`, `visitor_leads.telemarketing_status` | Owner decides: accept, or a data migration that replays every lead's history (as migrations 0012 and 0014 did). |
 | B1 | P2 | `create-superuser` for an existing email does not change the password, and adds a second SUPER_ADMIN assignment on every run. | `app/modules/identity/service.py` `create_superuser` | Skip the assignment when it exists; decide whether re-running should reset the password (explicit flag), and test both. |
 
 ## Security

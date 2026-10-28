@@ -42,7 +42,8 @@ Decisions that differ from the first plan, with the reason:
 ## Routing (TanStack Router)
 - File-based routes. URL shape follows Frappe:
   - `/app/visitor-leads` list, `/app/visitor-leads/new`, `/app/visitor-leads/$id`
-  - `/app/my-calls`, `/app/followups`, `/app/gates`, `/app/reports/$report`, `/app/setup/...`
+  - `/app/gates`, `/app/campaigns`, `/app/campaign-dashboard`, `/app/reports/$report`, `/app/setup/...`
+- Retired pages keep their URL as a redirect so bookmarks work: `/app/my-calls`, `/app/followups`, `/app/registrations`, `/app/visitor-leads/registrations` (2026-10-28).
 - List filters, sort, and page are typed search params (validated with Zod). Reloading or sharing a URL reproduces the same list.
 - Panel routes (`/app`, `/system`) load `/auth/me` in `beforeLoad` and send signed-out users to `/login?next=...`. Permission is not checked per route: the nav hides what the user cannot open, and a page the API refuses (403/404) shows the NoAccess state. The backend is the only real check.
 

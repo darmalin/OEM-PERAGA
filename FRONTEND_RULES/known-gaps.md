@@ -5,6 +5,7 @@ closes or adds a gap. Backend gaps are in `BACKEND_RULES/known-gaps.md`.
 
 | # | Pri | Gap | Fix |
 |---|---|---|---|
+| W15 | P2 | Since the Follow-ups list and My Calls were removed (2026-10-28), there is no page of follow-ups due today or overdue across leads. Agents find them with the Next Follow-up filter on Visitor Leads or on board cards. | Ask the owner whether a saved filter ("Due today", "Overdue") on Visitor Leads is enough. |
 | W1 | P1 | Exhibitor panel not built: outside spec phase 1 and no backend. | Decisions E1 to E6 in `FEATURES/11-exhibitor-portal.md`, then backend, then the panel. |
 | W2 | P1 | Scanner PWA is built and served at `/scanner/`, but in production the camera is blocked: nginx sends `camera=()` for every location (backend gap S5). Manual code entry works meanwhile. | nginx: `camera=(self)` on `/scanner/` only. |
 | W9 | P2 | Scanner FIRST/REPEAT with a real QR on a phone camera is not run end to end; the offline E2E uses unknown codes, and FIRST/REPEAT is covered by unit tests against a fake server. | Run on a phone over HTTPS with a registration's QR email once S5 is fixed. |

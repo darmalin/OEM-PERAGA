@@ -25,7 +25,7 @@ Scenarios (owner-validated):
 
 - Stored on the lead, recomputed from `visitor_call_activities` by replaying the table (`telemarketing.rules.telemarketing_status`), under the lead row lock. Migrations `0012` (first table) and `0014` (this table) recomputed every stored status; leads moved No Answer → Answer under the first table became Recontacted.
 - Owner update (2026-10-28): a missed call after Answer moves to Retry No Answer. Recontacted remains terminal. Existing call records are preserved; the updated table applies when the next call is saved.
-- Board: `/app/visitor-leads/board`. A card moves by drag or its menu (both open Log Call with the target); the menu's Log Call covers calls that keep the status.
+- Board: `/app/visitor-leads/board`. A card moves by drag or its + menu. Both open Log Call with the target in a modal over the board (2026-10-28); the board keeps its filters and scroll, and the status changes only when the call is saved. The menu's Log Call covers calls that keep the status. The menu labels read "current to target", e.g. Answer to Retry No Answer.
 
 Change log: first table (2026-10-22, morning) had Answer → only Recontacted, No Answer → Answer, and Recontacted / Retry No Answer final with no further calls.
 
@@ -51,16 +51,16 @@ Call results: `ANSWER`, `NO_ANSWER` by default; extra values only through config
 ## Tasks
 - [ ] Tables, constraints, status function + tests.
 - [ ] `POST /visitor-leads/{id}/calls`, `PATCH /visitor-leads/{id}/verification`, `POST /visitor-leads/{id}/followups`, `PATCH /followups/{id}` (reschedule, done, cancel).
-- [ ] "My Calls" queue for agents: assigned leads ordered by follow-up due, then `NEW`.
+- [x] ~~"My Calls" queue for agents~~ removed from the menu (owner request 2026-10-28). `/app/my-calls` redirects to Visitor Leads with Lead Owner = Me (team view: the chosen agent). The `my-queue` and `team-queue` endpoints still exist.
 - [ ] "Log Call" dialog on the lead form: result, notes, optional next follow-up. Verification section editable when the last result is Answer.
-- [ ] Follow-ups list: Today, Overdue, Upcoming tabs.
+- [x] ~~Follow-ups list~~ removed (owner request 2026-10-28). `/app/followups` redirects to Visitor Leads; a follow-up is added and seen on the lead (Add Follow-up), on the board card, and through the Next Follow-up filter. `/app/followups/{id}` still opens one follow-up.
 - [ ] Manager view (`telemarketing.view_team`): team queue, filter by agent.
 - [ ] Email reminder job (Celery Beat) behind D4; idempotency key `followup:{id}:{due_at}` so a reminder is never sent twice.
 - [ ] Audit everything.
 
 ## Acceptance criteria
 - Two agents logging a call on the same lead at once get attempt numbers 1 and 2, not 1 and 1.
-- Status always equals the function applied to the history.
+- Status always equals the function applied to the history. Exception since 2026-10-28: leads whose history is Answer then a missed call still show Answer until their next call, because the table changed without recomputing stored statuses (BACKEND_RULES/known-gaps.md B2).
 - Deleting or editing a call attempt is not possible from the API.
 
 Call form update (owner request, 2026-10-28): remove Next Follow-up from the shared call form and omit it from call submissions. Existing schedules and the separate per-lead Add Follow-up flow remain available.
