@@ -4,6 +4,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select, text
 
@@ -109,6 +110,15 @@ async def test_admin_manages_links() -> None:
     _, other_admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", other.id))
     r = await other_admin.patch(f"{LINKS}/{link['id']}", json={"is_active": True, "version": 2})
     assert r.status_code == 404
+
+
+async def test_links_on_their_own_host(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With EMS_CAMPAIGN_BASE_URL, links (and the poster QR) point at the forms host, no /r/."""
+    edition = await make_edition()
+    _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", edition.id))
+    monkeypatch.setattr(get_settings(), "campaign_base_url", "https://events.example.test/")
+    link = await make_link(admin, edition)
+    assert link["url"] == f"https://events.example.test/{link['token']}"
 
 
 async def test_public_form_registers_without_email_or_owner(client: AsyncClient) -> None:

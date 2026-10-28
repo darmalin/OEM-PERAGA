@@ -5,6 +5,7 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+- Campaign forms can live on their own address (`EMS_CAMPAIGN_BASE_URL`, e.g. `https://events.example.com/k7Qm2xPa9Lw4`). That address opens only the forms; old `/r/` links redirect there with their UTM. Without the setting nothing changes. Setup: PRODUCTION.md 4b.
 - Docs: this changelog; the 2026-10-28 changes below recorded in FEATURES 01, 03, 07, 08, 12, DESIGN, and FRONTEND_RULES.
 
 ## v1.2.2 (2026-10-28)

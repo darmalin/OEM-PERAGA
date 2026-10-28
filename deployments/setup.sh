@@ -52,6 +52,9 @@ EMS_LOG_LEVEL=INFO
 EMS_APP_ENCRYPTION_KEY=$(fernet_key)
 # The address people open, with https://. Used in links inside emails.
 EMS_PUBLIC_BASE_URL=https://CHANGE_ME
+# Optional: campaign forms on their own address, e.g. https://events.example.com (links become
+# https://events.example.com/<token>). Empty: forms stay at <public URL>/r/<token>.
+EMS_CAMPAIGN_BASE_URL=
 EMS_SESSION_COOKIE_NAME=$cookie
 EMS_SESSION_COOKIE_SECURE=true
 EMS_SESSION_IDLE_TIMEOUT_SECONDS=7200
@@ -113,6 +116,14 @@ check() {
     || warn "EMS_APP_ENCRYPTION_KEY is not a Fernet key"
   [[ "$(get EMS_PUBLIC_BASE_URL)" == https://* && "$(get EMS_PUBLIC_BASE_URL)" != *CHANGE_ME* ]] && ok "public URL $(get EMS_PUBLIC_BASE_URL)" \
     || warn "EMS_PUBLIC_BASE_URL should start with https://"
+  local forms; forms="$(get EMS_CAMPAIGN_BASE_URL || true)"
+  if [[ -z "$forms" ]]; then
+    ok "campaign forms at $(get EMS_PUBLIC_BASE_URL)/r/"
+  elif [[ "$forms" =~ ^https://[A-Za-z0-9.-]+/?$ && "${forms%/}" != "$(get EMS_PUBLIC_BASE_URL)" ]]; then
+    ok "campaign forms at $forms"
+  else
+    warn "EMS_CAMPAIGN_BASE_URL should be https://<own host>, different from EMS_PUBLIC_BASE_URL"
+  fi
   for k in POSTGRES_PASSWORD STORAGE_SECRET_KEY; do
     local v; v="$(get "$k")"
     [[ ${#v} -ge 24 && "$v" != change-me* ]] && ok "$k set" || warn "$k is weak or a placeholder"

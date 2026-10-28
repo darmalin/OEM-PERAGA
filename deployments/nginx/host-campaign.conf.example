@@ -1,0 +1,28 @@
+# Host nginx site for the campaign form address (EMS_CAMPAIGN_BASE_URL, FEATURES/12).
+# Same stack and port as the desk site: the app container tells the two apart by Host.
+# Copy to /etc/nginx/sites-available/<name>, then replace:
+#   DOMAIN  the forms address, e.g. events.example.com
+#   PORT    the port from EMS_HTTP_PORT in that clone's .env (prod 8081)
+# X-Forwarded-For is SET, never appended (see host-site.conf.example): the form's rate limits
+# count per visitor IP.
+# Start with only the port-80 server; `certbot --nginx -d DOMAIN` adds the certificate and
+# the redirect, then add the header below to the 443 server it creates.
+
+server {
+    listen 80;
+    server_name DOMAIN;
+
+    client_max_body_size 64k;                 # one form submission
+
+    location / {
+        proxy_pass http://127.0.0.1:PORT;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # After certbot (443 server): browsers keep to HTTPS for a year.
+    # add_header Strict-Transport-Security "max-age=31536000" always;
+}

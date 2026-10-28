@@ -31,8 +31,8 @@ export const loadForm = (token: string) => request<Form>(base(token));
 export const submitForm = (token: string, body: Submission) =>
   request<{ status: string }>(`${base(token)}/registrations`, { method: "POST", body: JSON.stringify(body) });
 
-/** /r/{token} -> token; anything else is not a campaign URL. */
+/** /{token} on the forms host, /r/{token} on the desk host -> token (12 characters, campaigns.rules); anything else is not a campaign URL. */
 export function tokenFromPath(pathname: string): string | null {
-  const m = /^\/r\/([A-Za-z0-9_-]{1,64})\/?$/.exec(pathname);
+  const m = /^\/(?:r\/)?([A-Za-z0-9_-]{12})\/?$/.exec(pathname);
   return m ? m[1]! : null;
 }

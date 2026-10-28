@@ -5,10 +5,12 @@ import { formatDate, strings } from "./i18n";
 import { readUtm } from "./tracking";
 
 describe("campaign form helpers", () => {
-  it("reads the token from /r/{token} only", () => {
+  it("reads the token from /{token} or /r/{token} only", () => {
     expect(tokenFromPath("/r/AbC_d-12xyZ9")).toBe("AbC_d-12xyZ9");
     expect(tokenFromPath("/r/AbC_d-12xyZ9/")).toBe("AbC_d-12xyZ9");
+    expect(tokenFromPath("/AbC_d-12xyZ9")).toBe("AbC_d-12xyZ9");
     expect(tokenFromPath("/r/")).toBeNull();
+    expect(tokenFromPath("/")).toBeNull();
     expect(tokenFromPath("/r/a/b")).toBeNull();
     expect(tokenFromPath("/r/%3Cscript%3E")).toBeNull();
     expect(tokenFromPath("/app/visitor-leads")).toBeNull();

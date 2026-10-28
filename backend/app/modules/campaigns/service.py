@@ -81,9 +81,16 @@ async def _state(session: AsyncSession, link: CampaignLink, now: datetime) -> Li
     )
 
 
+def link_url(token: str) -> str:
+    s = get_settings()
+    if s.campaign_base_url:
+        return f"{s.campaign_base_url.rstrip('/')}/{token}"
+    return f"{s.public_base_url.rstrip('/')}/r/{token}"
+
+
 async def _out(session: AsyncSession, link: CampaignLink) -> CampaignLinkOut:
     out = CampaignLinkOut.model_validate(link)
-    out.url = f"{get_settings().public_base_url.rstrip('/')}/r/{link.token}"
+    out.url = link_url(link.token)
     out.state = await _state(session, link, datetime.now(UTC))
     return out
 

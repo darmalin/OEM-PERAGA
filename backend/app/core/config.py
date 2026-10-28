@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     password_min_length: int = 8  # owner decision 2026-10-26
 
     # Campaign link forms (public, no login).
+    # Own host for the forms, e.g. https://events.example.com: links become {this}/{token}.
+    # Empty: forms stay on the desk host at /r/{token}.
+    campaign_base_url: str = ""
     campaign_submissions_per_ip_per_hour: int = 20
     campaign_submissions_per_link_per_hour: int = 1000
 

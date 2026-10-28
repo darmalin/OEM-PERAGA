@@ -31,13 +31,22 @@ Owner request 2026-10-26. Each edition has any number of campaign links ("IG Oct
 ## Phases
 1. Backend (this file's API and rules, migration 0022, tests `tests/test_campaigns.py`).
 2. Admin UI (done): Campaign Links panel on the edition page (Copy Link, QR Code PNG from `GET /campaign-links/{id}/qr.png`, Edit, New URL with a second click); new/edit pages under `/app/campaign-links`; Campaign column, Campaign and UTM fields in the Filter button, and a Campaign panel on the lead detail.
-3. Public form (done): `frontend/apps/campaign`, built into `/r/` of the web image.
+3. Public form (done): `frontend/apps/campaign`, built into `/r/` of the web image; served at `/{token}` on its own host when `EMS_CAMPAIGN_BASE_URL` is set.
    - English and Indonesian, switched by the visitor (kept in the browser); country names in that language.
    - GTM loads only when the link has a container ID. Data layer events `campaign_form_view`, `campaign_form_start`, `campaign_form_submit` carry the edition name and form language, never personal data.
    - UTM tags are read from the URL (only the five `utm_*`, 200 characters each). Requests use `credentials: "omit"`.
    - Pages: form, thank you, closed (unknown, inactive, ended, full, or edition not Active).
-   - `deployments/nginx/default.conf` gives `/r/` its own CSP: GTM, Google, Meta, and TikTok script and beacon hosts allowed; `connect-src` is only `<host>/api/v1/public/` plus those hosts (no `'self'`), so a tag cannot call the admin API with a signed-in user's cookie; no framing of this origin (`frame-src` without `'self'`). Checked against the production image: `/api/v1/auth/me` from the form page is blocked by the browser, the public API works. A tag that needs another host is blocked until that host is added to the policy.
+   - `deployments/nginx/campaign/form-headers.conf` gives the form page its own CSP: GTM, Google, Meta, and TikTok script and beacon hosts allowed; `connect-src` is only `<host>/api/v1/public/` plus those hosts (no `'self'`), so a tag cannot call the admin API with a signed-in user's cookie; no framing of this origin (`frame-src` without `'self'`). Checked against the production image: `/api/v1/auth/me` from the form page is blocked by the browser, the public API works. A tag that needs another host is blocked until that host is added to the policy.
    - Dev: `make campaign` runs the form's dev server on the host (port 5175); the dev nginx sends `/r/` there, so the admin's links (http://localhost:8080/r/{token}) open as they are. Without `make campaign` running they answer 502. `make e2e-campaign` runs the flow.
+
+## Own address for the forms (owner decision 2026-10-28)
+- `EMS_CAMPAIGN_BASE_URL=https://events.example.com` puts the forms on their own host: links and poster QR codes become `https://events.example.com/{token}`. Empty (dev, staging): forms stay at `{EMS_PUBLIC_BASE_URL}/r/{token}`. Tokens do not change, so no link needs a New URL.
+- Same stack and port; the web container tells the hosts apart by `Host`. At start, `deployments/nginx/campaign/15-campaign-host.sh` writes the forms server from `host.conf.template`.
+- The forms host answers only `/{token}` (12 characters), the form's files under `/r/`, and `/api/v1/public/campaigns/`. Everything else is `404`: desk, admin API, login, scanner. `/` without a token redirects to https://www.peragaexpo.com/.
+- On the desk host, `/r/{token}` answers `301` to the forms host with the query (UTM) kept, so links and posters made earlier still work.
+- Why its own host: the desk session cookie is host-only, so it never reaches the forms host, and a GTM tag on the form cannot reach the desk at all. The CSP (`campaign/form-headers.conf`, shared by both hosts) stays as a second wall.
+- The desk server is `default_server`, so a request for any other name (e.g. `curl 127.0.0.1:8081`) still reaches the desk.
+- Server setup: `deployments/PRODUCTION.md` section 4b. Checked with nginx against the built form: every path above per host, the redirect with UTM, the CSP on the token page, and a malformed URL stopping the container start.
 
 ## Marketing menu and dashboard (owner decision 2026-10-27)
 - Sidebar group **Marketing**: **Form** (links of the chosen Exhibition Type, same actions as the edition page) and **Form Dashboard**; named Campaigns and Campaign Dashboard until 2026-10-28. URLs stay `/app/campaigns` and `/app/campaign-dashboard`. Permission `campaign.view`: Super Admin, Exhibition Admin, Telemarketing Manager (migration 0023). Managing links still needs `edition.manage`.

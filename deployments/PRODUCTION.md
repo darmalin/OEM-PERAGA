@@ -115,6 +115,33 @@ sudo certbot --nginx -d ems.example.com -d staging.ems.example.com
 DNS kedua domain harus sudah mengarah ke server sebelum menjalankan `certbot`. Setelah certbot selesai,
 aktifkan baris `Strict-Transport-Security` di blok 443.
 
+## 4b. Alamat khusus form campaign (opsional, prod saja)
+
+Form campaign bisa punya alamat sendiri, misalnya `events.example.com/k7Qm2xPa9Lw4`, terpisah dari
+CRM. Alamat ini hanya bisa membuka form; halaman admin, login, dan scanner dijawab 404. Membuka
+alamatnya tanpa token akan dialihkan ke peragaexpo.com. Staging tidak perlu ini.
+
+1. DNS `events.example.com` diarahkan ke IP server.
+2. Isi `.env` prod, lalu cek:
+   ```bash
+   EMS_CAMPAIGN_BASE_URL=https://events.example.com
+   ```
+3. nginx host, port sama dengan CRM (prod 8081):
+   ```bash
+   sudo cp /srv/ems-prod/deployments/nginx/host-campaign.conf.example /etc/nginx/sites-available/ems-events
+   sudo sed -i 's/DOMAIN/events.example.com/; s/PORT/8081/g' /etc/nginx/sites-available/ems-events
+   sudo ln -sf /etc/nginx/sites-available/ems-events /etc/nginx/sites-enabled/
+   sudo nginx -t && sudo systemctl reload nginx
+   sudo certbot --nginx -d events.example.com
+   ```
+4. `deployments/setup.sh check`, lalu `docker compose up -d --build`. Log `nginx` menampilkan
+   `15-campaign-host: campaign forms on https://events.example.com`.
+
+Setelah itu link di menu Form dan QR poster otomatis memakai alamat baru. Link lama
+(`<domain CRM>/r/<token>`) dialihkan ke alamat baru, termasuk UTM-nya, jadi poster yang sudah
+dicetak tetap jalan. Kalau `EMS_CAMPAIGN_BASE_URL` salah format, container `nginx` berhenti dengan
+pesan di `docker compose logs nginx`.
+
 ## 5. Cek, jalankan, buat Super Admin
 
 Di tiap folder:
