@@ -100,9 +100,9 @@ await step("Edit lead + Ctrl+S -> Not Saved, then saved toast", async () => {
 await step("Log Call (New -> Answer) needs Attend, then moves + toast", async () => {
   await page.getByRole("link", { name: "Log Call" }).click();
   await page.getByRole("heading", { name: /Log Call for/ }).waitFor();
-  await page.locator("label", { hasText: /^Answered/ }).click();
-  const next = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 16);
-  await page.getByLabel("Next Follow-up").fill(next);
+  // Choices read "current to target" since 2026-10-28.
+  await page.locator("label", { hasText: /^New\s+to Answer/ }).click();
+  // Next Follow-up left the call form (2026-10-28); follow-ups are added from the lead.
   await page.getByLabel("Notes").fill("Interested in sourcing");
   await page.getByRole("button", { name: "Save and Move" }).click();
   await page.getByText("Attend is required for an answered call.").waitFor();
@@ -115,13 +115,15 @@ await step("Status indicator updated to Answer", async () => {
   await page.locator("header").getByText("Answer", { exact: true }).first().waitFor();
   return "indicator Answer";
 });
-await step("Log Call not answered on an Answer lead -> status stays, Attend locked", async () => {
+// Owner rule 2026-10-28: a missed call after Answer moves to Retry No Answer (FEATURES/07).
+await step("Log Call not answered on an Answer lead -> Retry No Answer, Attend locked", async () => {
   await page.getByRole("link", { name: "Log Call" }).click();
-  await page.locator("label", { hasText: /^Not answered/ }).click();
+  await page.locator("label", { hasText: /^Answer\s+to Retry No Answer/ }).click();
   if (!(await page.getByLabel("Attend").isDisabled())) throw new Error("Attend should be disabled");
-  await page.getByRole("button", { name: "Save Call" }).click();
+  await page.getByRole("radio", { name: "Valid", exact: true }).check();
+  await page.getByRole("button", { name: "Save and Move" }).click();
   await page.waitForURL((u) => u.href.split("?")[0] === leadUrl);
-  return await toast("stays in Answer");
+  return await toast("moved to Retry No Answer");
 });
 await step("Add Follow-up page -> toast", async () => {
   await page.getByRole("link", { name: "Add Follow-up" }).click();
@@ -276,10 +278,10 @@ await step("System: New Team -> add member -> toast", async () => {
   await page.getByLabel("Name").fill(`Flow Team ${run}`);
   await page.getByRole("button", { name: "Save Team" }).click();
   await page.waitForURL(/\/system\/teams\/[0-9a-f-]{36}/);
-  const member = await page.getByLabel("Add a member").locator("option", { hasText: `Flow User ${run}` }).getAttribute("value");
-  await page.getByLabel("Add a member").selectOption(member);
-  await page.getByRole("button", { name: "Add Member" }).click();
-  return await toast("Member added");
+  await page.getByLabel("Search users to add").fill(`Flow User ${run}`);
+  await page.getByRole("checkbox", { name: new RegExp(`Flow User ${run}`) }).check();
+  await page.getByRole("button", { name: /^Add Selected Members/ }).click();
+  return await toast("Members added");
 });
 await step("Edition: Add Campaign Link -> listed with Copy Link and QR", async () => {
   await goto("/app/editions");

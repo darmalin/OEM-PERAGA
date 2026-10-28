@@ -5,7 +5,14 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+## v1.3.0 (2026-10-28)
+
+Migration 0024 (two columns on `teams`, runs on deploy).
+
 - Campaign forms can live on their own address (`EMS_CAMPAIGN_BASE_URL`, e.g. `https://events.example.com/k7Qm2xPa9Lw4`). That address opens only the forms; old `/r/` links redirect there with their UTM. Without the setting nothing changes. Setup: PRODUCTION.md 4b.
+- Dashboard overview (commit `ca0d9b0`): six KPI cards, response and buyer-type donuts, status bar chart, and a Date & Source table whose dates expand to sources; filters apply on Apply; changes compare with the previous period. Details: FEATURES/10.
+- Teams (commit `ca0d9b0`): enable/disable a team, delete a team (user accounts and leads kept), add several Telemarketing Agents at once with search. Only active agents can join.
+- E2E updated for the 2026-10-28 rules: status choices read "current to target", Answer + missed call moves to Retry No Answer, no Next Follow-up on the call form, multi-select team members.
 - Docs: this changelog; the 2026-10-28 changes below recorded in FEATURES 01, 03, 07, 08, 12, DESIGN, and FRONTEND_RULES.
 
 ## v1.2.2 (2026-10-28)
