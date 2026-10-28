@@ -10,7 +10,7 @@ accepted; some leave the status as it is.
 | From | Answered call | Not answered call |
 |---|---|---|
 | `NEW` | `ANSWER` | `NO_ANSWER` |
-| `ANSWER` | `RECONTACTED` | stays `ANSWER` |
+| `ANSWER` | `RECONTACTED` | `RETRY_NO_ANSWER` |
 | `NO_ANSWER` | `RECONTACTED` | `RETRY_NO_ANSWER` |
 | `RETRY_NO_ANSWER` | `RECONTACTED` | stays `RETRY_NO_ANSWER` |
 | `RECONTACTED` | stays `RECONTACTED` | stays `RECONTACTED` |
@@ -19,12 +19,12 @@ Scenarios (owner-validated):
 1. Answered first: New → Answer.
 2. Not answered, then answered: New → No Answer → Recontacted.
 3. Two misses, then answered: New → No Answer → Retry No Answer → Recontacted.
-4. Answered, then not answered: New → Answer; the second call is logged and the lead stays Answer with its verification. Answered later: Recontacted.
+4. Answered, then not answered: New → Answer → Retry No Answer. The missed call requires Lead Quality and clears Attend, B2B Matching, and Type of Buyers. Answered later: Recontacted.
 5. Never answered: New → No Answer → Retry No Answer, and every later miss is logged while the status stays.
 6. Recontacted and called again: stays Recontacted; an answered call may update the verification.
 
 - Stored on the lead, recomputed from `visitor_call_activities` by replaying the table (`telemarketing.rules.telemarketing_status`), under the lead row lock. Migrations `0012` (first table) and `0014` (this table) recomputed every stored status; leads moved No Answer → Answer under the first table became Recontacted.
-- A visitor who was reached stays reached; a miss never moves a lead back.
+- Owner update (2026-10-28): a missed call after Answer moves to Retry No Answer. Recontacted remains terminal. Existing call records are preserved; the updated table applies when the next call is saved.
 - Board: `/app/visitor-leads/board`. A card moves by drag or its menu (both open Log Call with the target); the menu's Log Call covers calls that keep the status.
 
 Change log: first table (2026-10-22, morning) had Answer → only Recontacted, No Answer → Answer, and Recontacted / Retry No Answer final with no further calls.
@@ -40,7 +40,7 @@ Call results: `ANSWER`, `NO_ANSWER` by default; extra values only through config
 - Sent with a call as `verification` (owner decisions 2026-10-22), rules in `telemarketing.rules.call_verification_errors`:
   - Answered: Lead Quality must be Valid and Attend is required; B2B Matching and Type of Buyers optional.
   - Not answered and the lead moves (to No Answer or Retry No Answer): Lead Quality required. Attend, B2B Matching, and Type of Buyers are not accepted (422) and are cleared on the lead.
-  - Not answered and the status stays (scenarios 4 to 6): verification optional; the stored values are kept.
+  - Not answered and the status stays (repeated retry misses or Recontacted): verification optional; the stored values are kept.
 - Verification tab (`PATCH /visitor-leads/{id}/verification`): partial save between calls. While the lead is No Answer or Retry No Answer (never reached), only Lead Quality is accepted.
 - `visitor_verifications` keeps history rows (one per save or call that carried verification); the lead holds the current values.
 - `Hang Up Immediately` in Attend does not mean "not attending"; the call result is recorded separately.
@@ -62,3 +62,5 @@ Call results: `ANSWER`, `NO_ANSWER` by default; extra values only through config
 - Two agents logging a call on the same lead at once get attempt numbers 1 and 2, not 1 and 1.
 - Status always equals the function applied to the history.
 - Deleting or editing a call attempt is not possible from the API.
+
+Call form update (owner request, 2026-10-28): remove Next Follow-up from the shared call form and omit it from call submissions. Existing schedules and the separate per-lead Add Follow-up flow remain available.

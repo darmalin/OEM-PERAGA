@@ -63,6 +63,7 @@ import { Route as AppVisitorLeadsIndexRouteImport } from './routes/app/visitor-l
 import { Route as AppVisitorLeadsAssignRouteImport } from './routes/app/visitor-leads/assign'
 import { Route as AppVisitorLeadsBoardRouteImport } from './routes/app/visitor-leads/board'
 import { Route as AppVisitorLeadsNewRouteImport } from './routes/app/visitor-leads/new'
+import { Route as AppVisitorLeadsRegistrationsRouteImport } from './routes/app/visitor-leads/registrations'
 import { Route as SystemEmailAccountsIndexRouteImport } from './routes/system/email-accounts/index'
 import { Route as SystemEmailAccountsAccountIdRouteImport } from './routes/system/email-accounts/$accountId'
 import { Route as SystemEmailAccountsNewRouteImport } from './routes/system/email-accounts/new'
@@ -360,6 +361,12 @@ const AppVisitorLeadsNewRoute = AppVisitorLeadsNewRouteImport.update({
   path: '/visitor-leads/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppVisitorLeadsRegistrationsRoute =
+  AppVisitorLeadsRegistrationsRouteImport.update({
+    id: '/visitor-leads/registrations',
+    path: '/visitor-leads/registrations',
+    getParentRoute: () => AppRoute,
+  } as any)
 const SystemEmailAccountsIndexRoute =
   SystemEmailAccountsIndexRouteImport.update({
     id: '/email-accounts/',
@@ -538,6 +545,7 @@ export interface FileRoutesByFullPath {
   '/app/visitor-leads/assign': typeof AppVisitorLeadsAssignRoute
   '/app/visitor-leads/board': typeof AppVisitorLeadsBoardRoute
   '/app/visitor-leads/new': typeof AppVisitorLeadsNewRoute
+  '/app/visitor-leads/registrations': typeof AppVisitorLeadsRegistrationsRoute
   '/system/email-accounts/$accountId': typeof SystemEmailAccountsAccountIdRoute
   '/system/email-accounts/new': typeof SystemEmailAccountsNewRoute
   '/system/email-log/$jobId': typeof SystemEmailLogJobIdRoute
@@ -617,6 +625,7 @@ export interface FileRoutesByTo {
   '/app/visitor-leads/assign': typeof AppVisitorLeadsAssignRoute
   '/app/visitor-leads/board': typeof AppVisitorLeadsBoardRoute
   '/app/visitor-leads/new': typeof AppVisitorLeadsNewRoute
+  '/app/visitor-leads/registrations': typeof AppVisitorLeadsRegistrationsRoute
   '/system/email-accounts/$accountId': typeof SystemEmailAccountsAccountIdRoute
   '/system/email-accounts/new': typeof SystemEmailAccountsNewRoute
   '/system/email-log/$jobId': typeof SystemEmailLogJobIdRoute
@@ -699,6 +708,7 @@ export interface FileRoutesById {
   '/app/visitor-leads/assign': typeof AppVisitorLeadsAssignRoute
   '/app/visitor-leads/board': typeof AppVisitorLeadsBoardRoute
   '/app/visitor-leads/new': typeof AppVisitorLeadsNewRoute
+  '/app/visitor-leads/registrations': typeof AppVisitorLeadsRegistrationsRoute
   '/system/email-accounts/$accountId': typeof SystemEmailAccountsAccountIdRoute
   '/system/email-accounts/new': typeof SystemEmailAccountsNewRoute
   '/system/email-log/$jobId': typeof SystemEmailLogJobIdRoute
@@ -782,6 +792,7 @@ export interface FileRouteTypes {
     | '/app/visitor-leads/assign'
     | '/app/visitor-leads/board'
     | '/app/visitor-leads/new'
+    | '/app/visitor-leads/registrations'
     | '/system/email-accounts/$accountId'
     | '/system/email-accounts/new'
     | '/system/email-log/$jobId'
@@ -861,6 +872,7 @@ export interface FileRouteTypes {
     | '/app/visitor-leads/assign'
     | '/app/visitor-leads/board'
     | '/app/visitor-leads/new'
+    | '/app/visitor-leads/registrations'
     | '/system/email-accounts/$accountId'
     | '/system/email-accounts/new'
     | '/system/email-log/$jobId'
@@ -942,6 +954,7 @@ export interface FileRouteTypes {
     | '/app/visitor-leads/assign'
     | '/app/visitor-leads/board'
     | '/app/visitor-leads/new'
+    | '/app/visitor-leads/registrations'
     | '/system/email-accounts/$accountId'
     | '/system/email-accounts/new'
     | '/system/email-log/$jobId'
@@ -1372,6 +1385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppVisitorLeadsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/visitor-leads/registrations': {
+      id: '/app/visitor-leads/registrations'
+      path: '/visitor-leads/registrations'
+      fullPath: '/app/visitor-leads/registrations'
+      preLoaderRoute: typeof AppVisitorLeadsRegistrationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/system/email-accounts/': {
       id: '/system/email-accounts/'
       path: '/email-accounts'
@@ -1583,6 +1603,7 @@ interface AppRouteChildren {
   AppVisitorLeadsAssignRoute: typeof AppVisitorLeadsAssignRoute
   AppVisitorLeadsBoardRoute: typeof AppVisitorLeadsBoardRoute
   AppVisitorLeadsNewRoute: typeof AppVisitorLeadsNewRoute
+  AppVisitorLeadsRegistrationsRoute: typeof AppVisitorLeadsRegistrationsRoute
   AppCampaignsIndexRoute: typeof AppCampaignsIndexRoute
   AppCustomFieldsIndexRoute: typeof AppCustomFieldsIndexRoute
   AppDevicesIndexRoute: typeof AppDevicesIndexRoute
@@ -1640,6 +1661,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppVisitorLeadsAssignRoute: AppVisitorLeadsAssignRoute,
   AppVisitorLeadsBoardRoute: AppVisitorLeadsBoardRoute,
   AppVisitorLeadsNewRoute: AppVisitorLeadsNewRoute,
+  AppVisitorLeadsRegistrationsRoute: AppVisitorLeadsRegistrationsRoute,
   AppCampaignsIndexRoute: AppCampaignsIndexRoute,
   AppCustomFieldsIndexRoute: AppCustomFieldsIndexRoute,
   AppDevicesIndexRoute: AppDevicesIndexRoute,

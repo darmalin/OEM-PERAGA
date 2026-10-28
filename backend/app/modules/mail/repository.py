@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy import ColumnElement, Row, Select, and_, false, func, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.pagination import PageParams
 from app.modules.mail.models import EmailAccount, EmailJob, EmailLog
 from app.modules.mail.schemas import EmailJobListParams
 
@@ -127,3 +128,25 @@ def latest_status_for(registration_id: Any) -> Any:
         .limit(1)
         .scalar_subquery()
     )
+
+
+async def list_lead_emails(
+    session: AsyncSession, edition_id: uuid.UUID, lead_id: uuid.UUID, params: PageParams
+) -> tuple[Sequence[EmailJob], dict[str, int]]:
+    """Exact lead identity and edition; counts cover all pages, not just the visible rows."""
+    where = (EmailJob.edition_id == edition_id) & (EmailJob.visitor_lead_id == lead_id)
+    counts = dict(
+        (
+            await session.execute(
+                select(EmailJob.status, func.count()).where(where).group_by(EmailJob.status)
+            )
+        ).all()
+    )
+    rows = await session.scalars(
+        select(EmailJob)
+        .where(where)
+        .order_by(EmailJob.queued_at.desc(), EmailJob.id.desc())
+        .offset(params.offset)
+        .limit(params.page_size)
+    )
+    return rows.all(), counts

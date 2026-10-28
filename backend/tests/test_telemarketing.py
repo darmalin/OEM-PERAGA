@@ -35,7 +35,7 @@ from tests.factories import RoleGrant, actor, login_client, make_edition, make_u
         (["NO_ANSWER"], "NO_ANSWER"),
         (["BUSY"], "NO_ANSWER"),
         (["ANSWER", "ANSWER"], "RECONTACTED"),
-        (["ANSWER", "NO_ANSWER"], "ANSWER"),  # reached once stays reached
+        (["ANSWER", "NO_ANSWER"], "RETRY_NO_ANSWER"),
         (["NO_ANSWER", "ANSWER"], "RECONTACTED"),
         (["NO_ANSWER", "NO_ANSWER"], "RETRY_NO_ANSWER"),
         (["NO_ANSWER", "NO_ANSWER", "NO_ANSWER"], "RETRY_NO_ANSWER"),
@@ -53,7 +53,7 @@ def test_status_function(results: list[str], status: str) -> None:
         ("NEW", True, "ANSWER"),
         ("NEW", False, "NO_ANSWER"),
         ("ANSWER", True, "RECONTACTED"),
-        ("ANSWER", False, "ANSWER"),
+        ("ANSWER", False, "RETRY_NO_ANSWER"),
         ("NO_ANSWER", True, "RECONTACTED"),
         ("NO_ANSWER", False, "RETRY_NO_ANSWER"),
         ("RETRY_NO_ANSWER", True, "RECONTACTED"),
@@ -150,15 +150,17 @@ async def test_status_follows_call_history() -> None:
     assert actions.count("call") == 2
 
 
-async def test_reached_lead_stays_reached_and_every_call_is_logged() -> None:
-    """Scenario 4: answered, then not answered: stays ANSWER, the call is still recorded."""
+async def test_missed_call_after_answer_moves_to_retry_and_every_call_is_logged() -> None:
+    """A miss after ANSWER moves to retry; a subsequent answer reaches RECONTACTED."""
     _, _, client, lead_id = await setup()
     assert (await call(client, lead_id, "ANSWER")).json()["telemarketing_status"] == "ANSWER"
-    r = await call(client, lead_id, "NO_ANSWER", verification=None)
+    rejected = await call(client, lead_id, "NO_ANSWER", verification=None)
+    assert rejected.status_code == 422  # Moving to retry requires an explicit Lead Quality.
+    r = await call(client, lead_id, "NO_ANSWER")
     assert r.status_code == 201, r.text
-    assert r.json()["telemarketing_status"] == "ANSWER"
+    assert r.json()["telemarketing_status"] == "RETRY_NO_ANSWER"
     lead = (await client.get(f"/api/v1/visitor-leads/{lead_id}")).json()
-    assert lead["attend"] == "ATTEND" and lead["is_valid_lead"]  # verification kept
+    assert lead["attend"] is None and not lead["b2b_matching"] and lead["buyer_type"] is None
     assert (await call(client, lead_id, "ANSWER")).json()["telemarketing_status"] == "RECONTACTED"
     for result in ("ANSWER", "NO_ANSWER"):
         r = await call(client, lead_id, result)

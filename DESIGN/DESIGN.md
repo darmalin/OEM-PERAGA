@@ -10,6 +10,8 @@ Filter: antislop (during). Direction source: product owner asked for a Frappe/ER
 
 Updated 2026-10-21: the owner asked for a "fancy and enterprise" look (ENERGY 2), insert and edit on their own pages instead of popups, and toasts for feedback.
 
+Board exception (owner request, 2026-10-28): dragging a lead to another status or using the card action opens the shared Log Call form in a modal over the board. Save, Cancel, and Escape retain the board filters and scroll position; status changes only after the call is saved. Log Call opened from a lead detail remains a page. Legacy `from=board` call URLs redirect to the board modal.
+
 - ENERGY 2: Frappe structure stays (sidebar, list, form, indicators), with more presence: larger page heads with a meta line, one ink "edition band" per overview screen, and denser, richer list rows. Data entry stays dense; agents still sit in this tool for full shifts.
 - RHYTHM 2: lists and forms stay uniform (speed), overview screens break the grid on purpose (edition band, then a two-column layout of the numbers that matter for the role).
 - MOTION 2: 150 ms route fade, toast slide-in, skeleton shimmer while loading, hover and focus. No scroll reveals, no loops. Respects `prefers-reduced-motion`.
@@ -28,6 +30,8 @@ Updated 2026-10-21: the owner asked for a "fancy and enterprise" look (ENERGY 2)
 **One deliberate accent:** the primary action button in ink black (Frappe v15 style). Blue is reserved for links and the focus ring. Nothing else is colored except status indicators.
 
 ## Color
+
+Desk update (2026-10-28, owner request): use the supplied forest green and red reference. The desk overrides shared tokens locally in `frontend/apps/web/src/styles/app.css`: forest sidebar, green primary actions and edition bands, pale green page surfaces and panel headers, and narrow red accents on selected navigation and edition band. Keep data surfaces neutral and status colors semantic. Dark mode uses lighter green actions and subdued green surfaces. This desk direction supersedes the neutral-only accent guidance below; scanner and campaign styling stays independent.
 
 Neutral base + ink + one blue for links/focus. Status colors are semantic, used only inside indicators and scanner result screens. All pairs below were checked for WCAG AA.
 
@@ -290,3 +294,5 @@ Large type (32px result word, 18px body), controls ≥ 56px, high contrast, work
 | Ink edition band | The single bold accent; tells the user which event they are working in. |
 | 1px shadow on the selected sidebar item and panel segment | The selected item sits on the page surface above the grey sidebar; the only non-overlay shadow, 1px. |
 | Full-screen colored scanner results | Gate staff read the result from arm's length in a crowd. |
+
+Desk header logo (2026-10-28): PERAGA Expo, requested by the owner. Local asset `frontend/apps/web/public/peraga-expo-logo.png` sourced from https://www.peragaexpo.com/files/website_logo/PERAGA%20LOGO%20WEB.png. Preserve the original colors and aspect ratio, with white backing for dark-mode legibility.

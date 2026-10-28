@@ -102,6 +102,7 @@ class UserCreateIn(BaseModel):
 
 class UserUpdateIn(BaseModel):
     version: int
+    password: str | None = Field(default=None, max_length=1024)
     full_name: str | None = Field(default=None, min_length=1, max_length=200)
     is_active: bool | None = None
 

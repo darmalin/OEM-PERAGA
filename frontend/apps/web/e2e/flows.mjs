@@ -308,12 +308,12 @@ await step("Audit Log lists entries", async () => {
 });
 
 // --- shell ---------------------------------------------------------------------------------
-await step("Ctrl+K command bar -> go to Follow-ups", async () => {
+await step("Ctrl+K command bar -> go to Visitor Leads", async () => {
   await goto("/app");
   await page.keyboard.press("Control+k");
-  await page.getByPlaceholder(/Type a page name/).fill("Follow");
+  await page.getByPlaceholder(/Type a page name/).fill("Visitor Leads");
   await page.keyboard.press("Enter");
-  await page.waitForURL(/\/app\/followups/);
+  await page.waitForURL(/\/app\/visitor-leads/);
   return page.url().replace(BASE, "");
 });
 await step("Theme menu -> dark adds the dark class; Escape closes the menu", async () => {

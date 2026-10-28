@@ -3,6 +3,7 @@ import { keepPreviousData, useQueries } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { CallDialog } from "@/features/leads/call-dialog";
 import { BoardColumn } from "@/features/leads/board-column";
 import { filterQuery, hasFilters, LeadFilterChips, LeadFilterFields, leadFilterSchema, pickFilters } from "@/features/leads/lead-filters";
 import { LeadViewSwitch } from "@/features/leads/view-switch";
@@ -14,7 +15,7 @@ import { FilterBar } from "@/ui/filters";
 import { Page, PageHead, Panel } from "@/ui/page";
 import { NoEdition } from "@/ui/states";
 
-const search = leadFilterSchema;
+const search = leadFilterSchema.extend({ call_lead: z.string().optional(), call_to: z.string().optional() });
 type Search = z.infer<typeof search>;
 
 export const Route = createFileRoute("/app/visitor-leads/board")({
@@ -32,16 +33,17 @@ function LeadBoard() {
   const navigate = useNavigate({ from: Route.fullPath });
   const set = (patch: Partial<Search>) => void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
 
+  const filters = pickFilters(s);
   const columns = useQueries({
     queries: BOARD_COLUMNS.map((status) => ({
-      queryKey: ["leads", "board", status, s],
+      queryKey: ["leads", "board", status, filters],
       placeholderData: keepPreviousData,
       queryFn: () =>
         call(
           api.GET("/api/v1/visitor-leads", {
             params: {
               query: {
-                ...filterQuery(s, me.user.id, true),
+                ...filterQuery(filters, me.user.id, true),
                 telemarketing_status: [status],
                 page: 1,
                 page_size: PER_COLUMN,
@@ -57,7 +59,8 @@ function LeadBoard() {
   const filtered = hasFilters(s);
   const canMove = can(me, "telemarketing.call");
   const onMove = (leadId: string, to?: TmStatus) =>
-    void navigate({ to: "/app/visitor-leads/$leadId/log-call", params: { leadId }, search: { to, from: "board" } });
+    void navigate({ search: (prev) => ({ ...prev, call_lead: leadId, call_to: to }), replace: true, resetScroll: false });
+  const closeCall = () => void navigate({ search: (prev) => ({ ...prev, call_lead: undefined, call_to: undefined }), replace: true, resetScroll: false });
 
   return (
     <Page className="max-w-none">
@@ -92,6 +95,7 @@ function LeadBoard() {
           ))}
         </div>
       </Panel>
+      {s.call_lead && canMove ? <CallDialog key={`${s.call_lead}:${s.call_to ?? ""}`} leadId={s.call_lead} to={s.call_to} onClose={closeCall} /> : null}
     </Page>
   );
 }

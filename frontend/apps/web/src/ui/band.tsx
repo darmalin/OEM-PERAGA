@@ -13,7 +13,7 @@ export function EditionBand({
   children?: ReactNode;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-[12px] bg-band px-7 py-6 text-on-band max-md:px-5">
+    <section className="brand-edition-band relative overflow-hidden rounded-[12px] bg-band px-7 py-6 text-on-band max-md:px-5">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="min-w-0">
           <p className="text-[13px] text-on-band-muted tabular">

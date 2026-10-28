@@ -19,7 +19,7 @@ function Campaigns() {
     <Page>
       <PageHead
         edition
-        title="Campaigns"
+        title="Form"
         meta={`Public registration links of ${edition.code}.`}
         actions={
           <>

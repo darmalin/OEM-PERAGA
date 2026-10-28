@@ -3,12 +3,12 @@ import type { Schemas } from "@ems/api";
 export type TmStatus = Schemas["LeadOut"]["telemarketing_status"];
 
 /**
- * Status after one more call (FEATURES/07, owner decisions 2026-10-22), mirrored from backend
+ * Status after one more call (FEATURES/07, owner decisions 2026-10-28), mirrored from backend
  * telemarketing/rules.py for the UI only. Every call is accepted; some leave the status as is.
  */
 const TRANSITIONS: Record<TmStatus, { answered: TmStatus; unanswered: TmStatus }> = {
   NEW: { answered: "ANSWER", unanswered: "NO_ANSWER" },
-  ANSWER: { answered: "RECONTACTED", unanswered: "ANSWER" },
+  ANSWER: { answered: "RECONTACTED", unanswered: "RETRY_NO_ANSWER" },
   NO_ANSWER: { answered: "RECONTACTED", unanswered: "RETRY_NO_ANSWER" },
   RETRY_NO_ANSWER: { answered: "RECONTACTED", unanswered: "RETRY_NO_ANSWER" },
   RECONTACTED: { answered: "RECONTACTED", unanswered: "RECONTACTED" },

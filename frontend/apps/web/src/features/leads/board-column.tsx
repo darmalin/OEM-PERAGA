@@ -191,7 +191,7 @@ function Card({ lead, edition, canMove, onMove }: { lead: LeadItem; edition?: Ed
                 </MenuItem>
               ))}
               {targets.length > 0 ? <MenuSeparator /> : null}
-              {/* Calls that leave the status as it is (e.g. Answer, then not answered). */}
+              {/* Log a call directly, including calls in the terminal Recontacted column. */}
               <MenuItem onSelect={() => onMove(lead.id)}>Log Call</MenuItem>
             </MenuContent>
           </Menu>

@@ -12,7 +12,6 @@ export interface MoveValues {
   called_at: string;
   duration_minutes: string;
   notes: string;
-  next_followup_at: string;
   lead_quality: "VALID" | "INVALID" | "UNDECIDED" | "";
   attend: string;
   buyer_type: string;

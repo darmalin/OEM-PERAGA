@@ -64,3 +64,122 @@
     animation: none;
   }
 }
+
+/* Desk identity: forest green foundations, restrained red details from the brand reference.
+   Kept local to the desk so scanner and campaign themes retain their own semantics. */
+:root {
+  --primary: #056039;
+  --on-primary: #ffffff;
+  --link: #056039;
+  --focus: #087747;
+  --bg-subtle: #f3f7f5;
+  --surface-input: #edf3ef;
+  --surface-hover: #e3ede7;
+  --border: #dce6df;
+  --band: #065735;
+  --on-band: #ffffff;
+  --on-band-muted: #cce3d7;
+  --brand-red: #c81923;
+  --brand-heading: #174c35;
+  --brand-panel-head: #f4f8f5;
+}
+.dark {
+  --primary: #83d6a9;
+  --on-primary: #102b1e;
+  --link: #83d6a9;
+  --focus: #83d6a9;
+  --bg-subtle: #141d19;
+  --surface-input: #25332b;
+  --surface-hover: #304238;
+  --border: #34453b;
+  --band: #0c422c;
+  --on-band: #f0fbf5;
+  --on-band-muted: #bbd8c7;
+  --brand-heading: #b3e3c8;
+  --brand-panel-head: #1c2922;
+}
+.brand-header {
+  box-shadow: inset 0 3px #056039;
+}
+.brand-logo {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #ffffff;
+}
+.brand-logo img {
+  display: block;
+  width: 170px;
+  height: auto;
+}
+@media (max-width: 480px) {
+  .brand-logo img {
+    width: 140px;
+  }
+}
+.brand-sidebar {
+  background: #06472e;
+  border-color: #17583f;
+  color: #edf7f1;
+  --focus: #b1ebcb;
+}
+.brand-nav > div > p {
+  color: #afcdbb;
+}
+.brand-nav ul a {
+  color: #d6e8de;
+  transition: background-color 150ms, color 150ms;
+}
+.brand-nav ul a:hover {
+  background: #155b40;
+  color: #ffffff;
+}
+.brand-nav ul a[aria-current="page"] {
+  background: #e8f4ed;
+  color: #084c30;
+  box-shadow: inset 3px 0 var(--brand-red);
+  font-weight: 600;
+}
+.brand-panel-switch {
+  background: #033c26;
+}
+.brand-panel-switch a {
+  color: #bed9cb;
+}
+.brand-panel-switch a:hover {
+  color: #ffffff;
+}
+.brand-panel-switch a[aria-current="page"] {
+  background: #216548;
+  color: #ffffff;
+}
+.brand-sidebar > div:first-child {
+  border-color: #27654a;
+}
+.brand-sidebar > div:first-child button {
+  color: #ffffff;
+}
+.brand-sidebar > div:first-child button:hover {
+  background: #155b40;
+}
+.brand-page-head h1 {
+  color: var(--brand-heading);
+}
+.brand-panel-head {
+  background: var(--brand-panel-head);
+  border-radius: 11px 11px 0 0;
+}
+.brand-panel-head h2 {
+  color: var(--brand-heading);
+}
+.brand-edition-band {
+  border-left: 4px solid var(--brand-red);
+}
+
+/* Keep column headings distinct from data in every desk table, including reports. */
+thead th,
+[role="columnheader"] {
+  font-weight: 700;
+}

@@ -53,11 +53,11 @@ class FollowupAction(StrEnum):
 
 
 # Telemarketing status after one more call, by whether it was answered (owner decisions
-# 2026-10-22, FEATURES/07). Every call is accepted; some leave the status as it is: a visitor
-# who was reached stays reached, and a lead that keeps not answering stays in RETRY_NO_ANSWER.
+# 2026-10-28, FEATURES/07). A missed call after ANSWER moves to RETRY_NO_ANSWER.
+# Repeated misses in RETRY_NO_ANSWER and calls after RECONTACTED retain their status.
 TRANSITIONS: dict[str, dict[bool, str]] = {
     "NEW": {True: "ANSWER", False: "NO_ANSWER"},
-    "ANSWER": {True: "RECONTACTED", False: "ANSWER"},
+    "ANSWER": {True: "RECONTACTED", False: "RETRY_NO_ANSWER"},
     "NO_ANSWER": {True: "RECONTACTED", False: "RETRY_NO_ANSWER"},
     "RETRY_NO_ANSWER": {True: "RECONTACTED", False: "RETRY_NO_ANSWER"},
     "RECONTACTED": {True: "RECONTACTED", False: "RECONTACTED"},

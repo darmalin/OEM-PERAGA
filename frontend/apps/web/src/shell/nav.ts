@@ -3,7 +3,6 @@ import {
   Inbox,
   BarChart3,
   Building2,
-  CalendarClock,
   ClipboardList,
   DoorOpen,
   FileDown,
@@ -16,7 +15,6 @@ import {
   Mail,
   MapPin,
   Megaphone,
-  PhoneCall,
   ScanLine,
   ScrollText,
   Settings2,
@@ -24,7 +22,6 @@ import {
   Smartphone,
   Signpost,
   Tags,
-  Ticket,
   TrendingUp,
   UserCog,
   Users,
@@ -72,9 +69,6 @@ export const PANELS: PanelDef[] = [
         label: "Visitors",
         items: [
           { label: "Visitor Leads", to: "/app/visitor-leads", icon: Users, perms: ["visitor.read"] },
-          { label: "My Calls", to: "/app/my-calls", icon: PhoneCall, perms: ["telemarketing.call"] },
-          { label: "Follow-ups", to: "/app/followups", icon: CalendarClock, perms: ["telemarketing.followup"] },
-          { label: "Registrations", to: "/app/registrations", icon: Ticket, perms: ["registration.read"] },
           { label: "Imports", to: "/app/imports", icon: FileUp, perms: ["visitor.import"] },
           { label: "Exports", to: "/app/exports", icon: FileDown, perms: ["visitor.export", "report.export"] },
         ],
@@ -82,8 +76,8 @@ export const PANELS: PanelDef[] = [
       {
         label: "Marketing",
         items: [
-          { label: "Campaigns", to: "/app/campaigns", icon: Megaphone, perms: ["campaign.view"] },
-          { label: "Campaign Dashboard", to: "/app/campaign-dashboard", icon: TrendingUp, perms: ["campaign.view"] },
+          { label: "Form", to: "/app/campaigns", icon: Megaphone, perms: ["campaign.view"] },
+          { label: "Form Dashboard", to: "/app/campaign-dashboard", icon: TrendingUp, perms: ["campaign.view"] },
         ],
       },
       {

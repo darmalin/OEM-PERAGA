@@ -405,12 +405,16 @@ async def create_user(session: AsyncSession, data: UserCreateIn) -> UserDetailOu
 async def update_user(
     session: AsyncSession, user_id: uuid.UUID, data: UserUpdateIn, ctx: AuthContext
 ) -> UserDetailOut:
-    """Edit name or active flag; deactivation kills sessions immediately."""
+    """Edit profile, access, or password; access/password changes end existing sessions."""
     user, editions = await _visible_user(session, ctx, user_id, write=True)
     check_version(user.version, data.version)
     if data.is_active is False and user.id == ctx.user.id:
         raise ValidationFailed(fields={"is_active": "You cannot deactivate yourself."})
+    # Validate before applying any changes; passwords never enter snapshots or responses.
+    password_hash = hash_password(data.password) if data.password is not None else None
     before = audit.snapshot(user, USER_AUDIT_FIELDS)
+    if password_hash is not None:
+        user.password_hash = password_hash
     if data.full_name is not None:
         user.full_name = data.full_name.strip()
     if data.is_active is not None:
@@ -426,7 +430,15 @@ async def update_user(
         before=before,
         after=audit.snapshot(user, USER_AUDIT_FIELDS),
     )
-    if not user.is_active:
+    if password_hash is not None:
+        await audit.record(
+            session,
+            entity_type="user",
+            entity_id=user.id,
+            action="password_change",
+            after={"changed": True},
+        )
+    if not user.is_active or password_hash is not None:
         await sessions.destroy_all_for_user(user.id)
     return await _user_detail(session, user, editions)
 

@@ -24,7 +24,7 @@ function NewLink() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const form = useForm<LinkValues>({ defaultValues: emptyLink });
-  const back = { to: "/app/campaigns", label: "Campaigns" } as const;
+  const back = { to: "/app/campaigns", label: "Form" } as const;
 
   const onSubmit = form.handleSubmit(async (v) => {
     if (!edition) return;

@@ -52,7 +52,6 @@ const columns = (editionCode: (id: string) => string | undefined, campaignName: 
   { key: "contact", header: "Contact", hideBelow: "xl", cell: (l) => <span className="text-muted">{l.phone ?? l.email ?? ""}</span> },
   { key: "country", header: "Country", hideBelow: "2xl", cell: (l) => countryName(l.country) },
   { key: "status", header: "Status", cell: (l) => <Indicator value={l.telemarketing_status} group="telemarketing_status" /> },
-  { key: "reg", header: "Registration", hideBelow: "md", cell: (l) => <Indicator value={l.registration_status} group="registration_status" /> },
   { key: "campaign", header: "Campaign", hideBelow: "2xl", cell: (l) => <span className="text-muted">{campaignName(l.campaign_link_id) ?? ""}</span> },
   { key: "owner", header: "Lead Owner", hideBelow: "xl", cell: (l) => l.lead_owner_name ?? <span className="text-label">Unassigned</span> },
   { key: "updated", header: "Updated", hideBelow: "lg", className: "text-right", cell: (l) => <span className="text-label tabular" title={l.updated_at}>{relative(l.updated_at)}</span> },

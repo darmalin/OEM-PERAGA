@@ -337,3 +337,77 @@ async def test_roles_listed_by_order_highest_access_first() -> None:
     ).status_code == 403
     r = await edition_admin.patch(f"/api/v1/roles/{role_id}", json={"sort_order": 1})
     assert r.status_code == 403
+
+
+async def test_admin_changes_password_and_ends_sessions() -> None:
+    from app.core.audit import AuditLog
+    from app.modules.identity.models import User
+
+    admin_user, admin = await actor(RoleGrant("SUPER_ADMIN"))
+    target = await make_user()
+    old_session = await login_client(target.email)
+    password = "Updated-visitor-passphrase-2026"
+    r = await admin.patch(f"/api/v1/users/{target.id}", json={"version": 1, "password": password})
+    assert r.status_code == 200, r.text
+    assert r.json()["version"] == 2
+    assert "password" not in r.text and password not in r.text
+    assert (await old_session.get("/api/v1/auth/me")).status_code == 401
+    assert (
+        await old_session.post(
+            "/api/v1/auth/login", json={"email": target.email, "password": PASSWORD}
+        )
+    ).status_code == 401
+    await login_client(target.email, password)
+    async with get_sessionmaker()() as session:
+        stored = await session.get(User, target.id)
+        assert stored is not None and stored.password_hash != password
+        entries = (
+            await session.scalars(select(AuditLog).where(AuditLog.entity_id == target.id))
+        ).all()
+        change = next(e for e in entries if e.action == "password_change")
+        assert change.actor_user_id == admin_user.id
+        assert change.after == {"changed": True}
+        assert password not in str([(e.before, e.after) for e in entries])
+
+
+@pytest.mark.parametrize("password", ["short", "password", ""])
+async def test_admin_password_change_rejects_weak_passwords(password: str) -> None:
+    _, admin = await actor(RoleGrant("SUPER_ADMIN"))
+    target = await make_user()
+    old_session = await login_client(target.email)
+    r = await admin.patch(f"/api/v1/users/{target.id}", json={"version": 1, "password": password})
+    assert r.status_code == 422
+    assert "password" in r.json()["error"]["fields"]
+    assert (await old_session.get("/api/v1/auth/me")).status_code == 200
+    assert (await admin.get(f"/api/v1/users/{target.id}")).json()["version"] == 1
+
+
+async def test_password_change_requires_permission_scope_and_current_version() -> None:
+    mine, other = (await make_edition()).id, (await make_edition()).id
+    _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", mine))
+    _, agent = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", mine))
+    inside = await make_user(RoleGrant("TELEMARKETING_AGENT", "OWNED", mine))
+    outside = await make_user(RoleGrant("TELEMARKETING_AGENT", "OWNED", other))
+    mixed = await make_user(
+        RoleGrant("TELEMARKETING_AGENT", "OWNED", mine),
+        RoleGrant("TELEMARKETING_AGENT", "OWNED", other),
+    )
+    global_user = await make_user(RoleGrant("SUPER_ADMIN"))
+    body = {"version": 1, "password": "New-password-for-edition-user"}
+    assert (await agent.patch(f"/api/v1/users/{inside.id}", json=body)).status_code == 403
+    assert (await admin.patch(f"/api/v1/users/{outside.id}", json=body)).status_code == 404
+    assert (await admin.patch(f"/api/v1/users/{mixed.id}", json=body)).status_code == 403
+    assert (await admin.patch(f"/api/v1/users/{global_user.id}", json=body)).status_code == 404
+    assert (await admin.patch(f"/api/v1/users/{inside.id}", json=body)).status_code == 200
+    assert (await admin.patch(f"/api/v1/users/{inside.id}", json=body)).status_code == 409
+
+
+async def test_admin_cannot_disable_self_and_can_reenable_a_user() -> None:
+    admin_user, admin = await actor(RoleGrant("SUPER_ADMIN"))
+    r = await admin.patch(f"/api/v1/users/{admin_user.id}", json={"version": 1, "is_active": False})
+    assert r.status_code == 422
+    assert (await admin.get("/api/v1/auth/me")).status_code == 200
+    target = await make_user(active=False)
+    r = await admin.patch(f"/api/v1/users/{target.id}", json={"version": 1, "is_active": True})
+    assert r.status_code == 200 and r.json()["is_active"] is True
+    await login_client(target.email)

@@ -499,7 +499,7 @@ async def log_call(
     if v.lead_quality is not None:
         verification.update(quality_flags(v.lead_quality))
     if moves and not answered:
-        # Moved to a status where the visitor was never reached: nothing to say about attending.
+        # A missed call moved to a no-answer status: clear the previous attendance details.
         verification.update(attend=None, b2b_matching=False, buyer_type=None)
     if verification:
         lead = await _record_verification(session, ctx, lead, verification, call_id=call.id)

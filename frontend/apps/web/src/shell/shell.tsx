@@ -29,12 +29,14 @@ function isActive(path: string, to: string, home: string): boolean {
   return root ? path === to : path === to || path.startsWith(`${to}/`);
 }
 
-function Sidebar({ panel, panels, onNavigate }: { panel: PanelDef; panels: PanelDef[]; onNavigate?: () => void }) {
+export function Sidebar({ panel, panels, onNavigate }: { panel: PanelDef; panels: PanelDef[]; onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  // Existing registration detail URLs belong to the Visitor Leads workspace.
+  const navigationPath = path.replace(/^\/app\/registrations(?=\/|$)/, "/app/visitor-leads/registrations");
   return (
-    <nav aria-label={`${panel.label} navigation`} className="flex h-full flex-col gap-1 overflow-y-auto px-3 py-4">
+    <nav aria-label={`${panel.label} navigation`} className="brand-nav flex h-full flex-col gap-1 overflow-y-auto px-3 py-4">
       {panels.length > 1 ? (
-        <div className="mb-3 grid grid-flow-col gap-1 rounded-[8px] bg-input p-1" role="group" aria-label="Panel">
+        <div className="brand-panel-switch mb-3 grid grid-flow-col gap-1 rounded-[8px] bg-input p-1" role="group" aria-label="Panel">
           {panels.map((p) => (
             <Link
               key={p.id}
@@ -56,11 +58,13 @@ function Sidebar({ panel, panels, onNavigate }: { panel: PanelDef; panels: Panel
           {g.label ? <p className="px-2 pt-2 pb-1 text-[12px] font-medium text-label">{g.label}</p> : null}
           <ul className="flex flex-col gap-0.5">
             {g.items.map((item) => {
-              const active = isActive(path, item.to, panel.home);
+              const active = isActive(navigationPath, item.to, panel.home);
               return (
                 <li key={item.to}>
                   <Link
                     to={item.to as "/"}
+                    // Router also sets aria-current; panel roots must not match every child page.
+                    activeOptions={{ exact: item.to.split("/").length <= 2, includeSearch: false }}
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
@@ -162,13 +166,12 @@ export function Shell({ panelId, children }: { panelId: PanelDef["id"]; children
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-[8px] focus:bg-bg focus:px-3 focus:py-2">
         Skip to content
       </a>
-      <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-line bg-bg px-3">
+      <header className="brand-header sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-line bg-bg px-3">
         <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setDrawer(true)} aria-label="Open navigation">
           <MenuIcon aria-hidden />
         </Button>
-        {/* [LOGO] placeholder: product name as text until the owner supplies a logo (R-23). */}
-        <Link to="/" className="rounded-[6px] px-2 text-[15px] font-bold tracking-[-0.02em]">
-          EMS
+        <Link to="/" className="brand-logo" aria-label="PERAGA Expo home">
+          <img src="/peraga-expo-logo.png" alt="PERAGA Expo" width={330} height={58} />
         </Link>
         <div className="flex-1" />
         <Button
@@ -185,7 +188,7 @@ export function Shell({ panelId, children }: { panelId: PanelDef["id"]; children
       </header>
       <div className="flex flex-1">
         {panel ? (
-          <aside className="sticky top-12 h-[calc(100dvh-48px)] w-[232px] shrink-0 border-r border-line bg-subtle max-lg:hidden">
+          <aside className="brand-sidebar sticky top-12 h-[calc(100dvh-48px)] w-[232px] shrink-0 border-r border-line bg-subtle max-lg:hidden">
             <Sidebar panel={panel} panels={panels} />
           </aside>
         ) : null}
@@ -196,7 +199,7 @@ export function Shell({ panelId, children }: { panelId: PanelDef["id"]; children
       {drawer && panel ? (
         <div className="fixed inset-0 z-40 lg:hidden">
           <button className="absolute inset-0 bg-black/40" aria-label="Close navigation" onClick={() => setDrawer(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-[280px] flex-col bg-subtle shadow-overlay">
+          <aside className="brand-sidebar absolute inset-y-0 left-0 flex w-[280px] flex-col bg-subtle shadow-overlay">
             <div className="flex h-12 items-center justify-end border-b border-line px-3">
               <Button variant="ghost" size="icon" onClick={() => setDrawer(false)} aria-label="Close navigation">
                 <X aria-hidden />

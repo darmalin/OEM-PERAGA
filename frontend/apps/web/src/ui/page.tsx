@@ -26,7 +26,7 @@ interface PageHeadProps {
 /** ENERGY 2 page head: 24px title, a meta line, indicators, one primary action. */
 export function PageHead({ title, meta, indicators, actions, back, edition }: PageHeadProps) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4 pt-6 pb-5">
+    <header className="brand-page-head flex flex-wrap items-end justify-between gap-4 pt-6 pb-5">
       <div className="min-w-0">
         {back ? (
           <Link
@@ -58,13 +58,13 @@ export function PageHead({ title, meta, indicators, actions, back, edition }: Pa
 /** White surface on the subtle page background; the form container in the screenshot. */
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section className={cn("rounded-[12px] border border-line bg-bg", className)}>{children}</section>
+    <section className={cn("brand-panel rounded-[12px] border border-line bg-bg", className)}>{children}</section>
   );
 }
 
 export function PanelHeader({ title, actions }: { title: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3 max-md:px-4">
+    <div className="brand-panel-head flex items-center justify-between gap-3 border-b border-line px-5 py-3 max-md:px-4">
       <h2 className="text-[14px] font-semibold">{title}</h2>
       {actions}
     </div>

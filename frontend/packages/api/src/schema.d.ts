@@ -1219,6 +1219,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/visitor-leads/{lead_id}/emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lead Emails */
+        get: operations["lead_emails_api_v1_visitor_leads__lead_id__emails_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaign-links": {
         parameters: {
             query?: never;
@@ -4074,6 +4091,55 @@ export interface components {
             external_id?: string | null;
         };
         /**
+         * LeadEmailOut
+         * @description Visitor-facing email history; excludes account configuration and system-only logs.
+         */
+        LeadEmailOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["EmailKind"];
+            /** Recipient */
+            recipient: string;
+            /** Subject */
+            subject: string | null;
+            status: components["schemas"]["EmailJobStatus"];
+            /** Attempts */
+            attempts: number;
+            /** From Address */
+            from_address: string | null;
+            /**
+             * Queued At
+             * Format: date-time
+             */
+            queued_at: string;
+            /** Sent At */
+            sent_at: string | null;
+            /** Error Summary */
+            error_summary: string | null;
+        };
+        /** LeadEmailPage */
+        LeadEmailPage: {
+            /** Items */
+            items: components["schemas"]["LeadEmailOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Sent Count */
+            sent_count: number;
+            /** Pending Count */
+            pending_count: number;
+            /** Failed Count */
+            failed_count: number;
+            /** Cancelled Count */
+            cancelled_count: number;
+        };
+        /**
          * LeadFilterOptions
          * @description Choices for the list filters, taken from the leads the caller can see.
          */
@@ -5381,6 +5447,8 @@ export interface components {
         UserUpdateIn: {
             /** Version */
             version: number;
+            /** Password */
+            password?: string | null;
             /** Full Name */
             full_name?: string | null;
             /** Is Active */
@@ -8490,6 +8558,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lead_emails_api_v1_visitor_leads__lead_id__emails_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadEmailPage"];
                 };
             };
             /** @description Validation Error */

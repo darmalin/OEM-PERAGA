@@ -46,18 +46,18 @@ function RegistrationDetail() {
     }
   };
 
-  if (q.isPending) return <Page><PageHead title="Registration" back={{ to: "/app/registrations", label: "Registrations" }} /><Panel><FormSkeleton /></Panel></Page>;
-  if (q.isError) return <Page><PageHead title="Registration" back={{ to: "/app/registrations", label: "Registrations" }} /><Panel><ErrorState error={q.error} onRetry={() => void q.refetch()} /></Panel></Page>;
+  if (q.isPending) return <Page><PageHead title="Registration" back={{ to: "/app/visitor-leads", label: "Visitor Leads" }} /><Panel><FormSkeleton /></Panel></Page>;
+  if (q.isError) return <Page><PageHead title="Registration" back={{ to: "/app/visitor-leads", label: "Visitor Leads" }} /><Panel><ErrorState error={q.error} onRetry={() => void q.refetch()} /></Panel></Page>;
   const r = q.data;
   const active = r.qr_status === "ACTIVE";
 
   return (
     <Page>
       <PageHead
-        back={{ to: "/app/registrations", label: "Registrations" }}
+        back={{ to: "/app/visitor-leads/$leadId", params: { leadId: r.visitor_lead_id }, label: "Visitor Lead" }}
         title={r.first_name}
         meta={<span className="tabular">{r.registration_code} · registered {formatDateTime(r.registered_at, tz)} via {label("channel", r.channel)}</span>}
-        indicators={<><Indicator value={r.status} group="registration_status" /><Indicator value={r.qr_status} group="qr_status" /></>}
+        indicators={<Indicator value={r.qr_status} group="qr_status" />}
         actions={
           <>
             <Button asChild><Link to="/app/visitor-leads/$leadId" params={{ leadId: r.visitor_lead_id }}>Open Lead</Link></Button>

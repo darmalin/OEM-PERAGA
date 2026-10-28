@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import AuthContext, require
 from app.core.db import get_session
-from app.core.pagination import Page
+from app.core.pagination import Page, PageParams
 from app.modules.mail import service
 from app.modules.mail.schemas import (
     EmailAccountBrief,
@@ -15,6 +15,7 @@ from app.modules.mail.schemas import (
     EmailAccountUpdateIn,
     EmailJobListParams,
     EmailJobOut,
+    LeadEmailPage,
     TestEmailAccepted,
 )
 
@@ -94,3 +95,13 @@ async def get_job(
     ctx: AuthContext = Depends(require(service.READ_LOG, service.MANAGE)),
 ) -> EmailJobOut:
     return await service.get_job(session, ctx, job_id)
+
+
+@router.get("/visitor-leads/{lead_id}/emails", response_model=LeadEmailPage)
+async def lead_emails(
+    lead_id: uuid.UUID,
+    session: Session,
+    params: Annotated[PageParams, Query()],
+    ctx: AuthContext = Depends(require("visitor.read")),
+) -> LeadEmailPage:
+    return await service.lead_emails(session, ctx, lead_id, params)

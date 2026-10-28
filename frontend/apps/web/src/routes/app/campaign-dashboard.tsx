@@ -52,11 +52,11 @@ function CampaignDashboard() {
     <Page>
       <PageHead
         edition
-        title="Campaign Dashboard"
+        title="Form Dashboard"
         meta={`How ${edition.code}'s campaign links perform, from form opens to visitors at the gate. Days in ${edition.timezone}.`}
         actions={
           <Button asChild>
-            <Link to="/app/campaigns"><Megaphone aria-hidden />Campaigns</Link>
+            <Link to="/app/campaigns"><Megaphone aria-hidden />Form</Link>
           </Button>
         }
       />

@@ -26,3 +26,30 @@ describe("System panel by role", () => {
     expect(system(me(all, all))?.home).toBe("/system");
   });
 });
+
+
+describe("Visitor Leads workspace", () => {
+  it("shows one leads menu without a separate registration menu", () => {
+    const items = visiblePanels(me(["visitor.read", "registration.read"])).flatMap((p) => p.groups.flatMap((g) => g.items));
+    expect(items.map((item) => item.label)).toContain("Visitor Leads");
+    expect(items.map((item) => item.to)).not.toContain("/app/registrations");
+  });
+});
+
+
+describe("Call work in Visitor Leads", () => {
+  it("does not show a separate My Calls menu", () => {
+    const items = visiblePanels(me(["visitor.read", "telemarketing.call"])).flatMap((p) => p.groups.flatMap((g) => g.items));
+    expect(items.map((item) => item.to)).toContain("/app/visitor-leads");
+    expect(items.map((item) => item.to)).not.toContain("/app/my-calls");
+  });
+});
+
+
+describe("Follow-up work in Visitor Leads", () => {
+  it("does not show a separate Follow-ups menu", () => {
+    const items = visiblePanels(me(["visitor.read", "telemarketing.followup"])).flatMap((p) => p.groups.flatMap((g) => g.items));
+    expect(items.map((item) => item.to)).toContain("/app/visitor-leads");
+    expect(items.map((item) => item.to)).not.toContain("/app/followups");
+  });
+});

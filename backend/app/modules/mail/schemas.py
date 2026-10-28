@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.pagination import PageParams
+from app.core.pagination import Page, PageParams
 from app.core.validation import Email
 from app.modules.mail.rules import EmailEvent, EmailJobStatus, EmailKind, SmtpSecurity
 
@@ -127,3 +127,27 @@ class EmailJobListParams(PageParams):
 class TestEmailAccepted(BaseModel):
     email_job_id: uuid.UUID
     recipient: str
+
+
+class LeadEmailOut(BaseModel):
+    """Visitor-facing email history; excludes account configuration and system-only logs."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    kind: EmailKind
+    recipient: str
+    subject: str | None
+    status: EmailJobStatus
+    attempts: int
+    from_address: str | None
+    queued_at: datetime
+    sent_at: datetime | None
+    error_summary: str | None
+
+
+class LeadEmailPage(Page[LeadEmailOut]):
+    sent_count: int
+    pending_count: int
+    failed_count: int
+    cancelled_count: int

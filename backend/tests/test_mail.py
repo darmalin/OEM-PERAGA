@@ -212,3 +212,79 @@ async def test_email_log_follows_edition_scope(mailbox: MemorySender) -> None:
     assert (await admin.get(f"/api/v1/email-jobs/{other_job['id']}")).status_code == 404
     _, agent = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", mine.id))
     assert (await agent.get("/api/v1/email-jobs")).status_code == 403
+
+
+async def test_lead_email_history_counts_all_pages_without_mixing_leads() -> None:
+    from datetime import UTC, datetime, timedelta
+
+    mine, other = await make_edition(), await make_edition()
+    _, admin = await actor(RoleGrant("SUPER_ADMIN"))
+    lead_id = await make_lead(mine)
+    other_id = await make_lead(other)  # Same recipient address in a different edition.
+    statuses = ["SENT", "SENT", "QUEUED", "SENDING", "FAILED", "CANCELLED"]
+    ids = []
+    now = datetime.now(UTC)
+    async with get_sessionmaker()() as session, session.begin():
+        for i, status in enumerate(statuses):
+            job = EmailJob(
+                edition_id=mine.id,
+                visitor_lead_id=uuid.UUID(lead_id),
+                kind="QR_CONFIRMATION",
+                recipient="visitor-001@example.test",
+                subject=f"Confirmation {i}",
+                status=status,
+                attempts=4 if i == 0 else 1,
+                from_address="registration@example.test",
+                queued_at=now + timedelta(seconds=i),
+                sent_at=now if status == "SENT" else None,
+                provider_message_id="private-provider-reference",
+            )
+            session.add(job)
+            await session.flush()
+            ids.append(str(job.id))
+        session.add(
+            EmailJob(
+                edition_id=other.id,
+                visitor_lead_id=uuid.UUID(other_id),
+                kind="QR_CONFIRMATION",
+                recipient="visitor-001@example.test",
+                status="SENT",
+            )
+        )
+        session.add(
+            EmailJob(kind="PASSWORD_RESET", recipient="visitor-001@example.test", status="SENT")
+        )
+    response = await admin.get(
+        f"/api/v1/visitor-leads/{lead_id}/emails", params={"page": 2, "page_size": 2}
+    )
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert {
+        k: result[k]
+        for k in ("total", "sent_count", "pending_count", "failed_count", "cancelled_count")
+    } == {"total": 6, "sent_count": 2, "pending_count": 2, "failed_count": 1, "cancelled_count": 1}
+    assert result["page"] == 2 and result["page_size"] == 2
+    assert [item["id"] for item in result["items"]] == [ids[3], ids[2]]
+    assert all(item["subject"] and item["recipient"] for item in result["items"])
+    assert "provider_message_id" not in response.text and "account_id" not in response.text
+
+
+async def test_lead_email_history_obeys_ownership_edition_and_permissions() -> None:
+    mine, other = await make_edition(), await make_edition()
+    owner, agent = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", mine.id))
+    _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", mine.id))
+    _, gate = await actor(RoleGrant("GATE_STAFF", "EDITION", mine.id))
+    own = await make_lead(mine, owner=owner.id)
+    hidden = await make_lead(mine, email="another@example.test")
+    outside = await make_lead(other)
+    url = f"/api/v1/visitor-leads/{own}/emails"
+    result = await agent.get(url)
+    assert result.status_code == 200, (
+        result.text
+    )  # Does not require access to the system email log.
+    assert result.json()["items"] == [] and result.json()["sent_count"] == 0
+    assert (await agent.get(f"/api/v1/visitor-leads/{hidden}/emails")).status_code == 404
+    assert (await admin.get(f"/api/v1/visitor-leads/{outside}/emails")).status_code == 404
+    assert (await agent.get(f"/api/v1/visitor-leads/{uuid.uuid4()}/emails")).status_code == 404
+    assert (await gate.get(url)).status_code == 403
+    assert (await agent.get(url, params={"page": 0})).status_code == 422

@@ -43,7 +43,7 @@ function EditLink() {
       <PageHead
         title={link?.name ?? "Campaign Link"}
         meta={link ? <span className="break-all">{link.url}</span> : null}
-        back={{ to: "/app/campaigns", label: "Campaigns" }}
+        back={{ to: "/app/campaigns", label: "Form" }}
       />
       <Panel>
         {links.isPending ? <FormSkeleton /> : !link || !edition ? <EmptyState title="Campaign link not found." /> : (

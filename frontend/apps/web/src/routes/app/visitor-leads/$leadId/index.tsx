@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { campaignLinksQuery } from "@/features/campaigns/queries";
+import { LeadEmailTab } from "@/features/leads/email-tab";
 import { PERSON_FIELDS, personPayload, PersonFields, type PersonValues } from "@/features/leads/person-form";
 import { type Lead, leadQuery } from "@/features/leads/queries";
 import { can, useMe } from "@/lib/auth";
@@ -27,7 +28,7 @@ import { Facts, FormActions, Page, PageHead, Panel, PanelHeader } from "@/ui/pag
 import { EmptyState, ErrorState, FormSkeleton } from "@/ui/states";
 import { TabList, TabPanel, Tabs } from "@/ui/tabs";
 
-const TABS = ["person", "verification", "calls", "registration", "activity"] as const;
+const TABS = ["person", "verification", "calls", "registration", "email", "activity"] as const;
 
 export const Route = createFileRoute("/app/visitor-leads/$leadId/")({
   validateSearch: z.object({ tab: z.enum(TABS).default("person") }),
@@ -75,7 +76,6 @@ function LeadDetail() {
         indicators={
           <>
             <Indicator value={l.telemarketing_status} group="telemarketing_status" />
-            <Indicator value={l.registration_status} group="registration_status" />
             {l.qr_status !== "NONE" ? <Indicator value={l.qr_status} group="qr_status" /> : null}
           </>
         }
@@ -108,6 +108,7 @@ function LeadDetail() {
                 { value: "verification", label: "Verification" },
                 { value: "calls", label: `Calls (${l.call_attempts})` },
                 { value: "registration", label: "Registration" },
+                { value: "email", label: "Email" },
                 { value: "activity", label: "Activity" },
               ]}
             />
@@ -115,6 +116,7 @@ function LeadDetail() {
             <TabPanel value="verification"><VerificationTab lead={l} timezone={tz} /></TabPanel>
             <TabPanel value="calls"><CallsTab lead={l} timezone={tz} /></TabPanel>
             <TabPanel value="registration"><RegistrationTab lead={l} timezone={tz} /></TabPanel>
+            <TabPanel value="email"><LeadEmailTab key={l.id} leadId={l.id} timezone={tz} /></TabPanel>
             <TabPanel value="activity"><ActivityTab leadId={l.id} timezone={tz} /></TabPanel>
           </Tabs>
         </Panel>

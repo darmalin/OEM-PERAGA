@@ -70,7 +70,7 @@ function FollowupDetail() {
   return (
     <Page className="max-w-[1100px]">
       <PageHead
-        back={{ to: "/app/followups", label: "Follow-ups" }}
+        back={f.data ? { to: "/app/visitor-leads/$leadId", params: { leadId: f.data.visitor_lead_id }, label: "Visitor Lead" } : { to: "/app/visitor-leads", label: "Visitor Leads" }}
         title={f.data ? `Follow-up: ${f.data.lead_first_name ?? "Visitor"}` : "Follow-up"}
         meta={f.data ? <span className="tabular">Due {formatDateTime(f.data.due_at, tz)}</span> : null}
         indicators={f.data ? <Indicator value={f.data.status} group="followup_status" /> : null}

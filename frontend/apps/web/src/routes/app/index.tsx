@@ -141,7 +141,7 @@ function RegistrationPanel({ editionId }: { editionId: string }) {
   const reg = useReport("REGISTRATION", editionId, {}, { poll: true });
   return (
     <Panel>
-      <PanelHeader title="Did the QR emails go out?" actions={<Button asChild size="sm" variant="ghost"><Link to="/app/registrations">Open Registrations</Link></Button>} />
+      <PanelHeader title="Did the QR emails go out?" actions={<Button asChild size="sm" variant="ghost"><Link to="/app/visitor-leads" search={{ edition: editionId, f: [{ field: "registration_status", op: "is", value: "REGISTERED" }] }}>Open Registered Leads</Link></Button>} />
       <div className="p-5">
         {reg.isPending ? (
           <Skeleton className="h-24 w-full" />
@@ -199,7 +199,7 @@ function QueuePreview({ editionId, timezone }: { editionId: string; timezone: st
   });
   return (
     <Panel className="xl:col-span-2">
-      <PanelHeader title="Who do I call next?" actions={<Button asChild size="sm" variant="primary"><Link to="/app/my-calls">Open My Calls</Link></Button>} />
+      <PanelHeader title="Who do I call next?" actions={<Button asChild size="sm" variant="primary"><Link to="/app/visitor-leads" search={{ owner: "me", edition: editionId }}>Open My Leads</Link></Button>} />
       {q.isPending ? (
         <div className="p-5"><Skeleton className="h-24 w-full" /></div>
       ) : q.isError ? (

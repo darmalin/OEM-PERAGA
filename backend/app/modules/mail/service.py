@@ -14,7 +14,7 @@ from app.core.crypto import decrypt, encrypt
 from app.core.email import SmtpAccount, env_account
 from app.core.errors import Conflict, NotFound, PermissionDenied, ValidationFailed, check_version
 from app.core.logging import mask_email
-from app.core.pagination import Page
+from app.core.pagination import Page, PageParams
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.mail import repository as repo
 from app.modules.mail.models import EmailAccount, EmailJob, EmailLog
@@ -27,8 +27,11 @@ from app.modules.mail.schemas import (
     EmailJobListParams,
     EmailJobOut,
     EmailLogOut,
+    LeadEmailOut,
+    LeadEmailPage,
     TestEmailAccepted,
 )
+from app.modules.visitors import service as visitors_service
 
 MANAGE = "email_account.manage"
 READ_LOG = "email_log.read"
@@ -406,3 +409,21 @@ async def jobs_for_registration(
 
 def latest_status_for(registration_id: Any) -> Any:
     return repo.latest_status_for(registration_id)
+
+
+async def lead_emails(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, params: PageParams
+) -> LeadEmailPage:
+    scope = await visitors_service.scope_for_lead(session, ctx, lead_id, "visitor.read")
+    lead = await visitors_service.get_lead_entity(session, scope, lead_id)
+    rows, counts = await repo.list_lead_emails(session, lead.edition_id, lead.id, params)
+    return LeadEmailPage(
+        items=[LeadEmailOut.model_validate(row) for row in rows],
+        total=sum(counts.values()),
+        page=params.page,
+        page_size=params.page_size,
+        sent_count=counts.get(EmailJobStatus.SENT, 0),
+        pending_count=counts.get(EmailJobStatus.QUEUED, 0) + counts.get(EmailJobStatus.SENDING, 0),
+        failed_count=counts.get(EmailJobStatus.FAILED, 0),
+        cancelled_count=counts.get(EmailJobStatus.CANCELLED, 0),
+    )

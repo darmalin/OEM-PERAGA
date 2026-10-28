@@ -13,7 +13,7 @@ closes or adds a gap. Backend gaps are in `BACKEND_RULES/known-gaps.md`.
 | W13 | P2 | Edition remarks and exhibitor dates (price periods, Order Expired, Catalog Expired) are stored and shown only; nothing uses them yet. | Exhibitor Portal phase, FEATURES/02 "Remarks and exhibitor dates". |
 | W14 | P3 | Excel import and the visitor export do not carry the new Source (master data) yet; imported leads get none. | Map a "Source" column by name to `lead_sources` in `importexport`; add it to the export columns. |
 | W10 | P3 | Scanner PWA has no manifest icons (W3), so browsers do not offer "Install app". It still works from the browser and offline after the first load. | Add icons with the logo. |
-| W3 | P2 | No logo or favicon: the header shows "EMS" as text (antislop R-23). | Owner supplies the logo; replace the text and the empty `<link rel="icon">`. |
+| W3 | P2 | No favicon yet. Desk header now uses the owner-requested PERAGA Expo logo (official website asset), with a white backing for both themes. | Supply a favicon asset and replace the empty `<link rel="icon">`. |
 | W5 | P2 | Tests are a smoke run and a click-through script (`e2e/*.mjs`, local Chromium) plus a few unit tests. No component tests with mocked API yet, no axe accessibility run. | Add Vitest + Testing Library + MSW for forms and list states; add axe to the smoke run. |
 | W6 | P2 | Native date and time inputs follow the browser locale (e.g. mm/dd/yyyy in en-US), while the rest of the app shows dd-mm-yyyy. | Accept, or replace with a date picker that uses the app format. |
 | W7 | P3 | Lists fetch one page at a time with a total count; for very large editions the backend count (backend gap P3) may need keyset paging. | Follow the backend change. |

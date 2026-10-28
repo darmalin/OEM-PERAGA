@@ -3,6 +3,8 @@ import { Command } from "cmdk";
 import { Search } from "lucide-react";
 import { useState } from "react";
 
+import { can, useMe } from "@/lib/auth";
+
 import type { PanelDef } from "./nav";
 
 /** Ctrl+K: go to any page the user can open, or search leads (DESIGN.md). */
@@ -17,7 +19,8 @@ export function CommandBar({
 }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const canSearchLeads = panels.some((p) => p.groups.some((g) => g.items.some((i) => i.to === "/app/visitor-leads")));
+  const me = useMe();
+  const canSearchLeads = can(me, "visitor.read");
   const go = (to: string, search?: Record<string, string>) => {
     onOpenChange(false);
     setQuery("");
