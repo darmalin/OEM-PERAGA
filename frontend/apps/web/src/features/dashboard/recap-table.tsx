@@ -2,12 +2,13 @@ import type { Schemas } from "@ems/api";
 import { Download } from "lucide-react";
 import { Fragment, useState } from "react";
 
-import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 import { Button } from "@/ui/button";
 import { Checkbox } from "@/ui/checkbox";
 
-import { dayLabel, emptyRow, isWeekend, type Row, shortLabel, sumRows, TABLE_METRICS } from "./metrics";
+import { dayLabel, emptyRow, REPORT_METRIC_GROUPS, type Row, shortLabel, sumRows, TABLE_METRICS } from "./metrics";
+
+import { ReportTableHead } from "./report-table-head";
 
 type Key = Schemas["DashboardKey"];
 
@@ -25,7 +26,7 @@ export interface RecapTableProps {
 
 // Byte order mark so Excel opens the UTF-8 CSV with the right characters.
 const BOM = String.fromCharCode(0xfeff);
-const cell = (v: number) => (v ? formatNumber(v) : "");
+const cell = (v: number) => (v ? formatNumber(v) : "–");
 
 /** Day by day, optionally by edition, source, or user, with a Total row per day. */
 export function RecapTable({ title, days, rows, keys, keyHeader, userColumns, fileName }: RecapTableProps) {
@@ -57,11 +58,11 @@ export function RecapTable({ title, days, rows, keys, keyHeader, userColumns, fi
     URL.revokeObjectURL(url);
   };
 
-  const numCls = "px-3 py-2 text-right tabular";
+  const numCls = "border-x border-line px-3 py-2 text-center tabular";
   return (
-    <section className="rounded-[12px] border border-line bg-bg" aria-label={title}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
-        <h2 className="text-[14px] font-semibold">{title}</h2>
+    <section className="dashboard-reference dash-card min-w-0 overflow-hidden" aria-label={title}>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <h2 className="text-[15px] font-bold">{title}</h2>
         <div className="flex items-center gap-3">
           {keys ? (
             <label className="flex items-center gap-2 text-[13px] text-muted">
@@ -69,38 +70,32 @@ export function RecapTable({ title, days, rows, keys, keyHeader, userColumns, fi
               Show empty rows
             </label>
           ) : null}
-          <Button size="sm" onClick={download}><Download aria-hidden />Download CSV</Button>
+          <Button className="border border-line bg-bg hover:bg-subtle" onClick={download}><Download aria-hidden />Export CSV</Button>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] border-collapse text-[13px]">
+      <div className="max-h-[540px] overflow-auto">
+        <table className="dash-detail-table w-full min-w-[1400px] border-collapse text-[12px]">
           <caption className="sr-only">{title}</caption>
-          <thead>
-            <tr className="border-b border-line text-left text-[12px] text-label">
-              <th scope="col" className="sticky left-0 bg-bg px-3 py-2 font-medium">Date</th>
-              {keys ? <th scope="col" className="px-3 py-2 font-medium">{keyHeader}</th> : null}
-              {userColumns ? <><th scope="col" className="px-3 py-2 font-medium">Group</th><th scope="col" className="px-3 py-2 font-medium">Exhibition Type</th></> : null}
-              {TABLE_METRICS.map((m) => <th key={m} scope="col" className="px-3 py-2 text-right font-medium">{shortLabel(m)}</th>)}
-            </tr>
-          </thead>
+          <ReportTableHead
+            identities={["Date", ...(keys ? [keyHeader ?? "Key"] : []), ...(userColumns ? ["Group", "Exhibition Type"] : [])]}
+            groups={REPORT_METRIC_GROUPS.map(group => ({ ...group, columns: group.metrics.map(metric => ({ label: shortLabel(metric) })) }))}
+          />
           <tbody>
             {blocks.map((b) => {
-              // Weekends are tinted like the old report (a hint only; the date says the day).
-              const tint = isWeekend(b.day) ? "bg-[color-mix(in_srgb,var(--red-bg)_55%,transparent)]" : "";
               const span = b.lines.length + (b.total ? 1 : 0);
               return (
                 <Fragment key={b.day}>
                   {b.lines.map((r, i) => (
-                    <tr key={r.key ?? "none"} className={cn("border-b border-line", tint)}>
-                      {i === 0 ? <th scope="rowgroup" rowSpan={span} className={cn("sticky left-0 bg-bg px-3 py-2 text-left align-top font-normal whitespace-nowrap", tint)}>{dayLabel(b.day)}</th> : null}
+                    <tr key={r.key ?? "none"} className={keys ? "border-b border-line hover:bg-subtle" : "dash-date-row border-b border-line"}>
+                      {i === 0 ? <th scope="rowgroup" rowSpan={span} className="dash-date-row sticky left-0 z-[1] px-4 py-2 text-left align-top font-semibold whitespace-nowrap">{dayLabel(b.day)}</th> : null}
                       {keys ? <td className="px-3 py-2">{keyOf(r.key)?.label ?? "Unknown"}</td> : null}
                       {userColumns ? <><td className="px-3 py-2 text-muted">{keyOf(r.key)?.group ?? "-"}</td><td className="px-3 py-2 text-muted">{keyOf(r.key)?.editions ?? "-"}</td></> : null}
                       {TABLE_METRICS.map((m) => <td key={m} className={numCls}>{cell(r[m])}</td>)}
                     </tr>
                   ))}
                   {b.total ? (
-                    <tr className={cn("border-b border-line font-medium", tint)}>
-                      {b.lines.length === 0 ? <th scope="rowgroup" className={cn("sticky left-0 bg-bg px-3 py-2 text-left font-normal whitespace-nowrap", tint)}>{dayLabel(b.day)}</th> : null}
+                    <tr className="dash-date-row border-b border-line font-semibold">
+                      {b.lines.length === 0 ? <th scope="rowgroup" className="dash-date-row sticky left-0 z-[1] px-4 py-2 text-left font-semibold whitespace-nowrap">{dayLabel(b.day)}</th> : null}
                       <td className="px-3 py-2" colSpan={userColumns ? 3 : 1}>Total</td>
                       {TABLE_METRICS.map((m) => <td key={m} className={numCls}>{cell(b.total![m])}</td>)}
                     </tr>
@@ -109,9 +104,9 @@ export function RecapTable({ title, days, rows, keys, keyHeader, userColumns, fi
               );
             })}
           </tbody>
-          <tfoot>
-            <tr className="border-t-2 border-line font-semibold">
-              <th scope="row" className="sticky left-0 bg-bg px-3 py-2 text-left">Period</th>
+          <tfoot className="sticky bottom-0 z-[2]">
+            <tr className="dash-grand-total border-t border-line font-bold">
+              <th scope="row" className="dash-grand-total sticky left-0 px-4 py-4 text-left">Grand Total</th>
               {keys ? <td className="px-3 py-2" colSpan={userColumns ? 3 : 1} /> : null}
               {TABLE_METRICS.map((m) => <td key={m} className={numCls}>{cell(grand[m])}</td>)}
             </tr>

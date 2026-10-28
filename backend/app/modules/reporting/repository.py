@@ -464,11 +464,13 @@ _CALL_KEYS = {
     "edition": VisitorCallActivity.edition_id,
     "source": VisitorLead.lead_source_id,
     "user": VisitorCallActivity.agent_id,
+    "team": UserTeamMembership.team_id,
 }
 _LEAD_KEYS = {
     "edition": VisitorLead.edition_id,
     "source": VisitorLead.lead_source_id,
     "user": VisitorLead.lead_owner_id,
+    "team": UserTeamMembership.team_id,
 }
 
 
@@ -523,6 +525,10 @@ async def dashboard_calls(
             ),
         )
     )
+    if key == "team":
+        stmt = stmt.outerjoin(UserTeamMembership, UserTeamMembership.user_id == call.agent_id)
+        if f.team_id is not None:
+            stmt = stmt.where(UserTeamMembership.team_id == f.team_id)
     if groups:
         stmt = stmt.group_by(*groups)
     return [dict(r._mapping) for r in await session.execute(stmt)]
@@ -572,6 +578,12 @@ async def dashboard_leads(
         day = local_day(time_col, timezone).label("day") if with_day else None
         groups = _group(day, key_col)
         stmt = select(*groups, func.count().label("n")).select_from(lead)
+        if key == "team":
+            stmt = stmt.outerjoin(
+                UserTeamMembership, UserTeamMembership.user_id == lead.lead_owner_id
+            )
+            if f.team_id is not None:
+                stmt = stmt.where(UserTeamMembership.team_id == f.team_id)
         if join_first:
             stmt = stmt.join(first_call, first_call.c.lead_id == lead.id)
         stmt = stmt.where(*where, cond)

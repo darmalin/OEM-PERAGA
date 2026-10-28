@@ -96,7 +96,7 @@ function AddRole() {
                   {(p) => (
                     <Select {...p} {...form.register("team_id", { required: "Choose a team." })}>
                       <option value="">Choose a team</option>
-                      {(teams.data ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      {(teams.data ?? []).filter(t => t.is_active).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </Select>
                   )}
                 </Field>

@@ -253,7 +253,12 @@ async def visitor_report(session: AsyncSession, ctx: AuthContext, params: Report
 
 # --- dashboard -------------------------------------------------------------------------------
 
-_GROUP_KEYS = {"day_edition": "edition", "day_source": "source", "day_user": "user"}
+_GROUP_KEYS = {
+    "day_edition": "edition",
+    "day_source": "source",
+    "day_user": "user",
+    "day_team": "team",
+}
 _CALL_METRICS = (
     "total",
     "answer",
@@ -348,6 +353,15 @@ async def dashboard(
         sources = await visitors_service.list_lead_sources(session, include_inactive=True)
         out_keys = [DashboardKey(id=str(s.id), label=s.name) for s in sources]
         out_keys.append(DashboardKey(id=None, label="No source"))
+    elif key == "team":
+        found = {uuid.UUID(k) for k in keys if k}
+        out_keys = [
+            DashboardKey(id=str(team_id), label=name)
+            for team_id, name in await repo.dashboard_teams(session)
+            if team_id in found
+        ]
+        if any(k is None for k in keys):
+            out_keys.append(DashboardKey(id=None, label="No team"))
     elif key == "user":
         found = {uuid.UUID(k) for k in keys if k}
         agents = await repo.dashboard_agents(session, {s.edition_id for s in scopes}, found)

@@ -193,7 +193,7 @@ Report = Annotated[
 
 # --- dashboard (per call, like the old system's dashboard; FEATURES/10 "Dashboard") ---------
 
-DashboardGroup = Literal["total", "day", "day_edition", "day_source", "day_user"]
+DashboardGroup = Literal["total", "day", "day_edition", "day_source", "day_user", "day_team"]
 MAX_DASHBOARD_DAYS = 366
 
 

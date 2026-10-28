@@ -4,12 +4,13 @@ import { RefreshCw } from "lucide-react";
 import { z } from "zod";
 
 import { dashboardQuery, type DashboardSearch } from "@/features/dashboard/api";
-import { Breakdown, MetricCards } from "@/features/dashboard/cards";
+import { MetricCards } from "@/features/dashboard/cards";
 import { EmailReport } from "@/features/dashboard/email-report";
+import { ReferenceOverview } from "@/features/dashboard/overview";
+import { DashboardOverviewFilters } from "@/features/dashboard/overview-filters";
 import { DashboardFilters } from "@/features/dashboard/filters";
-import { dayLabel, daysBetween, emptyRow, type Row } from "@/features/dashboard/metrics";
+import { dayLabel, daysBetween, emptyRow } from "@/features/dashboard/metrics";
 import { RecapTable } from "@/features/dashboard/recap-table";
-import { TrendChart } from "@/features/dashboard/trend-chart";
 import { Button } from "@/ui/button";
 import { Page, PageHead, Panel } from "@/ui/page";
 import { ErrorState, Skeleton } from "@/ui/states";
@@ -56,6 +57,7 @@ function Dashboard() {
       <Panel>
         <Tabs value={s.tab} onValueChange={(v) => set({ tab: v as Tab })}>
           <TabList
+            className="dashboard-tabs"
             tabs={[
               { value: "dashboard", label: "Dashboard" },
               { value: "today", label: "Today" },
@@ -66,6 +68,7 @@ function Dashboard() {
               { value: "email", label: "Email Report" },
             ]}
           />
+          {s.tab === "dashboard" ? <DashboardOverviewFilters s={filters} set={set} onClear={() => void navigate({ search: { tab: s.tab, from: s.from, to: s.to }, replace: true })} /> : (
           <DashboardFilters
             s={filters}
             set={set}
@@ -73,8 +76,9 @@ function Dashboard() {
             emailOnly={s.tab === "email"}
             onClear={() => void navigate({ search: { tab: s.tab, from: s.from, to: s.to }, replace: true })}
           />
+          )}
           <div className="bg-subtle p-4">
-            <TabPanel value="dashboard"><Overview s={range} /></TabPanel>
+            <TabPanel value="dashboard"><ReferenceOverview s={range} /></TabPanel>
             <TabPanel value="today"><TodayTab s={range} /></TabPanel>
             <TabPanel value="daily"><Recap s={range} group="day" title="Daily Comparison" /></TabPanel>
             <TabPanel value="edition"><Recap s={range} group="day_edition" title="Recap By Exhibition Type" keyHeader="Exhibition Type" /></TabPanel>
@@ -98,47 +102,12 @@ function RefreshButton() {
   );
 }
 
-function Loading() {
-  return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-[84px]" />)}
-    </div>
-  );
-}
-
-const parts = (row: Row, list: { key: keyof Row; label: string }[]) =>
-  list.map((p) => ({ key: String(p.key), label: p.label, value: Number(row[p.key]) }));
-
 const period = (s: DashboardSearch) => (s.from === s.to ? dayLabel(s.from) : `${dayLabel(s.from)} to ${dayLabel(s.to)}`);
-
-function Overview({ s }: { s: DashboardSearch }) {
-  const total = useQuery(dashboardQuery(s, "total"));
-  const daily = useQuery(dashboardQuery(s, "day"));
-  if (total.isPending) return <Loading />;
-  if (total.isError) return <ErrorState error={total.error} onRetry={() => void total.refetch()} />;
-  const row: Row = total.data.rows[0] ?? emptyRow();
-  const days = daysBetween(s.from, s.to);
-  const byDay = new Map((daily.data?.rows ?? []).map((r) => [r.day ?? "", r]));
-  return (
-    <div className="flex flex-col gap-4">
-      <MetricCards row={row} period={period(s)} />
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Breakdown title="Answer Breakdown" values={parts(row, [{ key: "answer", label: "Answer" }, { key: "non_answer", label: "Non Answer" }, { key: "recontacted", label: "Recontacted" }, { key: "retry_no_answer", label: "Retry No Answer" }])} />
-        <Breakdown title="Attendance Breakdown" values={parts(row, [{ key: "attend", label: "Attend" }, { key: "attend_sourcing", label: "Attend Sourcing" }, { key: "under_consideration", label: "Under Consideration" }, { key: "not_attend", label: "Not Attend" }, { key: "hang_up_immediately", label: "Hang Up Immediately" }])} />
-        <Breakdown title="Buyer Type Breakdown" values={parts(row, [{ key: "b_side", label: "B-Side" }, { key: "c_side", label: "C-Side" }])} />
-      </div>
-      <section className="rounded-[12px] border border-line bg-bg p-5" aria-label="Daily trend">
-        <h2 className="mb-3 text-[14px] font-semibold">Daily Trend · Calls per day</h2>
-        {daily.isPending ? <Skeleton className="h-[260px]" /> : daily.isError ? <ErrorState error={daily.error} /> : <TrendChart days={days} byDay={byDay} />}
-      </section>
-    </div>
-  );
-}
 
 function TodayTab({ s }: { s: DashboardSearch }) {
   const day = today();
   const q = useQuery(dashboardQuery(s, "total", { from: day, to: day }));
-  if (q.isPending) return <Loading />;
+  if (q.isPending) return <Skeleton className="h-[180px]" />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   return <MetricCards row={q.data.rows[0] ?? emptyRow()} period={`Today, ${dayLabel(day)}`} />;
 }

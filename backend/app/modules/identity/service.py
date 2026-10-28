@@ -47,6 +47,7 @@ from app.modules.identity.schemas import (
     RoleOut,
     RoleUpdateIn,
     TeamOut,
+    TeamUpdateIn,
     UserBrief,
     UserCreateIn,
     UserDetailOut,
@@ -336,7 +337,11 @@ def require_global_role_manage(ctx: AuthContext) -> None:
 
 
 async def list_users(
-    session: AsyncSession, params: UserListParams, ctx: AuthContext
+    session: AsyncSession,
+    params: UserListParams,
+    ctx: AuthContext,
+    *,
+    team_agents_only: bool = False,
 ) -> Page[UserOut]:
     """Paginated user list with search, limited to the caller's editions."""
     rows, total = await repo.list_users(
@@ -346,6 +351,7 @@ async def list_users(
         params.offset,
         params.page_size,
         managed_editions(ctx),
+        team_agents_only=team_agents_only,
     )
     return Page(
         items=[UserOut.model_validate(u) for u in rows],
@@ -467,8 +473,8 @@ async def add_role_assignment(
     role = await repo.get_role(session, data.role_id)
     if role is None:
         raise ValidationFailed(fields={"role_id": "Unknown role."})
-    if data.team_id is not None and await repo.get_team(session, data.team_id) is None:
-        raise ValidationFailed(fields={"team_id": "Unknown team."})
+    if data.team_id is not None and not await repo.team_exists(session, data.team_id):
+        raise ValidationFailed(fields={"team_id": "Choose an active team."})
     if (
         data.gate_id is not None
         and await checkin_service.gate_edition(session, data.gate_id) != data.edition_id
@@ -639,38 +645,155 @@ async def set_role_permissions(
 # --- teams ---------------------------------------------------------------------------------
 
 
+async def _team_out(session: AsyncSession, team: Team) -> TeamOut:
+    return TeamOut(
+        id=team.id,
+        name=team.name,
+        member_ids=await repo.team_member_ids(session, team.id),
+        is_active=team.is_active,
+        version=team.version,
+    )
+
+
 async def list_teams(session: AsyncSession) -> list[TeamOut]:
-    return [TeamOut(id=t.id, name=t.name, member_ids=m) for t, m in await repo.list_teams(session)]
+    return [
+        TeamOut(id=t.id, name=t.name, member_ids=m, is_active=t.is_active, version=t.version)
+        for t, m in await repo.list_teams(session)
+    ]
+
+
+async def get_team(session: AsyncSession, team_id: uuid.UUID) -> TeamOut:
+    team = await repo.get_team(session, team_id)
+    if team is None:
+        raise NotFound("Team not found.")
+    return await _team_out(session, team)
+
+
+def _clean_team_name(name: str) -> str:
+    value = name.strip()
+    if not value:
+        raise ValidationFailed(fields={"name": "Enter a team name."})
+    return value
 
 
 async def create_team(session: AsyncSession, name: str) -> TeamOut:
-    """Create a team."""
-    team = Team(name=name.strip(), created_by=current_actor_id(), updated_by=current_actor_id())
+    team = Team(
+        name=_clean_team_name(name), created_by=current_actor_id(), updated_by=current_actor_id()
+    )
     session.add(team)
     try:
         await session.flush()
     except IntegrityError as e:
         raise Conflict("Team name already exists.", fields={"name": "Already exists."}) from e
     await audit.record(
-        session, entity_type="team", entity_id=team.id, action="create", after={"name": team.name}
+        session,
+        entity_type="team",
+        entity_id=team.id,
+        action="create",
+        after={"name": team.name, "is_active": team.is_active},
     )
-    return TeamOut(id=team.id, name=team.name, member_ids=[])
+    return await _team_out(session, team)
 
 
-async def add_team_member(
-    session: AsyncSession, team_id: uuid.UUID, user_id: uuid.UUID, ctx: AuthContext
-) -> TeamOut:
-    """Add a user to a team (idempotent). Only users the caller fully manages."""
-    team = await repo.get_team(session, team_id)
+async def _manageable_team(session: AsyncSession, team_id: uuid.UUID, ctx: AuthContext) -> Team:
+    team = await repo.get_team(session, team_id, lock=True)
     if team is None:
         raise NotFound("Team not found.")
+    if not ctx.has_global("user.manage"):
+        editions, grantees = await repo.team_links(session, team_id)
+        managed = managed_editions(ctx) or set()
+        if any(edition not in managed for edition in editions):
+            raise PermissionDenied("This team is assigned outside your editions.")
+        for user_id in set(await repo.team_member_ids(session, team_id)) | set(grantees):
+            await _visible_user(session, ctx, user_id, write=True)
+    return team
+
+
+async def update_team(
+    session: AsyncSession, team_id: uuid.UUID, data: TeamUpdateIn, ctx: AuthContext
+) -> TeamOut:
+    team = await _manageable_team(session, team_id, ctx)
+    check_version(team.version, data.version)
+    before = audit.snapshot(team, ("name", "is_active"))
+    if data.name is not None:
+        team.name = _clean_team_name(data.name)
+    if data.is_active is not None:
+        team.is_active = data.is_active
+    team.updated_by = ctx.user.id
     try:
-        await _visible_user(session, ctx, user_id, write=True)
-    except NotFound as e:
-        raise ValidationFailed(fields={"user_id": "Unknown user."}) from e
-    if await repo.get_membership(session, team_id, user_id) is None:
-        session.add(UserTeamMembership(team_id=team_id, user_id=user_id))
         await session.flush()
+    except IntegrityError as e:
+        raise Conflict("Team name already exists.", fields={"name": "Already exists."}) from e
+    await audit.record(
+        session,
+        entity_type="team",
+        entity_id=team.id,
+        action="update",
+        before=before,
+        after=audit.snapshot(team, ("name", "is_active")),
+    )
+    return await _team_out(session, team)
+
+
+async def delete_team(
+    session: AsyncSession, team_id: uuid.UUID, version: int, ctx: AuthContext
+) -> None:
+    team = await _manageable_team(session, team_id, ctx)
+    check_version(team.version, version)
+    editions, grantees = await repo.team_links(session, team_id)
+    if editions or grantees:
+        raise Conflict(
+            "This team is still assigned to an exhibition or role. "
+            "Remove those assignments before deleting it.",
+            code="TEAM_IN_USE",
+        )
+    await audit.record(
+        session,
+        entity_type="team",
+        entity_id=team.id,
+        action="delete",
+        before={
+            "name": team.name,
+            "is_active": team.is_active,
+            "member_ids": await repo.team_member_ids(session, team_id),
+        },
+    )
+    await session.delete(team)
+    try:
+        await session.flush()
+    except IntegrityError as e:
+        raise Conflict(
+            "This team is still in use. Remove its assignments before deleting it.",
+            code="TEAM_IN_USE",
+        ) from e
+
+
+async def add_team_members(
+    session: AsyncSession, team_id: uuid.UUID, user_ids: list[uuid.UUID], ctx: AuthContext
+) -> TeamOut:
+    team = await _manageable_team(session, team_id, ctx)
+    if not team.is_active:
+        raise ValidationFailed(
+            "Enable this team before adding members.", fields={"user_ids": "Team is disabled."}
+        )
+    members = set(await repo.team_member_ids(session, team_id))
+    additions = set(user_ids) - members
+    for user_id in additions:
+        try:
+            user, _ = await _visible_user(session, ctx, user_id, write=True)
+        except NotFound as error:
+            raise ValidationFailed(fields={"user_ids": "Unknown user."}) from error
+        if not user.is_active or not await repo.is_team_agent(session, user_id):
+            raise ValidationFailed(
+                fields={
+                    "user_ids": (
+                        "Only active Telemarketing Agents without another role level "
+                        "can join a team."
+                    )
+                }
+            )
+    for user_id in sorted(additions):
+        session.add(UserTeamMembership(team_id=team_id, user_id=user_id))
         await audit.record(
             session,
             entity_type="team",
@@ -678,19 +801,30 @@ async def add_team_member(
             action="member_added",
             after={"user_id": user_id},
         )
-    return TeamOut(
-        id=team.id, name=team.name, member_ids=await repo.team_member_ids(session, team_id)
-    )
+    if additions:
+        team.version += 1
+        team.updated_by = ctx.user.id
+    await session.flush()
+    return await _team_out(session, team)
+
+
+async def add_team_member(
+    session: AsyncSession, team_id: uuid.UUID, user_id: uuid.UUID, ctx: AuthContext
+) -> TeamOut:
+    return await add_team_members(session, team_id, [user_id], ctx)
 
 
 async def remove_team_member(
     session: AsyncSession, team_id: uuid.UUID, user_id: uuid.UUID, ctx: AuthContext
 ) -> None:
+    team = await _manageable_team(session, team_id, ctx)
     membership = await repo.get_membership(session, team_id, user_id)
     if membership is None:
         raise NotFound("Membership not found.")
     await _visible_user(session, ctx, user_id, write=True)
     await session.delete(membership)
+    team.version += 1
+    team.updated_by = ctx.user.id
     await session.flush()
     await audit.record(
         session,
@@ -706,7 +840,7 @@ async def remove_team_member(
 
 async def edition_team_id(session: AsyncSession, edition_id: uuid.UUID) -> uuid.UUID | None:
     """The team that works this edition's leads, if any."""
-    return await repo.edition_team_id(session, edition_id)
+    return await repo.edition_team_id(session, edition_id, active_only=True)
 
 
 async def get_edition_team(
@@ -723,7 +857,7 @@ async def set_edition_team(
 ) -> EditionTeamOut:
     ctx.scope_for(edition_id)
     if team_id is not None and not await repo.team_exists(session, team_id):
-        raise ValidationFailed(fields={"team_id": "Unknown team."})
+        raise ValidationFailed(fields={"team_id": "Choose an active team."})
     before = await repo.edition_team_id(session, edition_id)
     if before != team_id:
         await repo.set_edition_team(session, edition_id, team_id, current_actor_id())

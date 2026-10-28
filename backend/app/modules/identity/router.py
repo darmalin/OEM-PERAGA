@@ -26,7 +26,9 @@ from app.modules.identity.schemas import (
     RoleUpdateIn,
     TeamIn,
     TeamMemberIn,
+    TeamMembersIn,
     TeamOut,
+    TeamUpdateIn,
     UserCreateIn,
     UserDetailOut,
     UserListParams,
@@ -252,3 +254,51 @@ async def remove_team_member(
     ctx: AuthContext = Depends(require("user.manage")),
 ) -> None:
     await service.remove_team_member(session, team_id, user_id, ctx)
+
+
+@router.get("/teams/member-options", response_model=Page[UserOut])
+async def team_member_options(
+    session: Session,
+    params: Annotated[UserListParams, Query()],
+    ctx: AuthContext = Depends(require("user.manage")),
+) -> Page[UserOut]:
+    return await service.list_users(session, params, ctx, team_agents_only=True)
+
+
+@router.get("/teams/{team_id}", response_model=TeamOut)
+async def get_team(
+    team_id: uuid.UUID,
+    session: Session,
+    _: AuthContext = Depends(require("user.manage", "telemarketing.view_team")),
+) -> TeamOut:
+    return await service.get_team(session, team_id)
+
+
+@router.patch("/teams/{team_id}", response_model=TeamOut)
+async def update_team(
+    team_id: uuid.UUID,
+    data: TeamUpdateIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("user.manage")),
+) -> TeamOut:
+    return await service.update_team(session, team_id, data, ctx)
+
+
+@router.delete("/teams/{team_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_team(
+    team_id: uuid.UUID,
+    session: Session,
+    version: Annotated[int, Query(ge=1)],
+    ctx: AuthContext = Depends(require("user.manage")),
+) -> None:
+    await service.delete_team(session, team_id, version, ctx)
+
+
+@router.post("/teams/{team_id}/members/batch", response_model=TeamOut)
+async def add_team_members(
+    team_id: uuid.UUID,
+    data: TeamMembersIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("user.manage")),
+) -> TeamOut:
+    return await service.add_team_members(session, team_id, data.user_ids, ctx)

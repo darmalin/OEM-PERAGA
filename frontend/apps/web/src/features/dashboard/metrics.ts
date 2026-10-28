@@ -75,3 +75,12 @@ export function dayLabel(day: string): string {
   const parts = Object.fromEntries(DAY.formatToParts(new Date(`${day}T00:00:00Z`)).map((p) => [p.type, p.value]));
   return `${parts.day} ${parts.month} (${parts.weekday})`;
 }
+
+
+/** The same four colored groups in every detailed lead report; no metrics are dropped. */
+export const REPORT_METRIC_GROUPS = [
+  { label: "Lead Acquisition", tone: "acquisition", metrics: ["added", "pending", "answer", "non_answer", "recontacted", "retry_no_answer", "total"] },
+  { label: "Lead Validity", tone: "validity", metrics: ["valid", "no_valid"] },
+  { label: "Attendance", tone: "attendance", metrics: ["attend", "attend_sourcing", "under_consideration", "not_attend", "hang_up_immediately"] },
+  { label: "Buyer Type", tone: "buyer", metrics: ["b2b_matching", "b_side", "c_side"] },
+] satisfies { label: string; tone: string; metrics: Metric[] }[];

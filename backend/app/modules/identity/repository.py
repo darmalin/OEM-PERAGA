@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import Row, delete, func, or_, select, update
+from sqlalchemy import Row, Select, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.models import (
@@ -40,13 +40,24 @@ async def list_users(
     offset: int,
     limit: int,
     edition_ids: set[uuid.UUID] | None = None,
+    team_agents_only: bool = False,
 ) -> tuple[Sequence[User], int]:
     """edition_ids None: everyone. Otherwise users with a role in those editions, or none."""
     stmt = select(User)
+    if team_agents_only:
+        stmt = stmt.where(User.id.in_(team_agent_ids()))
     if edition_ids is not None:
         has_any = select(UserRoleAssignment.id).where(UserRoleAssignment.user_id == User.id)
         has_inside = has_any.where(UserRoleAssignment.edition_id.in_(edition_ids))
         stmt = stmt.where(or_(~has_any.exists(), has_inside.exists()))
+        if team_agents_only:
+            outside = has_any.where(
+                or_(
+                    UserRoleAssignment.edition_id.is_(None),
+                    ~UserRoleAssignment.edition_id.in_(edition_ids),
+                )
+            )
+            stmt = stmt.where(~outside.exists())
     if q:
         like = f"%{q.lower()}%"
         stmt = stmt.where(or_(func.lower(User.full_name).like(like), User.email.like(like)))
@@ -66,7 +77,11 @@ async def grant_rows(
         .join(Role, Role.id == UserRoleAssignment.role_id)
         .join(RolePermission, RolePermission.role_id == Role.id)
         .join(Permission, Permission.id == RolePermission.permission_id)
-        .where(UserRoleAssignment.user_id == user_id)
+        .outerjoin(Team, Team.id == UserRoleAssignment.team_id)
+        .where(
+            UserRoleAssignment.user_id == user_id,
+            or_(UserRoleAssignment.team_id.is_(None), Team.is_active.is_(True)),
+        )
     )
     return (await session.execute(stmt)).all()
 
@@ -112,8 +127,10 @@ async def users_with_permission(
         .join(UserRoleAssignment, UserRoleAssignment.user_id == User.id)
         .join(RolePermission, RolePermission.role_id == UserRoleAssignment.role_id)
         .join(Permission, Permission.id == RolePermission.permission_id)
+        .outerjoin(Team, Team.id == UserRoleAssignment.team_id)
         .where(
             User.is_active.is_(True),
+            or_(UserRoleAssignment.team_id.is_(None), Team.is_active.is_(True)),
             Permission.code == permission,
             or_(
                 UserRoleAssignment.edition_id == edition_id,
@@ -126,7 +143,12 @@ async def users_with_permission(
     if team_ids is not None:
         stmt = stmt.where(
             User.id.in_(
-                select(UserTeamMembership.user_id).where(UserTeamMembership.team_id.in_(team_ids))
+                select(UserTeamMembership.user_id).where(
+                    UserTeamMembership.team_id.in_(team_ids),
+                    UserTeamMembership.team_id.in_(
+                        select(Team.id).where(Team.is_active.is_(True)).correlate(None)
+                    ),
+                )
             )
         )
     return (await session.scalars(stmt)).all()
@@ -190,8 +212,11 @@ async def replace_role_permissions(
     await session.flush()
 
 
-async def get_team(session: AsyncSession, team_id: uuid.UUID) -> Team | None:
-    return await session.get(Team, team_id)
+async def get_team(session: AsyncSession, team_id: uuid.UUID, *, lock: bool = False) -> Team | None:
+    stmt = select(Team).where(Team.id == team_id)
+    if lock:
+        stmt = stmt.with_for_update()
+    return await session.scalar(stmt)
 
 
 async def list_teams(session: AsyncSession) -> list[tuple[Team, list[uuid.UUID]]]:
@@ -224,14 +249,24 @@ async def get_reset_token(session: AsyncSession, token_hash: str) -> PasswordRes
     )
 
 
-async def edition_team_id(session: AsyncSession, edition_id: uuid.UUID) -> uuid.UUID | None:
-    return await session.scalar(
-        select(EditionTeam.team_id).where(EditionTeam.edition_id == edition_id)
+async def edition_team_id(
+    session: AsyncSession, edition_id: uuid.UUID, *, active_only: bool = False
+) -> uuid.UUID | None:
+    stmt = (
+        select(EditionTeam.team_id)
+        .join(Team, Team.id == EditionTeam.team_id)
+        .where(EditionTeam.edition_id == edition_id)
     )
+    if active_only:
+        stmt = stmt.where(Team.is_active.is_(True))
+    return await session.scalar(stmt)
 
 
 async def team_exists(session: AsyncSession, team_id: uuid.UUID) -> bool:
-    return await session.scalar(select(Team.id).where(Team.id == team_id)) is not None
+    return (
+        await session.scalar(select(Team.id).where(Team.id == team_id, Team.is_active.is_(True)))
+        is not None
+    )
 
 
 async def set_edition_team(
@@ -253,3 +288,38 @@ async def role_permission_codes(session: AsyncSession, role_id: uuid.UUID) -> se
         .where(RolePermission.role_id == role_id)
     )
     return set(rows.all())
+
+
+async def team_links(
+    session: AsyncSession, team_id: uuid.UUID
+) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
+    editions = list(
+        await session.scalars(select(EditionTeam.edition_id).where(EditionTeam.team_id == team_id))
+    )
+    grantees = list(
+        await session.scalars(
+            select(UserRoleAssignment.user_id).where(UserRoleAssignment.team_id == team_id)
+        )
+    )
+    return editions, grantees
+
+
+def team_agent_ids() -> Select[uuid.UUID]:
+    """Team membership eligibility, not an authorization guard: active agent-level users only."""
+    return (
+        select(User.id)
+        .join(UserRoleAssignment, UserRoleAssignment.user_id == User.id)
+        .join(Role, Role.id == UserRoleAssignment.role_id)
+        .where(User.is_active.is_(True))
+        .group_by(User.id)
+        .having(func.bool_and(Role.code == "TELEMARKETING_AGENT"))
+    )
+
+
+async def is_team_agent(session: AsyncSession, user_id: uuid.UUID) -> bool:
+    return (
+        await session.scalar(
+            select(User.id).where(User.id == user_id, User.id.in_(team_agent_ids()))
+        )
+        is not None
+    )

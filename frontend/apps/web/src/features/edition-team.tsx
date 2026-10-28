@@ -66,7 +66,7 @@ export function EditionTeamPanel({ editionId, manage }: { editionId: string; man
               {(teams.data ?? []).map((t) => {
                 const n = t.member_ids?.length ?? 0;
                 return (
-                  <option key={t.id} value={t.id}>{t.name} · {n} {n === 1 ? "member" : "members"}</option>
+                  <option key={t.id} value={t.id} disabled={!t.is_active}>{t.name}{!t.is_active ? " (Disabled)" : ""} · {n} {n === 1 ? "member" : "members"}</option>
                 );
               })}
             </Select>

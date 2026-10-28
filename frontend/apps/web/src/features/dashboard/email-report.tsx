@@ -2,7 +2,6 @@ import type { Schemas } from "@ems/api";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
-import { cn } from "@/lib/cn";
 import { formatDateTime, formatNumber } from "@/lib/format";
 import { label } from "@/lib/labels";
 import { Indicator } from "@/ui/indicator";
@@ -10,7 +9,9 @@ import { ErrorState, Skeleton } from "@/ui/states";
 
 import { type DashboardSearch, emailReportQuery } from "./api";
 import { Breakdown } from "./cards";
-import { dayLabel, isWeekend } from "./metrics";
+import { dayLabel } from "./metrics";
+
+import { ReportTableHead } from "./report-table-head";
 
 type Job = Schemas["EmailReportJob"];
 const rate = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 1000) / 10}%` : "0%");
@@ -33,7 +34,7 @@ export function EmailReport({ s }: { s: DashboardSearch }) {
   const { totals: t, days, by_status, waiting, recent_failed } = q.data;
   const statusRow = Object.fromEntries(by_status.map((c) => [c.key ?? "", c.count]));
   return (
-    <div className="flex flex-col gap-4">
+    <div className="dashboard-reference flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <Tile title="Queued in Period" value={t.queued} hint="Emails put in the queue" />
         <Tile title="Sent Successfully" value={t.sent} hint={`${rate(t.sent, t.queued)} success rate`} />
@@ -47,26 +48,24 @@ export function EmailReport({ s }: { s: DashboardSearch }) {
         <Tile title="All Time" value={t.all_time} hint="Every lead email on record" />
       </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <section className="rounded-[12px] border border-line bg-bg" aria-label="Daily email sending">
-          <h2 className="border-b border-line px-5 py-3 text-[14px] font-semibold">Daily Email Sending</h2>
+        <section className="dash-card min-w-0 overflow-hidden" aria-label="Daily email sending">
+          <h2 className="px-5 py-4 text-[15px] font-bold">Daily Email Sending</h2>
           <div className="max-h-[520px] overflow-auto">
-            <table className="w-full min-w-[520px] border-collapse text-[13px]">
+            <table className="dash-detail-table w-full min-w-[640px] border-collapse text-[12px]">
               <caption className="sr-only">Emails per day</caption>
-              <thead className="sticky top-0 bg-bg">
-                <tr className="border-b border-line text-left text-[12px] text-label">
-                  <th scope="col" className="px-4 py-2 font-medium">Date</th>
-                  {["Queued", "Sent", "Failed", "Waiting", "Success Rate"].map((h) => <th key={h} scope="col" className="px-4 py-2 text-right font-medium">{h}</th>)}
-                </tr>
-              </thead>
+              <ReportTableHead identities={["Date"]} groups={[
+                { label: "Email Delivery", tone: "acquisition", columns: ["Queued", "Sent", "Failed", "Waiting"].map(label => ({ label })) },
+                { label: "Delivery Performance", tone: "validity", columns: [{ label: "Success Rate" }] },
+              ]} />
               <tbody>
                 {days.map((d) => (
-                  <tr key={d.day} className={cn("border-b border-line", isWeekend(d.day) && "bg-[color-mix(in_srgb,var(--red-bg)_55%,transparent)]")}>
-                    <th scope="row" className="px-4 py-2 text-left font-normal whitespace-nowrap">{dayLabel(d.day)}</th>
-                    <td className="px-4 py-2 text-right tabular">{d.queued ? formatNumber(d.queued) : ""}</td>
-                    <td className="px-4 py-2 text-right tabular">{d.sent ? formatNumber(d.sent) : ""}</td>
-                    <td className="px-4 py-2 text-right tabular">{d.failed ? formatNumber(d.failed) : ""}</td>
-                    <td className="px-4 py-2 text-right tabular">{d.waiting ? formatNumber(d.waiting) : ""}</td>
-                    <td className="px-4 py-2 text-right tabular">{d.queued ? rate(d.sent, d.queued) : ""}</td>
+                  <tr key={d.day} className="dash-date-row border-b border-line">
+                    <th scope="row" className="dash-date-row sticky left-0 z-[1] px-4 py-2 text-left font-semibold whitespace-nowrap">{dayLabel(d.day)}</th>
+                    <td className="border-x border-line px-4 py-2 text-center tabular">{d.queued ? formatNumber(d.queued) : ""}</td>
+                    <td className="border-x border-line px-4 py-2 text-center tabular">{d.sent ? formatNumber(d.sent) : ""}</td>
+                    <td className="border-x border-line px-4 py-2 text-center tabular">{d.failed ? formatNumber(d.failed) : ""}</td>
+                    <td className="border-x border-line px-4 py-2 text-center tabular">{d.waiting ? formatNumber(d.waiting) : ""}</td>
+                    <td className="border-x border-line px-4 py-2 text-center tabular">{d.queued ? rate(d.sent, d.queued) : ""}</td>
                   </tr>
                 ))}
               </tbody>
@@ -88,8 +87,8 @@ export function EmailReport({ s }: { s: DashboardSearch }) {
 
 function JobList({ title, empty, jobs, showError }: { title: string; empty: string; jobs: Job[]; showError?: boolean }) {
   return (
-    <section className="rounded-[12px] border border-line bg-bg" aria-label={title}>
-      <h2 className="border-b border-line px-5 py-3 text-[14px] font-semibold">{title}</h2>
+    <section className="dash-card min-w-0 overflow-hidden" aria-label={title}>
+      <h2 className="px-5 py-4 text-[15px] font-bold">{title}</h2>
       {jobs.length === 0 ? (
         <p className="px-5 py-6 text-[13px] text-label">{empty}</p>
       ) : (

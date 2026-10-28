@@ -176,12 +176,24 @@ class TeamIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
 
 
+class TeamUpdateIn(BaseModel):
+    version: int = Field(ge=1)
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    is_active: bool | None = None
+
+
+class TeamMembersIn(BaseModel):
+    user_ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+
+
 class TeamOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     name: str
     member_ids: list[uuid.UUID] = []
+    is_active: bool
+    version: int
 
 
 class EditionTeamIn(BaseModel):

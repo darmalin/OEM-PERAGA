@@ -45,7 +45,7 @@ async def world() -> tuple[Edition, AsyncClient, uuid.UUID, dict[str, str]]:
     user, client = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", edition.id))
     ids = {name: await lead(client, edition, i) for i, name in enumerate("ABC", start=1)}
     await call(client, ids["A"], "ANSWER", ANSWERED)
-    await call(client, ids["A"], "NO_ANSWER")  # status stays Answer; counts as a later miss
+    await call(client, ids["A"], "NO_ANSWER", {"lead_quality": "UNDECIDED"})  # later miss
     await call(client, ids["B"], "NO_ANSWER", {"lead_quality": "INVALID"})
     await call(
         client, ids["B"], "ANSWER",
@@ -194,3 +194,50 @@ async def test_email_report_counts_lead_emails(mailbox: Any) -> None:
     _, stranger = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", other.id))
     r = await stranger.get("/api/v1/reports/dashboard/email", params={"date_from": d, "date_to": d})
     assert r.json()["totals"]["all_time"] == 0
+
+
+async def test_daily_team_breakdown_handles_multi_team_users_and_scope() -> None:
+    from tests.test_registrations import make_lead
+
+    edition = await make_edition()
+    _, root = await actor(RoleGrant("SUPER_ADMIN"))
+    agent_a, client_a = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", edition.id))
+    agent_b, client_b = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", edition.id))
+    agent_c, client_c = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", edition.id))
+    team_a = (await root.post("/api/v1/teams", json={"name": "Team A"})).json()
+    team_b = (await root.post("/api/v1/teams", json={"name": "Team B"})).json()
+    for team, members in ((team_a, [agent_a.id]), (team_b, [agent_a.id, agent_b.id])):
+        response = await root.post(
+            f"/api/v1/teams/{team['id']}/members/batch",
+            json={"user_ids": [str(member) for member in members]},
+        )
+        assert response.status_code == 200, response.text
+    for number, (agent, client) in enumerate(
+        ((agent_a, client_a), (agent_b, client_b), (agent_c, client_c))
+    ):
+        lead_id = await make_lead(edition, owner=agent.id, email=f"team-{number}@example.test")
+        await call(client, lead_id, "NO_ANSWER", {"lead_quality": "UNDECIDED"})
+    await make_lead(edition, email="unassigned@example.test")
+    day = str(today())
+    params = {"date_from": day, "date_to": day, "edition_id": str(edition.id)}
+    out = await dashboard(root, **params, group_by="day_team")
+    rows = {row["key"]: row for row in out["rows"]}
+    assert rows[team_a["id"]]["total"] == 1
+    assert rows[team_b["id"]]["total"] == 2
+    assert rows[None]["total"] == 1 and rows[None]["pending"] == 1
+    labels = {key["id"]: key["label"] for key in out["keys"]}
+    assert labels == {team_a["id"]: "Team A", team_b["id"]: "Team B", None: "No team"}
+    total = (await dashboard(root, **params, group_by="total"))["rows"][0]
+    assert (
+        total["total"] == 3 and total["added"] == 4
+    )  # No double counting in the authoritative total.
+    filtered = await dashboard(root, **params, group_by="day_team", team_id=team_b["id"])
+    assert {row["key"] for row in filtered["rows"]} == {team_b["id"]}
+    assert filtered["rows"][0]["total"] == 2
+    _, manager = await actor(
+        RoleGrant("TELEMARKETING_MANAGER", "TEAM", edition.id, uuid.UUID(team_a["id"]))
+    )
+    scoped = await dashboard(manager, **params, group_by="day_team")
+    assert {row["total"] for row in scoped["rows"]} == {
+        1
+    }  # Agent B and unassigned leads stay hidden.

@@ -85,3 +85,6 @@ under FastAPI 0.151); API responses carry CSP `default-src 'none'`, X-Frame-Opti
 nosniff, Referrer-Policy, Permissions-Policy; nginx re-resolves the api container.
 Not done here: dependency vulnerability scan (`pip-audit` is not in the image), HSTS
 (belongs to the TLS terminator), penetration test.
+
+
+Dashboard source detail (owner request, 2026-10-28): the overview date rows expand to sources using `group_by=day_source`. Every source with at least one nonzero displayed metric on that date is shown, including Pending-only sources; all-zero source rows are omitted. Missing source is labeled “No source”. Every date remains expandable, with an explicit empty-detail message when appropriate. Daily/period totals are queried independently and Pending uses the period balance. CSV includes the same source breakdown. Reports continue to apply selected filters, lead visibility and edition scope before aggregation. The `day_team` API grouping remains available for telemarketing team reports.
