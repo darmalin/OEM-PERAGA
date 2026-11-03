@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.core.pagination import PageParams
-from app.modules.exhibitors.rules import SalesStage
+from app.modules.exhibitors.rules import PaymentMethod, PaymentState, PaymentStatus, SalesStage
 
 
 class ExhibitorLeadFields(BaseModel):
@@ -211,6 +211,75 @@ class ContractOut(BaseModel):
     booth_code: str | None = None
 
 
+class PaymentCreateIn(BaseModel):
+    """One installment as the exhibitor paid it. Recorded PENDING, verified by hand."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    paid_on: date
+    method: PaymentMethod
+    reference: str | None = Field(default=None, max_length=100)
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class PaymentReviewIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    decision: Literal[PaymentStatus.VERIFIED, PaymentStatus.REJECTED]
+    notes: str | None = Field(default=None, max_length=2000)
+    version: int
+
+
+class PaymentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    contract_id: uuid.UUID
+    amount: Decimal
+    paid_on: date
+    method: str
+    reference: str | None
+    status: str
+    has_proof: bool = False
+    reviewed_by: uuid.UUID | None
+    reviewed_at: datetime | None
+    notes: str | None
+    created_at: datetime
+    version: int
+
+
+class PaymentTotals(BaseModel):
+    total_amount: Decimal
+    currency: str
+    verified_amount: Decimal
+    pending_amount: Decimal
+    outstanding_amount: Decimal
+    payment_state: PaymentState
+
+
+class PaymentsOut(PaymentTotals):
+    items: list[PaymentOut]
+
+
+class PortalPaymentOut(BaseModel):
+    """What the exhibitor sees of a payment: no internal notes, no reviewer."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    amount: Decimal
+    paid_on: date
+    method: str
+    reference: str | None
+    status: str
+    reviewed_at: datetime | None
+
+
+class PortalPaymentsOut(PaymentTotals):
+    items: list[PortalPaymentOut]
+
+
 # --- exhibitor portal --------------------------------------------------------------------
 
 
@@ -245,6 +314,7 @@ class PortalExhibitorOut(BaseModel):
     booth_code: str | None
     contract_number: str | None
     contract_status: str | None
+    payment_state: PaymentState | None = None
 
 
 class PortalMeOut(BaseModel):

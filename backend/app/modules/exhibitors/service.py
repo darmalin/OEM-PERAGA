@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import PurePosixPath
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,8 +28,17 @@ from app.modules.exhibitors.models import (
     ExhibitorAccount,
     ExhibitorContract,
     ExhibitorLead,
+    ExhibitorPayment,
 )
-from app.modules.exhibitors.rules import BOOTH_STAGES, ContractStatus, SalesStage, can_move
+from app.modules.exhibitors.rules import (
+    BOOTH_STAGES,
+    ContractStatus,
+    PaymentState,
+    PaymentStatus,
+    SalesStage,
+    can_move,
+    payment_state,
+)
 from app.modules.exhibitors.schemas import (
     BoothAssignIn,
     BoothCreateIn,
@@ -44,6 +54,13 @@ from app.modules.exhibitors.schemas import (
     ExhibitorLeadOut,
     ExhibitorLeadUpdateIn,
     InvitationOut,
+    PaymentCreateIn,
+    PaymentOut,
+    PaymentReviewIn,
+    PaymentsOut,
+    PaymentTotals,
+    PortalPaymentOut,
+    PortalPaymentsOut,
     StageChangeIn,
 )
 from app.modules.visitors.rules import (
@@ -704,14 +721,31 @@ async def fill_contract(
     return await _contract_out(session, lead, contract)
 
 
-def _check_pdf(file_name: str, content_type: str | None, data: bytes) -> None:
-    """Extension, MIME, magic bytes, size (BACKEND_RULES/security-permissions.md "Uploads")."""
-    if not file_name.lower().endswith(".pdf") or (content_type and content_type != PDF_MIME):
-        raise ValidationFailed(fields={"file": "Only PDF files are accepted."})
+# Extension -> (MIME, leading magic bytes).
+_FILE_KINDS = {
+    ".pdf": (PDF_MIME, b"%PDF-"),
+    ".jpg": ("image/jpeg", b"\xff\xd8\xff"),
+    ".jpeg": ("image/jpeg", b"\xff\xd8\xff"),
+    ".png": ("image/png", b"\x89PNG\r\n\x1a\n"),
+}
+
+
+def _check_upload(
+    file_name: str, content_type: str | None, data: bytes, allowed: tuple[str, ...]
+) -> str:
+    """Extension, MIME, magic bytes, size (BACKEND_RULES/security-permissions.md "Uploads").
+    Returns the extension, which is all that is kept of the uploader's name in the object key.
+    """
+    ext = PurePosixPath(file_name.lower()).suffix
+    kind = _FILE_KINDS.get(ext) if ext in allowed else None
+    if kind is None or (content_type and content_type != kind[0]):
+        names = "/".join(sorted({e.lstrip(".").upper() for e in allowed} - {"JPEG"}))
+        raise ValidationFailed(fields={"file": f"Only {names} files are accepted."})
     if len(data) > get_settings().contract_file_max_bytes:
         raise ValidationFailed(fields={"file": "File is too large."}, code="FILE_TOO_LARGE")
-    if not data.startswith(b"%PDF-"):
-        raise ValidationFailed(fields={"file": "File is not a valid PDF."})
+    if not data.startswith(kind[1]):
+        raise ValidationFailed(fields={"file": "File content does not match its type."})
+    return ext
 
 
 def _display_name(file_name: str) -> str:
@@ -739,7 +773,7 @@ async def sign_contract(
             code="CONTRACT_INCOMPLETE",
             fields=missing,
         )
-    _check_pdf(file_name, content_type, data)
+    _check_upload(file_name, content_type, data, (".pdf",))
     key = new_object_key(".pdf")
     await run_in_threadpool(
         get_storage().put, get_settings().s3_bucket_contracts, key, data, PDF_MIME
@@ -814,3 +848,219 @@ async def contract_file(
     session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID
 ) -> tuple[Iterator[bytes], str]:
     return await signed_copy(session, await _staff_lead(session, ctx, lead_id))
+
+
+# --- payments ------------------------------------------------------------------------------
+# Tagging only: staff record what the exhibitor paid and verify it by hand.
+
+PAYMENT_ENTITY = "exhibitor_payment"
+PAYMENT_AUDIT_FIELDS = (
+    "amount", "paid_on", "method", "reference", "status", "reviewed_by", "reviewed_at",
+    "notes", "proof_file_key",
+)  # fmt: skip
+_PROOF_KINDS = (".pdf", ".jpg", ".jpeg", ".png")
+ZERO = Decimal("0.00")
+
+
+async def _totals(session: AsyncSession, contract: ExhibitorContract) -> PaymentTotals:
+    sums = await repo.payment_sums(session, contract.id)
+    total = contract.total_amount if contract.total_amount is not None else ZERO
+    verified = sums.get(PaymentStatus.VERIFIED, ZERO)
+    return PaymentTotals(
+        total_amount=total,
+        currency=contract.currency,
+        verified_amount=verified,
+        pending_amount=sums.get(PaymentStatus.PENDING, ZERO),
+        outstanding_amount=max(total - verified, ZERO),
+        payment_state=payment_state(total, verified),
+    )
+
+
+async def contract_payment_state(
+    session: AsyncSession, contract: ExhibitorContract
+) -> PaymentState | None:
+    """None until the contract is signed: nothing is owed before that."""
+    if contract.status != ContractStatus.SIGNED:
+        return None
+    return (await _totals(session, contract)).payment_state
+
+
+def _payment_out(payment: ExhibitorPayment) -> PaymentOut:
+    out = PaymentOut.model_validate(payment)
+    out.has_proof = payment.proof_file_key is not None
+    return out
+
+
+async def _payment(
+    session: AsyncSession,
+    contract: ExhibitorContract,
+    payment_id: uuid.UUID,
+    *,
+    for_update: bool = False,
+) -> ExhibitorPayment:
+    payment = await repo.get_payment(session, contract.id, payment_id, for_update=for_update)
+    if payment is None:
+        raise NotFound("Payment not found.")
+    return payment
+
+
+async def _record_payment(
+    session: AsyncSession, payment: ExhibitorPayment, action: str, before: dict[str, Any] | None
+) -> None:
+    await audit.record(
+        session,
+        entity_type=PAYMENT_ENTITY,
+        entity_id=payment.id,
+        action=action,
+        before=before,
+        after=audit.snapshot(payment, PAYMENT_AUDIT_FIELDS),
+        edition_id=payment.edition_id,
+    )
+
+
+async def list_payments(session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID) -> PaymentsOut:
+    contract = await _contract_of(session, await _staff_lead(session, ctx, lead_id))
+    items = [_payment_out(p) for p in await repo.list_payments(session, contract.id)]
+    return PaymentsOut(**(await _totals(session, contract)).model_dump(), items=items)
+
+
+async def portal_payments(session: AsyncSession, lead: ExhibitorLead) -> PortalPaymentsOut:
+    contract = await _contract_of(session, lead)
+    items = [
+        PortalPaymentOut.model_validate(p) for p in await repo.list_payments(session, contract.id)
+    ]
+    return PortalPaymentsOut(**(await _totals(session, contract)).model_dump(), items=items)
+
+
+async def record_payment(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, data: PaymentCreateIn
+) -> PaymentOut:
+    """A PENDING installment. Pending and verified together never exceed the contract total."""
+    lead = await _staff_lead(session, ctx, lead_id)
+    edition = await exhibitions_service.ensure_writable(session, lead.edition_id)
+    # The contract row lock serializes payment changes of one contract.
+    contract = await _contract_of(session, lead, for_update=True)
+    if contract.status != ContractStatus.SIGNED or contract.total_amount is None:
+        raise ValidationFailed(
+            "Payments are recorded against a signed contract.", code="CONTRACT_NOT_SIGNED"
+        )
+    if data.paid_on > datetime.now(ZoneInfo(edition.timezone)).date():
+        raise ValidationFailed(fields={"paid_on": "Cannot be in the future."})
+    sums = await repo.payment_sums(session, contract.id)
+    open_amount = contract.total_amount - sums.get(PaymentStatus.VERIFIED, ZERO)
+    open_amount -= sums.get(PaymentStatus.PENDING, ZERO)
+    if data.amount > open_amount:
+        raise ValidationFailed(
+            "The payment is more than what is still owed.",
+            code="PAYMENT_EXCEEDS_TOTAL",
+            fields={"amount": f"At most {max(open_amount, ZERO)} {contract.currency}."},
+        )
+    actor = current_actor_id()
+    payment = ExhibitorPayment(
+        edition_id=contract.edition_id,
+        contract_id=contract.id,
+        amount=data.amount,
+        paid_on=data.paid_on,
+        method=data.method,
+        reference=clean_text(data.reference),
+        notes=clean_text(data.notes),
+        status=PaymentStatus.PENDING,
+        created_by=actor,
+        updated_by=actor,
+    )
+    session.add(payment)
+    await session.flush()
+    await session.refresh(payment)
+    await _record_payment(session, payment, "record", None)
+    return _payment_out(payment)
+
+
+async def attach_payment_proof(
+    session: AsyncSession,
+    ctx: AuthContext,
+    lead_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    *,
+    file_name: str,
+    content_type: str | None,
+    data: bytes,
+    version: int,
+) -> PaymentOut:
+    """Transfer slip or receipt (PDF, JPG, PNG) of a PENDING payment; replaces an earlier one."""
+    lead = await _staff_lead(session, ctx, lead_id)
+    await exhibitions_service.ensure_writable(session, lead.edition_id)
+    payment = await _payment(
+        session, await _contract_of(session, lead), payment_id, for_update=True
+    )
+    check_version(payment.version, version)
+    if payment.status != PaymentStatus.PENDING:
+        raise Conflict("The payment is already reviewed.", code="PAYMENT_REVIEWED")
+    ext = _check_upload(file_name, content_type, data, _PROOF_KINDS)
+    key = new_object_key(ext)
+    await run_in_threadpool(
+        get_storage().put, get_settings().s3_bucket_contracts, key, data, _FILE_KINDS[ext][0]
+    )
+    before = audit.snapshot(payment, PAYMENT_AUDIT_FIELDS)
+    payment.proof_file_key = key
+    payment.updated_by = current_actor_id()
+    await session.flush()
+    await session.refresh(payment)
+    await _record_payment(session, payment, "attach_proof", before)
+    return _payment_out(payment)
+
+
+async def review_payment(
+    session: AsyncSession,
+    ctx: AuthContext,
+    lead_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    data: PaymentReviewIn,
+) -> PaymentOut:
+    """Verify or reject a PENDING payment. A rejection needs a reason in notes."""
+    lead = await _staff_lead(session, ctx, lead_id)
+    await exhibitions_service.ensure_writable(session, lead.edition_id)
+    contract = await _contract_of(session, lead, for_update=True)
+    payment = await _payment(session, contract, payment_id, for_update=True)
+    check_version(payment.version, data.version)
+    if payment.status != PaymentStatus.PENDING:
+        raise Conflict("The payment is already reviewed.", code="PAYMENT_REVIEWED")
+    notes = clean_text(data.notes)
+    if data.decision == PaymentStatus.REJECTED and notes is None:
+        raise ValidationFailed(fields={"notes": "Required when rejecting."})
+    if data.decision == PaymentStatus.VERIFIED:
+        verified = (await repo.payment_sums(session, contract.id)).get(PaymentStatus.VERIFIED, ZERO)
+        if verified + payment.amount > (contract.total_amount or ZERO):
+            raise ValidationFailed(
+                "Verifying this payment would exceed the contract total.",
+                code="PAYMENT_EXCEEDS_TOTAL",
+            )
+    before = audit.snapshot(payment, PAYMENT_AUDIT_FIELDS)
+    payment.status = data.decision
+    payment.reviewed_by = ctx.user.id
+    payment.reviewed_at = datetime.now(UTC)
+    if notes is not None:
+        payment.notes = notes
+    payment.updated_by = current_actor_id()
+    await session.flush()
+    await session.refresh(payment)
+    action = "verify" if data.decision == PaymentStatus.VERIFIED else "reject"
+    await _record_payment(session, payment, action, before)
+    return _payment_out(payment)
+
+
+async def payment_proof(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, payment_id: uuid.UUID
+) -> tuple[Iterator[bytes], str, str]:
+    """(chunks, download name, MIME) of a payment's proof, streamed through the API."""
+    contract = await _contract_of(session, await _staff_lead(session, ctx, lead_id))
+    payment = await _payment(session, contract, payment_id)
+    if payment.proof_file_key is None:
+        raise NotFound("The payment has no proof attached.")
+    try:
+        chunks = await run_in_threadpool(
+            get_storage().stream, get_settings().s3_bucket_contracts, payment.proof_file_key
+        )
+    except FileNotFoundError as e:
+        raise NotFound("The proof is no longer available.") from e
+    ext = PurePosixPath(payment.proof_file_key).suffix
+    return chunks, f"payment-{payment.id}{ext}", _FILE_KINDS[ext][0]

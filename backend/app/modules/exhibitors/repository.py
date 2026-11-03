@@ -2,6 +2,7 @@
 
 import uuid
 from collections.abc import Sequence
+from decimal import Decimal
 
 from sqlalchemy import ColumnElement, Row, and_, false, func, or_, select, true
 from sqlalchemy.dialects.postgresql import insert
@@ -14,6 +15,7 @@ from app.modules.exhibitors.models import (
     ExhibitorContract,
     ExhibitorContractCounter,
     ExhibitorLead,
+    ExhibitorPayment,
 )
 from app.modules.exhibitors.schemas import BoothListParams, ExhibitorLeadListParams
 from app.modules.identity.models import User, UserTeamMembership
@@ -252,3 +254,42 @@ async def portal_lead(
             ExhibitorLead.stage == "EXHIBITOR",
         )
     )
+
+
+# --- payments ------------------------------------------------------------------------------
+
+
+async def list_payments(
+    session: AsyncSession, contract_id: uuid.UUID
+) -> Sequence[ExhibitorPayment]:
+    stmt = (
+        select(ExhibitorPayment)
+        .where(ExhibitorPayment.contract_id == contract_id)
+        .order_by(ExhibitorPayment.paid_on, ExhibitorPayment.created_at)
+    )
+    return (await session.scalars(stmt)).all()
+
+
+async def get_payment(
+    session: AsyncSession,
+    contract_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    *,
+    for_update: bool = False,
+) -> ExhibitorPayment | None:
+    stmt = select(ExhibitorPayment).where(
+        ExhibitorPayment.id == payment_id, ExhibitorPayment.contract_id == contract_id
+    )
+    if for_update:
+        stmt = stmt.with_for_update()
+    return await session.scalar(stmt)
+
+
+async def payment_sums(session: AsyncSession, contract_id: uuid.UUID) -> dict[str, Decimal]:
+    """Sum of amounts per payment status of a contract."""
+    stmt = (
+        select(ExhibitorPayment.status, func.sum(ExhibitorPayment.amount))
+        .where(ExhibitorPayment.contract_id == contract_id)
+        .group_by(ExhibitorPayment.status)
+    )
+    return {status: total for status, total in (await session.execute(stmt)).all()}

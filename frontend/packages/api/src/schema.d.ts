@@ -1256,6 +1256,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exhibitor-leads/{lead_id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Payments */
+        get: operations["list_payments_api_v1_exhibitor_leads__lead_id__payments_get"];
+        put?: never;
+        /** Record Payment */
+        post: operations["record_payment_api_v1_exhibitor_leads__lead_id__payments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/payments/{payment_id}/proof": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payment Proof */
+        get: operations["payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_get"];
+        put?: never;
+        /** Attach Payment Proof */
+        post: operations["attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/payments/{payment_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Payment */
+        post: operations["review_payment_api_v1_exhibitor_leads__lead_id__payments__payment_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/portal/invitations/inspect": {
         parameters: {
             query?: never;
@@ -1371,6 +1424,23 @@ export interface paths {
         put?: never;
         /** Portal Sign Contract */
         post: operations["portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Payments */
+        get: operations["portal_payments_api_v1_portal_exhibitors__lead_id__payments_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2431,6 +2501,13 @@ export interface components {
             } | null;
             /** Request Id */
             request_id: string | null;
+        };
+        /** Body_attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post */
+        Body_attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post: {
+            /** File */
+            file: string;
+            /** Version */
+            version: number;
         };
         /** Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post */
         Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post: {
@@ -5443,6 +5520,107 @@ export interface components {
             /** Email */
             email: string;
         };
+        /**
+         * PaymentCreateIn
+         * @description One installment as the exhibitor paid it. Recorded PENDING, verified by hand.
+         */
+        PaymentCreateIn: {
+            /** Amount */
+            amount: number | string;
+            /**
+             * Paid On
+             * Format: date
+             */
+            paid_on: string;
+            method: components["schemas"]["PaymentMethod"];
+            /** Reference */
+            reference?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /**
+         * PaymentMethod
+         * @enum {string}
+         */
+        PaymentMethod: "BANK_TRANSFER" | "CASH" | "OTHER";
+        /** PaymentOut */
+        PaymentOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Contract Id
+             * Format: uuid
+             */
+            contract_id: string;
+            /** Amount */
+            amount: string;
+            /**
+             * Paid On
+             * Format: date
+             */
+            paid_on: string;
+            /** Method */
+            method: string;
+            /** Reference */
+            reference: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Has Proof
+             * @default false
+             */
+            has_proof: boolean;
+            /** Reviewed By */
+            reviewed_by: string | null;
+            /** Reviewed At */
+            reviewed_at: string | null;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /** PaymentReviewIn */
+        PaymentReviewIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "VERIFIED" | "REJECTED";
+            /** Notes */
+            notes?: string | null;
+            /** Version */
+            version: number;
+        };
+        /**
+         * PaymentState
+         * @description Derived per contract from its verified payments, never stored.
+         * @enum {string}
+         */
+        PaymentState: "UNPAID" | "PARTIAL" | "PAID";
+        /** PaymentsOut */
+        PaymentsOut: {
+            /** Total Amount */
+            total_amount: string;
+            /** Currency */
+            currency: string;
+            /** Verified Amount */
+            verified_amount: string;
+            /** Pending Amount */
+            pending_amount: string;
+            /** Outstanding Amount */
+            outstanding_amount: string;
+            payment_state: components["schemas"]["PaymentState"];
+            /** Items */
+            items: components["schemas"]["PaymentOut"][];
+        };
         /** PermissionOut */
         PermissionOut: {
             /** Code */
@@ -5482,6 +5660,7 @@ export interface components {
             contract_number: string | null;
             /** Contract Status */
             contract_status: string | null;
+            payment_state?: components["schemas"]["PaymentState"] | null;
         };
         /** PortalLoginIn */
         PortalLoginIn: {
@@ -5503,6 +5682,48 @@ export interface components {
             csrf_token: string;
             /** Exhibitors */
             exhibitors: components["schemas"]["PortalExhibitorOut"][];
+        };
+        /**
+         * PortalPaymentOut
+         * @description What the exhibitor sees of a payment: no internal notes, no reviewer.
+         */
+        PortalPaymentOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Amount */
+            amount: string;
+            /**
+             * Paid On
+             * Format: date
+             */
+            paid_on: string;
+            /** Method */
+            method: string;
+            /** Reference */
+            reference: string | null;
+            /** Status */
+            status: string;
+            /** Reviewed At */
+            reviewed_at: string | null;
+        };
+        /** PortalPaymentsOut */
+        PortalPaymentsOut: {
+            /** Total Amount */
+            total_amount: string;
+            /** Currency */
+            currency: string;
+            /** Verified Amount */
+            verified_amount: string;
+            /** Pending Amount */
+            pending_amount: string;
+            /** Outstanding Amount */
+            outstanding_amount: string;
+            payment_state: components["schemas"]["PaymentState"];
+            /** Items */
+            items: components["schemas"]["PortalPaymentOut"][];
         };
         /** PreviewOut */
         PreviewOut: {
@@ -9589,6 +9810,178 @@ export interface operations {
             };
         };
     };
+    list_payments_api_v1_exhibitor_leads__lead_id__payments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_payment_api_v1_exhibitor_leads__lead_id__payments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_payment_api_v1_exhibitor_leads__lead_id__payments__payment_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     inspect_invitation_api_v1_portal_invitations_inspect_post: {
         parameters: {
             query?: never;
@@ -9845,6 +10238,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContractOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_payments_api_v1_portal_exhibitors__lead_id__payments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalPaymentsOut"];
                 };
             };
             /** @description Validation Error */

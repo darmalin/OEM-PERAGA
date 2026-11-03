@@ -121,8 +121,8 @@ Counter nomor contract per edition, dinaikkan dengan `INSERT ... ON CONFLICT DO 
 
 - Setiap query filter `edition_id` + scope user (`Scope`), seperti modul lain.
 - Permission: `exhibitor_lead.read`, `exhibitor_lead.create`, `exhibitor_lead.update`,
-  `booth.manage`, `exhibitor.invite` (sudah ada); rencana: `exhibitor_contract.read`,
-  `exhibitor_payment.record`, `exhibitor_payment.verify`. Dicek di setiap endpoint.
+  `booth.manage`, `exhibitor.invite`, `exhibitor_payment.record`, `exhibitor_payment.verify`.
+  Dicek di setiap endpoint.
 - Portal: cookie sendiri (`ems_portal_session`), namespace session Redis sendiri (`psess:`),
   CSRF sama seperti staff, rate limit + lockout login sama seperti staff dengan counter terpisah.
   Audit dari portal memakai source `PORTAL` dan entity `exhibitor_account`.
@@ -194,11 +194,17 @@ dan menonaktifkan akun portal. Routing nginx untuk subdomain portal ikut Phase 7
 Belum dibangun (F8 di `known-gaps.md`): membuka lagi contract SIGNED kalau PDF yang diupload salah.
 
 ### Phase 6: Payment tagging (staff)
-- [ ] Catat payment (termin), upload bukti opsional
-- [ ] Verifikasi / tolak payment (`exhibitor_payment.verify`), audit
-- [ ] Payment state per contract (`payment_state`), tidak boleh lebih dari total
-- [ ] Portal: exhibitor lihat status pembayarannya
-- [ ] Tes
+- [x] Migration `0029`: permission `exhibitor_payment.record` dan `exhibitor_payment.verify` (Super Admin, Exhibition Admin)
+- [x] Catat payment (termin): `POST /api/v1/exhibitor-leads/{id}/payments` `{amount, paid_on, method, reference?, notes?}` (`exhibitor_payment.record`). Hanya untuk contract SIGNED (422 `CONTRACT_NOT_SIGNED`); `paid_on` tidak boleh di masa depan (zona waktu edition); status awal PENDING
+- [x] Bukti bayar opsional: `POST .../payments/{payment_id}/proof` (multipart `file` + `version`; PDF/JPG/PNG, maks 10 MB, bucket `contracts`), hanya selama PENDING; unduh `GET .../proof` (`exhibitor_lead.read`)
+- [x] Verifikasi / tolak: `POST .../payments/{payment_id}/review` `{decision: VERIFIED|REJECTED, notes, version}` (`exhibitor_payment.verify`). Tolak wajib `notes` (alasan). Payment yang sudah direview = 409 `PAYMENT_REVIEWED`. Audit `exhibitor_payment` (`record`, `attach_proof`, `verify`, `reject`)
+- [x] Tidak boleh lebih dari total: saat dicatat, PENDING + VERIFIED + baru <= `total_amount`; saat verifikasi dicek lagi. Baris contract di-lock, jadi dua pencatatan bersamaan tidak bisa lolos dua-duanya (422 `PAYMENT_EXCEEDS_TOTAL`)
+- [x] `GET /api/v1/exhibitor-leads/{id}/payments` (`exhibitor_lead.read`): total, verified, pending, outstanding, `payment_state` (UNPAID/PARTIAL/PAID), daftar payment
+- [x] Portal: `GET /api/v1/portal/exhibitors/{lead_id}/payments` (tanpa `notes` internal dan reviewer), dan `payment_state` di `GET /auth/me` (`null` selama contract belum SIGNED)
+- [x] Tes (`tests/test_exhibitor_payments.py`): termin sampai PAID, contract belum SIGNED, batas total (termasuk paralel), input, bukti, permission dan scope
+
+Catatan: rencana permission `exhibitor_contract.read` tidak dipakai; contract dan payment dibaca dengan
+`exhibitor_lead.read` dan scope lead-nya. Payment PENDING tidak bisa diedit: tolak lalu catat ulang.
 
 ### Phase 7: Frontend
 - [ ] Menu Exhibitor Leads (list, detail, board per stage)

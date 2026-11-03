@@ -25,6 +25,7 @@ from app.core.errors import (
 from app.core.logging import mask_email
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitors import repository as repo
+from app.modules.exhibitors import service as exhibitors_service
 from app.modules.exhibitors.models import ExhibitorAccount, ExhibitorLead
 from app.modules.exhibitors.schemas import PortalExhibitorOut, PortalMeOut
 from app.modules.identity import service as identity_service
@@ -177,6 +178,11 @@ async def me(session: AsyncSession, account_id: uuid.UUID, csrf_token: str) -> P
                 booth_code=booth_code,
                 contract_number=contract.contract_number if contract else None,
                 contract_status=contract.status if contract else None,
+                payment_state=(
+                    await exhibitors_service.contract_payment_state(session, contract)
+                    if contract
+                    else None
+                ),
             )
         )
     return PortalMeOut(

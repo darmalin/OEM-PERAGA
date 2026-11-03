@@ -32,8 +32,13 @@ from app.modules.exhibitors.schemas import (
     InvitationInfoOut,
     InvitationOut,
     InvitationTokenIn,
+    PaymentCreateIn,
+    PaymentOut,
+    PaymentReviewIn,
+    PaymentsOut,
     PortalLoginIn,
     PortalMeOut,
+    PortalPaymentsOut,
     StageChangeIn,
 )
 
@@ -204,7 +209,77 @@ async def contract_file(
     session: Session,
     ctx: AuthContext = Depends(require("exhibitor_lead.read")),
 ) -> StreamingResponse:
-    return _pdf(*await service.contract_file(session, ctx, lead_id))
+    return _download(*await service.contract_file(session, ctx, lead_id))
+
+
+@router.get("/exhibitor-leads/{lead_id}/payments", response_model=PaymentsOut)
+async def list_payments(
+    lead_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_lead.read")),
+) -> PaymentsOut:
+    return await service.list_payments(session, ctx, lead_id)
+
+
+@router.post(
+    "/exhibitor-leads/{lead_id}/payments",
+    response_model=PaymentOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def record_payment(
+    lead_id: uuid.UUID,
+    data: PaymentCreateIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_payment.record")),
+) -> PaymentOut:
+    return await service.record_payment(session, ctx, lead_id, data)
+
+
+@router.post("/exhibitor-leads/{lead_id}/payments/{payment_id}/proof", response_model=PaymentOut)
+async def attach_payment_proof(
+    lead_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    session: Session,
+    file: Annotated[UploadFile, File()],
+    version: Annotated[int, Form()],
+    ctx: AuthContext = Depends(require("exhibitor_payment.record")),
+) -> PaymentOut:
+    return await service.attach_payment_proof(
+        session,
+        ctx,
+        lead_id,
+        payment_id,
+        file_name=file.filename or "proof",
+        content_type=file.content_type,
+        data=await _read_limited(file),
+        version=version,
+    )
+
+
+@router.get(
+    "/exhibitor-leads/{lead_id}/payments/{payment_id}/proof",
+    response_class=StreamingResponse,
+    responses={200: {"content": {PDF: {}, "image/jpeg": {}, "image/png": {}}}},
+)
+async def payment_proof(
+    lead_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_lead.read")),
+) -> StreamingResponse:
+    chunks, name, media_type = await service.payment_proof(session, ctx, lead_id, payment_id)
+    return _download(chunks, name, media_type)
+
+
+@router.post("/exhibitor-leads/{lead_id}/payments/{payment_id}/review", response_model=PaymentOut)
+async def review_payment(
+    lead_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    data: PaymentReviewIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_payment.verify")),
+) -> PaymentOut:
+    return await service.review_payment(session, ctx, lead_id, payment_id, data)
 
 
 async def _read_limited(file: UploadFile) -> bytes:
@@ -212,11 +287,11 @@ async def _read_limited(file: UploadFile) -> bytes:
     return await file.read(get_settings().contract_file_max_bytes + 1)
 
 
-def _pdf(chunks: Iterator[bytes], filename: str) -> StreamingResponse:
-    """Names come from the server (contract numbers), never from the upload."""
+def _download(chunks: Iterator[bytes], filename: str, media_type: str = PDF) -> StreamingResponse:
+    """Names come from the server (contract numbers, payment ids), never from the upload."""
     return StreamingResponse(
         chunks,
-        media_type=PDF,
+        media_type=media_type,
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Cache-Control": "no-store",
@@ -332,4 +407,11 @@ async def portal_contract_file(
     lead_id: uuid.UUID, session: Session, ctx: PortalContext = Depends(portal_account)
 ) -> StreamingResponse:
     lead = await portal.own_exhibitor(session, ctx, lead_id)
-    return _pdf(*await service.signed_copy(session, lead))
+    return _download(*await service.signed_copy(session, lead))
+
+
+@portal_router.get("/exhibitors/{lead_id}/payments", response_model=PortalPaymentsOut)
+async def portal_payments(
+    lead_id: uuid.UUID, session: Session, ctx: PortalContext = Depends(portal_account)
+) -> PortalPaymentsOut:
+    return await service.portal_payments(session, await portal.own_exhibitor(session, ctx, lead_id))
