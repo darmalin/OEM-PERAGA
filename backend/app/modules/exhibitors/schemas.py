@@ -171,6 +171,46 @@ class ConvertOut(BaseModel):
     invitation: InvitationOut | None
 
 
+class ContractFieldsIn(BaseModel):
+    """What the exhibitor fills in while the contract is DRAFT. Empty text clears a field."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    pic_name: str | None = Field(default=None, max_length=200)
+    company_address: str | None = Field(default=None, max_length=2000)
+    tax_id: str | None = Field(default=None, max_length=30)
+    version: int
+
+
+class ContractUpdateIn(ContractFieldsIn):
+    """Staff edit: the exhibitor's fields plus the discount."""
+
+    discount_amount: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=2)
+
+
+class ContractOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    edition_id: uuid.UUID
+    exhibitor_lead_id: uuid.UUID
+    contract_number: str | None
+    pic_name: str | None
+    company_address: str | None
+    tax_id: str | None
+    booth_price: Decimal
+    discount_amount: Decimal
+    total_amount: Decimal | None
+    currency: str
+    status: str
+    signed_at: datetime | None
+    signed_file_name: str | None
+    version: int
+    updated_at: datetime
+    company_name: str = ""
+    booth_code: str | None = None
+
+
 # --- exhibitor portal --------------------------------------------------------------------
 
 

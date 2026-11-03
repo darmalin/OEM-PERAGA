@@ -12,7 +12,7 @@ from app.core.storage import get_storage
 def ensure_buckets() -> None:
     s = get_settings()
     storage = get_storage()
-    for bucket in (s.s3_bucket_imports, s.s3_bucket_exports):
+    for bucket in (s.s3_bucket_imports, s.s3_bucket_exports, s.s3_bucket_contracts):
         storage.ensure_bucket(bucket)
     print("buckets ready")
 

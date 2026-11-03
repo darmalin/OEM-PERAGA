@@ -2,15 +2,12 @@
 
 import asyncio
 import uuid
-from datetime import UTC, datetime
 from typing import Any
 
 from httpx import AsyncClient
-from sqlalchemy import select
 
-from app.core.db import get_sessionmaker
+from app.core.storage import MemoryStorage
 from app.modules.exhibitions.models import Edition
-from app.modules.exhibitors.models import ExhibitorContract
 from tests.factories import RoleGrant, actor, make_edition
 from tests.test_exhibitor_leads import SALES_ROLE, admin_for, create, move, sales_role
 
@@ -142,7 +139,7 @@ async def test_booth_rules() -> None:
     assert r.json()["error"]["code"] == "BOOTH_IN_USE"
 
 
-async def test_signed_contract_freezes_the_booth() -> None:
+async def test_signed_contract_freezes_the_booth(storage: MemoryStorage) -> None:
     edition = await make_edition()
     admin = await admin_for(edition)
     a01 = (await add_booth(admin, edition, "A01")).json()
@@ -152,19 +149,16 @@ async def test_signed_contract_freezes_the_booth() -> None:
 
     r = await admin.post(f"{LEADS}/{lead['id']}/convert", json={"version": lead["version"]})
     assert r.status_code == 200, r.text
-    # Signing comes in phase 5; set the state directly.
-    async with get_sessionmaker()() as session, session.begin():
-        contract = await session.scalar(
-            select(ExhibitorContract).where(
-                ExhibitorContract.exhibitor_lead_id == uuid.UUID(lead["id"])
-            )
-        )
-        assert contract is not None
-        contract.pic_name = "Test Contact"
-        contract.company_address = "Jl. Example 1"
-        contract.status = "SIGNED"
-        contract.signed_at = datetime.now(UTC)
-        contract.signed_file_key = "contracts/test.pdf"
+    url = f"{LEADS}/{lead['id']}/contract"
+    version = (await admin.get(url)).json()["version"]
+    fields = {"pic_name": "Test Contact", "company_address": "Jl. Example 1", "version": version}
+    version = (await admin.patch(url, json=fields)).json()["version"]
+    r = await admin.post(
+        f"{url}/signed-copy",
+        data={"version": str(version)},
+        files={"file": ("signed.pdf", b"%PDF-1.7\n", "application/pdf")},
+    )
+    assert r.status_code == 200, r.text
     lead = (await admin.get(f"{LEADS}/{lead['id']}")).json()
     assert (await assign(admin, lead, None)).status_code == 422  # an exhibitor keeps a booth
     r = await assign(admin, lead, a02["id"])

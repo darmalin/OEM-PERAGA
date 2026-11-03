@@ -30,7 +30,7 @@ def portal_client() -> AsyncClient:
 
 
 def token_of(invitation: dict[str, Any]) -> str:
-    return parse_qs(urlparse(invitation["url"]).query)["token"][0]
+    return str(parse_qs(urlparse(invitation["url"]).query)["token"][0])
 
 
 async def exhibitor(

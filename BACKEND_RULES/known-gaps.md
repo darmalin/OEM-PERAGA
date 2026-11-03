@@ -49,6 +49,7 @@ Defaults are in code; changing them later may need a migration. Full list in `FE
 | F5 | P3 | Retention purge job (depends on D9). | Celery Beat task per retention rule. |
 | F6 | P2 | Exhibitor portal has no "forgot password". Staff can only re-issue an invitation while the account has no password. | Portal password reset by link (like staff reset), or a staff action that clears the password and issues a new invitation. |
 | F7 | P2 | Exhibitor portal accounts cannot be deactivated from the API (`is_active` exists, nothing sets it). | Staff endpoint (`exhibitor.invite`) that deactivates the account and drops its portal sessions (`sessions.destroy_all_for_user(id, sessions.PORTAL)`). |
+| F8 | P2 | A SIGNED exhibitor contract cannot be reopened, so a wrong signed PDF stays. | Staff endpoint (`exhibitor.invite`) that moves it back to DRAFT, keeps the old file key in the audit entry, and is blocked once payments are verified (phase 6). |
 
 ## Performance and scale
 

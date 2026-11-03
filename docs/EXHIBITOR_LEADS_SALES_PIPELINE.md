@@ -184,10 +184,14 @@ Belum dibangun (dicatat di `BACKEND_RULES/known-gaps.md` F6, F7): reset password
 dan menonaktifkan akun portal. Routing nginx untuk subdomain portal ikut Phase 7 (frontend).
 
 ### Phase 5: Contract (portal)
-- [ ] Portal: lihat & isi contract DRAFT
-- [ ] Upload PDF bertanda tangan, lalu tandai SIGNED
-- [ ] Staff: lihat contract, unduh PDF (signed URL)
-- [ ] Tes: SIGNED read-only, data wajib, akses hanya exhibitor sendiri
+- [x] Portal: `GET/PATCH /api/v1/portal/exhibitors/{lead_id}/contract`: lihat & isi contract DRAFT (`pic_name`, `company_address`, `tax_id`, `version`). Lead exhibitor lain = 404
+- [x] Upload PDF bertanda tangan: `POST .../contract/signed-copy` (multipart `file` + `version`) langsung menandai SIGNED. Wajib `pic_name` dan `company_address` (422 `CONTRACT_INCOMPLETE`); cek ekstensi, MIME, magic bytes `%PDF-`, maks 10 MB (`EMS_CONTRACT_FILE_MAX_BYTES`). File di bucket `contracts` dengan key acak
+- [x] Staff: `GET/PATCH /api/v1/exhibitor-leads/{id}/contract` (`exhibitor_lead.read` / `.update`); staff juga bisa isi `discount_amount` (total = harga booth - diskon) dan upload signed copy kalau exhibitor kirim lewat chat
+- [x] Unduh PDF: `GET .../contract/signed-copy` (staff dan portal). Bukan signed URL: storage tidak bisa diakses browser, file di-stream lewat API (sama seperti export). Nama file dari server: `<nomor contract>-signed.pdf`
+- [x] Audit `exhibitor_contract` (`update`, `sign`); perubahan dari portal ber-source `PORTAL` dan mencatat `portal_account_id`
+- [x] Tes (`tests/test_exhibitor_contracts.py`): SIGNED read-only (409 `CONTRACT_SIGNED`), data wajib, cek file, CSRF, akses hanya exhibitor sendiri, permission staff, edition ARCHIVED
+
+Belum dibangun (F8 di `known-gaps.md`): membuka lagi contract SIGNED kalau PDF yang diupload salah.
 
 ### Phase 6: Payment tagging (staff)
 - [ ] Catat payment (termin), upload bukti opsional

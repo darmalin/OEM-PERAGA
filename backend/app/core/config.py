@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_bucket_imports: str = "imports"
     s3_bucket_exports: str = "exports"
+    s3_bucket_contracts: str = "contracts"
 
     email_backend: Literal["smtp", "memory"] = "smtp"
     smtp_host: str = "localhost"
@@ -63,6 +64,7 @@ class Settings(BaseSettings):
     email_from: str = "EMS <no-reply@ems.local>"
 
     import_max_bytes: int = 20 * 1024 * 1024
+    contract_file_max_bytes: int = 10 * 1024 * 1024
     import_max_rows: int = 100_000
     import_batch_size: int = 500
     export_ttl_seconds: int = 24 * 60 * 60

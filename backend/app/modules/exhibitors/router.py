@@ -1,7 +1,9 @@
 import uuid
+from collections.abc import Iterator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Depends, File, Form, Query, Request, Response, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import AuthContext, require
@@ -18,6 +20,9 @@ from app.modules.exhibitors.schemas import (
     BoothListParams,
     BoothOut,
     BoothUpdateIn,
+    ContractFieldsIn,
+    ContractOut,
+    ContractUpdateIn,
     ConvertIn,
     ConvertOut,
     ExhibitorLeadCreateIn,
@@ -35,6 +40,7 @@ from app.modules.exhibitors.schemas import (
 router = APIRouter(tags=["exhibitors"])
 portal_router = APIRouter(prefix="/portal", tags=["exhibitor-portal"])
 Session = Annotated[AsyncSession, Depends(get_session)]
+PDF = "application/pdf"
 
 
 @router.get("/exhibitor-leads", response_model=Page[ExhibitorLeadOut])
@@ -150,6 +156,74 @@ async def reissue_invitation(
     return await service.reissue_invitation(session, ctx, lead_id)
 
 
+@router.get("/exhibitor-leads/{lead_id}/contract", response_model=ContractOut)
+async def get_contract(
+    lead_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_lead.read")),
+) -> ContractOut:
+    return await service.get_contract(session, ctx, lead_id)
+
+
+@router.patch("/exhibitor-leads/{lead_id}/contract", response_model=ContractOut)
+async def update_contract(
+    lead_id: uuid.UUID,
+    data: ContractUpdateIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_lead.update")),
+) -> ContractOut:
+    return await service.update_contract(session, ctx, lead_id, data)
+
+
+@router.post("/exhibitor-leads/{lead_id}/contract/signed-copy", response_model=ContractOut)
+async def upload_signed_contract(
+    lead_id: uuid.UUID,
+    session: Session,
+    file: Annotated[UploadFile, File()],
+    version: Annotated[int, Form()],
+    ctx: AuthContext = Depends(require("exhibitor_lead.update")),
+) -> ContractOut:
+    return await service.upload_signed_contract(
+        session,
+        ctx,
+        lead_id,
+        file_name=file.filename or "signed.pdf",
+        content_type=file.content_type,
+        data=await _read_limited(file),
+        version=version,
+    )
+
+
+@router.get(
+    "/exhibitor-leads/{lead_id}/contract/signed-copy",
+    response_class=StreamingResponse,
+    responses={200: {"content": {PDF: {}}, "description": "Signed contract"}},
+)
+async def contract_file(
+    lead_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_lead.read")),
+) -> StreamingResponse:
+    return _pdf(*await service.contract_file(session, ctx, lead_id))
+
+
+async def _read_limited(file: UploadFile) -> bytes:
+    # One byte past the limit so an oversize file is detected without buffering all of it.
+    return await file.read(get_settings().contract_file_max_bytes + 1)
+
+
+def _pdf(chunks: Iterator[bytes], filename: str) -> StreamingResponse:
+    """Names come from the server (contract numbers), never from the upload."""
+    return StreamingResponse(
+        chunks,
+        media_type=PDF,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 # --- exhibitor portal --------------------------------------------------------------------
 
 
@@ -209,3 +283,53 @@ async def portal_logout(response: Response, ctx: PortalContext = Depends(portal_
 @portal_router.get("/auth/me", response_model=PortalMeOut)
 async def portal_me(session: Session, ctx: PortalContext = Depends(portal_account)) -> PortalMeOut:
     return await portal.me(session, ctx.account_id, ctx.session.csrf_token)
+
+
+@portal_router.get("/exhibitors/{lead_id}/contract", response_model=ContractOut)
+async def portal_contract(
+    lead_id: uuid.UUID, session: Session, ctx: PortalContext = Depends(portal_account)
+) -> ContractOut:
+    return await service.view_contract(session, await portal.own_exhibitor(session, ctx, lead_id))
+
+
+@portal_router.patch("/exhibitors/{lead_id}/contract", response_model=ContractOut)
+async def portal_fill_contract(
+    lead_id: uuid.UUID,
+    data: ContractFieldsIn,
+    session: Session,
+    ctx: PortalContext = Depends(portal_account),
+) -> ContractOut:
+    lead = await portal.own_exhibitor(session, ctx, lead_id)
+    changes = data.model_dump(exclude_unset=True, exclude={"version"})
+    return await service.fill_contract(session, lead, changes, data.version, ctx.account_id)
+
+
+@portal_router.post("/exhibitors/{lead_id}/contract/signed-copy", response_model=ContractOut)
+async def portal_sign_contract(
+    lead_id: uuid.UUID,
+    session: Session,
+    file: Annotated[UploadFile, File()],
+    version: Annotated[int, Form()],
+    ctx: PortalContext = Depends(portal_account),
+) -> ContractOut:
+    return await service.sign_contract(
+        session,
+        await portal.own_exhibitor(session, ctx, lead_id),
+        file_name=file.filename or "signed.pdf",
+        content_type=file.content_type,
+        data=await _read_limited(file),
+        version=version,
+        portal_account_id=ctx.account_id,
+    )
+
+
+@portal_router.get(
+    "/exhibitors/{lead_id}/contract/signed-copy",
+    response_class=StreamingResponse,
+    responses={200: {"content": {PDF: {}}, "description": "Signed contract"}},
+)
+async def portal_contract_file(
+    lead_id: uuid.UUID, session: Session, ctx: PortalContext = Depends(portal_account)
+) -> StreamingResponse:
+    lead = await portal.own_exhibitor(session, ctx, lead_id)
+    return _pdf(*await service.signed_copy(session, lead))

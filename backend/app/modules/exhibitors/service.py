@@ -1,9 +1,14 @@
+import re
 import uuid
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from pathlib import PurePosixPath
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.core import audit
 from app.core.authorization import AuthContext, Scope
@@ -12,6 +17,7 @@ from app.core.context import current_actor_id
 from app.core.crypto import new_token, sha256_hex
 from app.core.errors import Conflict, NotFound, PermissionDenied, ValidationFailed, check_version
 from app.core.pagination import Page
+from app.core.storage import get_storage, new_object_key
 from app.modules.audit import service as audit_service
 from app.modules.audit.schemas import AuditLogOut
 from app.modules.exhibitions import service as exhibitions_service
@@ -29,6 +35,8 @@ from app.modules.exhibitors.schemas import (
     BoothListParams,
     BoothOut,
     BoothUpdateIn,
+    ContractOut,
+    ContractUpdateIn,
     ConvertIn,
     ConvertOut,
     ExhibitorLeadCreateIn,
@@ -604,3 +612,205 @@ async def reissue_invitation(
         edition_id=lead.edition_id,
     )
     return invitation
+
+
+# --- contract ------------------------------------------------------------------------------
+# Shared by the staff routes and the portal; callers pass a lead they are allowed to see.
+
+PDF_MIME = "application/pdf"
+_CONTRACT_TEXT_FIELDS = ("pic_name", "company_address", "tax_id")
+_REQUIRED_TO_SIGN = ("pic_name", "company_address")
+
+
+async def _contract_of(
+    session: AsyncSession, lead: ExhibitorLead, *, for_update: bool = False
+) -> ExhibitorContract:
+    contract = await repo.get_contract(session, lead.id, for_update=for_update)
+    if contract is None:
+        raise NotFound("This exhibitor lead has no contract.")
+    return contract
+
+
+async def _contract_out(
+    session: AsyncSession, lead: ExhibitorLead, contract: ExhibitorContract
+) -> ContractOut:
+    out = ContractOut.model_validate(contract)
+    out.company_name = lead.company_name
+    out.booth_code = await repo.booth_code(session, lead.booth_id)
+    return out
+
+
+async def _writable_draft(
+    session: AsyncSession, lead: ExhibitorLead, version: int
+) -> ExhibitorContract:
+    contract = await _contract_of(session, lead, for_update=True)
+    check_version(contract.version, version)
+    await exhibitions_service.ensure_writable(session, lead.edition_id)
+    if contract.status == ContractStatus.SIGNED:
+        raise Conflict("The contract is signed and can no longer change.", code="CONTRACT_SIGNED")
+    return contract
+
+
+async def _record_contract(
+    session: AsyncSession,
+    contract: ExhibitorContract,
+    action: str,
+    before: dict[str, Any],
+    portal_account_id: uuid.UUID | None,
+) -> None:
+    after = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
+    if after == before:
+        return
+    # Portal actors are not users; the account goes into the entry instead.
+    extra = {"portal_account_id": portal_account_id} if portal_account_id else {}
+    await audit.record(
+        session,
+        entity_type=CONTRACT_ENTITY,
+        entity_id=contract.id,
+        action=action,
+        before=before,
+        after=after | extra,
+        edition_id=contract.edition_id,
+    )
+
+
+async def view_contract(session: AsyncSession, lead: ExhibitorLead) -> ContractOut:
+    return await _contract_out(session, lead, await _contract_of(session, lead))
+
+
+async def fill_contract(
+    session: AsyncSession,
+    lead: ExhibitorLead,
+    changes: dict[str, Any],
+    version: int,
+    portal_account_id: uuid.UUID | None = None,
+) -> ContractOut:
+    """Edit a DRAFT contract. A discount recomputes the total from the booth price."""
+    contract = await _writable_draft(session, lead, version)
+    before = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
+    for key in _CONTRACT_TEXT_FIELDS:
+        if key in changes:
+            setattr(contract, key, clean_text(changes[key]))
+    if "discount_amount" in changes:
+        discount = changes["discount_amount"] or Decimal(0)
+        if discount > contract.booth_price:
+            raise ValidationFailed(fields={"discount_amount": "Cannot exceed the booth price."})
+        contract.discount_amount = discount
+        contract.total_amount = contract.booth_price - discount
+    contract.updated_by = current_actor_id()
+    await session.flush()
+    await session.refresh(contract)
+    await _record_contract(session, contract, "update", before, portal_account_id)
+    return await _contract_out(session, lead, contract)
+
+
+def _check_pdf(file_name: str, content_type: str | None, data: bytes) -> None:
+    """Extension, MIME, magic bytes, size (BACKEND_RULES/security-permissions.md "Uploads")."""
+    if not file_name.lower().endswith(".pdf") or (content_type and content_type != PDF_MIME):
+        raise ValidationFailed(fields={"file": "Only PDF files are accepted."})
+    if len(data) > get_settings().contract_file_max_bytes:
+        raise ValidationFailed(fields={"file": "File is too large."}, code="FILE_TOO_LARGE")
+    if not data.startswith(b"%PDF-"):
+        raise ValidationFailed(fields={"file": "File is not a valid PDF."})
+
+
+def _display_name(file_name: str) -> str:
+    """The uploader's file name, for display only; never used as a key or a header."""
+    name = PurePosixPath(file_name.replace("\\", "/")).name
+    return "".join(c for c in name if c.isprintable())[-255:] or "signed.pdf"
+
+
+async def sign_contract(
+    session: AsyncSession,
+    lead: ExhibitorLead,
+    *,
+    file_name: str,
+    content_type: str | None,
+    data: bytes,
+    version: int,
+    portal_account_id: uuid.UUID | None = None,
+) -> ContractOut:
+    """Store the signed PDF and mark the contract SIGNED. It is read-only afterwards."""
+    contract = await _writable_draft(session, lead, version)
+    missing = {f: "Required before signing." for f in _REQUIRED_TO_SIGN if not getattr(contract, f)}
+    if missing:
+        raise ValidationFailed(
+            "Fill in the contract before uploading the signed copy.",
+            code="CONTRACT_INCOMPLETE",
+            fields=missing,
+        )
+    _check_pdf(file_name, content_type, data)
+    key = new_object_key(".pdf")
+    await run_in_threadpool(
+        get_storage().put, get_settings().s3_bucket_contracts, key, data, PDF_MIME
+    )
+    before = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
+    contract.status = ContractStatus.SIGNED
+    contract.signed_at = datetime.now(UTC)
+    contract.signed_file_key = key
+    contract.signed_file_name = _display_name(file_name)
+    contract.updated_by = current_actor_id()
+    await session.flush()
+    await session.refresh(contract)
+    await _record_contract(session, contract, "sign", before, portal_account_id)
+    return await _contract_out(session, lead, contract)
+
+
+async def signed_copy(session: AsyncSession, lead: ExhibitorLead) -> tuple[Iterator[bytes], str]:
+    """(chunks, download name) of the signed PDF, streamed through the API."""
+    contract = await _contract_of(session, lead)
+    if contract.signed_file_key is None:
+        raise NotFound("The contract has no signed copy yet.")
+    try:
+        chunks = await run_in_threadpool(
+            get_storage().stream, get_settings().s3_bucket_contracts, contract.signed_file_key
+        )
+    except FileNotFoundError as e:
+        raise NotFound("The signed copy is no longer available.") from e
+    number = re.sub(r"[^A-Za-z0-9._-]", "_", contract.contract_number or str(contract.id))
+    return chunks, f"{number}-signed.pdf"
+
+
+async def _staff_lead(session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID) -> ExhibitorLead:
+    scope = await _scope_for_lead(session, ctx, lead_id)
+    return await _get(session, scope, lead_id)
+
+
+async def get_contract(session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID) -> ContractOut:
+    return await view_contract(session, await _staff_lead(session, ctx, lead_id))
+
+
+async def update_contract(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, data: ContractUpdateIn
+) -> ContractOut:
+    changes = data.model_dump(exclude_unset=True, exclude={"version"})
+    return await fill_contract(
+        session, await _staff_lead(session, ctx, lead_id), changes, data.version
+    )
+
+
+async def upload_signed_contract(
+    session: AsyncSession,
+    ctx: AuthContext,
+    lead_id: uuid.UUID,
+    *,
+    file_name: str,
+    content_type: str | None,
+    data: bytes,
+    version: int,
+) -> ContractOut:
+    """Staff upload for an exhibitor who sent the signed copy outside the portal."""
+    return await sign_contract(
+        session,
+        await _staff_lead(session, ctx, lead_id),
+        file_name=file_name,
+        content_type=content_type,
+        data=data,
+        version=version,
+    )
+
+
+async def contract_file(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID
+) -> tuple[Iterator[bytes], str]:
+    return await signed_copy(session, await _staff_lead(session, ctx, lead_id))

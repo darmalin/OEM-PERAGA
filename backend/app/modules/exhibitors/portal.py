@@ -15,11 +15,17 @@ from app.core.config import get_settings
 from app.core.context import Source, source_var
 from app.core.crypto import sha256_hex
 from app.core.db import get_session
-from app.core.errors import NotAuthenticated, PermissionDenied, RateLimited, ValidationFailed
+from app.core.errors import (
+    NotAuthenticated,
+    NotFound,
+    PermissionDenied,
+    RateLimited,
+    ValidationFailed,
+)
 from app.core.logging import mask_email
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitors import repository as repo
-from app.modules.exhibitors.models import ExhibitorAccount
+from app.modules.exhibitors.models import ExhibitorAccount, ExhibitorLead
 from app.modules.exhibitors.schemas import PortalExhibitorOut, PortalMeOut
 from app.modules.identity import service as identity_service
 from app.modules.visitors.rules import NormalizationError, normalize_email
@@ -176,3 +182,13 @@ async def me(session: AsyncSession, account_id: uuid.UUID, csrf_token: str) -> P
     return PortalMeOut(
         account_id=account.id, email=account.email, csrf_token=csrf_token, exhibitors=exhibitors
     )
+
+
+async def own_exhibitor(
+    session: AsyncSession, ctx: PortalContext, lead_id: uuid.UUID
+) -> ExhibitorLead:
+    """The account's own exhibitor record; another exhibitor's id is a 404, never a 403."""
+    lead = await repo.portal_lead(session, ctx.account_id, lead_id)
+    if lead is None:
+        raise NotFound("Exhibitor not found.")
+    return lead

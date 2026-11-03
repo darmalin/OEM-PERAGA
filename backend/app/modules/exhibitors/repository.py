@@ -239,3 +239,16 @@ async def account_exhibitors(
         .order_by(ExhibitorLead.converted_at.desc())
     )
     return (await session.execute(stmt)).all()
+
+
+async def portal_lead(
+    session: AsyncSession, account_id: uuid.UUID, lead_id: uuid.UUID
+) -> ExhibitorLead | None:
+    """An exhibitor record of the account; any other lead is invisible to the portal."""
+    return await session.scalar(
+        select(ExhibitorLead).where(
+            ExhibitorLead.id == lead_id,
+            ExhibitorLead.exhibitor_account_id == account_id,
+            ExhibitorLead.stage == "EXHIBITOR",
+        )
+    )

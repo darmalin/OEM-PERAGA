@@ -1220,6 +1220,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exhibitor-leads/{lead_id}/contract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Contract */
+        get: operations["get_contract_api_v1_exhibitor_leads__lead_id__contract_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Contract */
+        patch: operations["update_contract_api_v1_exhibitor_leads__lead_id__contract_patch"];
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/contract/signed-copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contract File */
+        get: operations["contract_file_api_v1_exhibitor_leads__lead_id__contract_signed_copy_get"];
+        put?: never;
+        /** Upload Signed Contract */
+        post: operations["upload_signed_contract_api_v1_exhibitor_leads__lead_id__contract_signed_copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/portal/invitations/inspect": {
         parameters: {
             query?: never;
@@ -1299,6 +1335,42 @@ export interface paths {
         get: operations["portal_me_api_v1_portal_auth_me_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/contract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Contract */
+        get: operations["portal_contract_api_v1_portal_exhibitors__lead_id__contract_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Portal Fill Contract */
+        patch: operations["portal_fill_contract_api_v1_portal_exhibitors__lead_id__contract_patch"];
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/contract/signed-copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Contract File */
+        get: operations["portal_contract_file_api_v1_portal_exhibitors__lead_id__contract_signed_copy_get"];
+        put?: never;
+        /** Portal Sign Contract */
+        post: operations["portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2360,6 +2432,13 @@ export interface components {
             /** Request Id */
             request_id: string | null;
         };
+        /** Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post */
+        Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post: {
+            /** File */
+            file: string;
+            /** Version */
+            version: number;
+        };
         /** Body_preview_import_api_v1_visitor_leads_imports_preview_post */
         Body_preview_import_api_v1_visitor_leads_imports_preview_post: {
             /**
@@ -2393,6 +2472,13 @@ export interface components {
              * @default false
              */
             auto_assign: boolean;
+        };
+        /** Body_upload_signed_contract_api_v1_exhibitor_leads__lead_id__contract_signed_copy_post */
+        Body_upload_signed_contract_api_v1_exhibitor_leads__lead_id__contract_signed_copy_post: {
+            /** File */
+            file: string;
+            /** Version */
+            version: number;
         };
         /** BoothAssignIn */
         BoothAssignIn: {
@@ -2843,6 +2929,90 @@ export interface components {
          * @enum {string}
          */
         ConditionOp: "contains" | "equals" | "starts_with" | "is" | "is_not" | "is_set" | "not_set" | "between" | "before" | "after" | "gt" | "lt";
+        /**
+         * ContractFieldsIn
+         * @description What the exhibitor fills in while the contract is DRAFT. Empty text clears a field.
+         */
+        ContractFieldsIn: {
+            /** Pic Name */
+            pic_name?: string | null;
+            /** Company Address */
+            company_address?: string | null;
+            /** Tax Id */
+            tax_id?: string | null;
+            /** Version */
+            version: number;
+        };
+        /** ContractOut */
+        ContractOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /**
+             * Exhibitor Lead Id
+             * Format: uuid
+             */
+            exhibitor_lead_id: string;
+            /** Contract Number */
+            contract_number: string | null;
+            /** Pic Name */
+            pic_name: string | null;
+            /** Company Address */
+            company_address: string | null;
+            /** Tax Id */
+            tax_id: string | null;
+            /** Booth Price */
+            booth_price: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** Total Amount */
+            total_amount: string | null;
+            /** Currency */
+            currency: string;
+            /** Status */
+            status: string;
+            /** Signed At */
+            signed_at: string | null;
+            /** Signed File Name */
+            signed_file_name: string | null;
+            /** Version */
+            version: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Company Name
+             * @default
+             */
+            company_name: string;
+            /** Booth Code */
+            booth_code?: string | null;
+        };
+        /**
+         * ContractUpdateIn
+         * @description Staff edit: the exhibitor's fields plus the discount.
+         */
+        ContractUpdateIn: {
+            /** Pic Name */
+            pic_name?: string | null;
+            /** Company Address */
+            company_address?: string | null;
+            /** Tax Id */
+            tax_id?: string | null;
+            /** Version */
+            version: number;
+            /** Discount Amount */
+            discount_amount?: number | string | null;
+        };
         /** ConvertIn */
         ConvertIn: {
             /** Version */
@@ -9287,6 +9457,138 @@ export interface operations {
             };
         };
     };
+    get_contract_api_v1_exhibitor_leads__lead_id__contract_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_contract_api_v1_exhibitor_leads__lead_id__contract_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_file_api_v1_exhibitor_leads__lead_id__contract_signed_copy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed contract */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_signed_contract_api_v1_exhibitor_leads__lead_id__contract_signed_copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_signed_contract_api_v1_exhibitor_leads__lead_id__contract_signed_copy_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     inspect_invitation_api_v1_portal_invitations_inspect_post: {
         parameters: {
             query?: never;
@@ -9420,6 +9722,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortalMeOut"];
+                };
+            };
+        };
+    };
+    portal_contract_api_v1_portal_exhibitors__lead_id__contract_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_fill_contract_api_v1_portal_exhibitors__lead_id__contract_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractFieldsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_contract_file_api_v1_portal_exhibitors__lead_id__contract_signed_copy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed contract */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
