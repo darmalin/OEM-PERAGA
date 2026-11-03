@@ -42,6 +42,9 @@ PERMISSIONS: dict[str, str] = {
     "email_account.manage": "Manage email sending accounts",
     "email_log.read": "View the email log",
     "campaign.view": "View campaign links and the campaign dashboard",
+    "exhibitor_lead.read": "View exhibitor leads",
+    "exhibitor_lead.create": "Create exhibitor leads",
+    "exhibitor_lead.update": "Edit exhibitor leads and move their sales stage",
 }
 
 _TM_MANAGER = [

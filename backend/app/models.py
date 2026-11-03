@@ -7,6 +7,12 @@ from app.core.outbox import OutboxEvent
 from app.modules.campaigns.models import CampaignLink, CampaignSubmission, CampaignView
 from app.modules.checkin.models import Gate, ScanAttempt, ScannerDevice, VisitorCheckin
 from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition, Venue
+from app.modules.exhibitors.models import (
+    Booth,
+    ExhibitorContract,
+    ExhibitorLead,
+    ExhibitorPayment,
+)
 from app.modules.identity.models import (
     PasswordResetToken,
     Permission,
@@ -50,6 +56,7 @@ __all__ = [
     "AssignmentJob",
     "AuditLog",
     "Base",
+    "Booth",
     "CampaignLink",
     "CampaignSubmission",
     "CampaignView",
@@ -61,6 +68,9 @@ __all__ = [
     "EmailLog",
     "EmailTemplate",
     "Exhibition",
+    "ExhibitorContract",
+    "ExhibitorLead",
+    "ExhibitorPayment",
     "ExportJob",
     "FollowupReminder",
     "Gate",

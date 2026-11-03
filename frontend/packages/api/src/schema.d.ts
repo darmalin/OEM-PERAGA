@@ -1064,6 +1064,76 @@ export interface paths {
         patch: operations["update_lead_source_api_v1_lead_sources__source_id__patch"];
         trace?: never;
     };
+    "/api/v1/exhibitor-leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Leads */
+        get: operations["list_leads_api_v1_exhibitor_leads_get"];
+        put?: never;
+        /** Create Lead */
+        post: operations["create_lead_api_v1_exhibitor_leads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Lead */
+        get: operations["get_lead_api_v1_exhibitor_leads__lead_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Lead */
+        patch: operations["update_lead_api_v1_exhibitor_leads__lead_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Stage */
+        post: operations["change_stage_api_v1_exhibitor_leads__lead_id__stage_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lead Activity */
+        get: operations["lead_activity_api_v1_exhibitor_leads__lead_id__activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/visitor-registrations": {
         parameters: {
             query?: never;
@@ -3606,6 +3676,113 @@ export interface components {
             /** Is Active */
             is_active?: boolean | null;
         };
+        /** ExhibitorLeadCreateIn */
+        ExhibitorLeadCreateIn: {
+            /** Company Name */
+            company_name: string;
+            /** Contact Name */
+            contact_name: string;
+            /** Email */
+            email: string;
+            /** Phone */
+            phone?: string | null;
+            /** Product Categories */
+            product_categories?: string | null;
+            /** Booth Preference */
+            booth_preference?: string | null;
+            /** Budget Estimate */
+            budget_estimate?: number | string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Lead Owner Id */
+            lead_owner_id?: string | null;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+        };
+        /** ExhibitorLeadOut */
+        ExhibitorLeadOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /** Company Name */
+            company_name: string;
+            /** Contact Name */
+            contact_name: string;
+            /** Email */
+            email: string;
+            /** Phone */
+            phone: string | null;
+            /** Phone Normalized */
+            phone_normalized: string | null;
+            /** Product Categories */
+            product_categories: string | null;
+            /** Booth Preference */
+            booth_preference: string | null;
+            /** Budget Estimate */
+            budget_estimate: string | null;
+            /** Notes */
+            notes: string | null;
+            stage: components["schemas"]["SalesStage"];
+            /** Lost Reason */
+            lost_reason: string | null;
+            /** Qualified At */
+            qualified_at: string | null;
+            /** Converted At */
+            converted_at: string | null;
+            /** Booth Id */
+            booth_id: string | null;
+            /** Booth Assigned At */
+            booth_assigned_at: string | null;
+            /** Lead Owner Id */
+            lead_owner_id: string | null;
+            /** Lead Owner Name */
+            lead_owner_name?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ExhibitorLeadUpdateIn */
+        ExhibitorLeadUpdateIn: {
+            /** Company Name */
+            company_name?: string | null;
+            /** Contact Name */
+            contact_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Product Categories */
+            product_categories?: string | null;
+            /** Booth Preference */
+            booth_preference?: string | null;
+            /** Budget Estimate */
+            budget_estimate?: number | string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Lead Owner Id */
+            lead_owner_id?: string | null;
+            /** Version */
+            version: number;
+        };
         /** ExportJobOut */
         ExportJobOut: {
             /**
@@ -4663,6 +4840,17 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[ExhibitorLeadOut] */
+        Page_ExhibitorLeadOut_: {
+            /** Items */
+            items: components["schemas"]["ExhibitorLeadOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[ExportJobOut] */
         Page_ExportJobOut_: {
             /** Items */
@@ -5206,6 +5394,11 @@ export interface components {
             sort_order?: number | null;
         };
         /**
+         * SalesStage
+         * @enum {string}
+         */
+        SalesStage: "LEAD" | "OPPORTUNITY" | "EXHIBITOR" | "LOST";
+        /**
          * ScanIn
          * @description Online scan. The device hashes the QR token, so the raw token never leaves it.
          */
@@ -5314,6 +5507,18 @@ export interface components {
          * @enum {string}
          */
         SmtpSecurity: "NONE" | "STARTTLS" | "SSL";
+        /** StageChangeIn */
+        StageChangeIn: {
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "LEAD" | "OPPORTUNITY" | "LOST";
+            /** Lost Reason */
+            lost_reason?: string | null;
+            /** Version */
+            version: number;
+        };
         /** SyncIn */
         SyncIn: {
             /** Items */
@@ -8286,6 +8491,208 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadSourceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_leads_api_v1_exhibitor_leads_get: {
+        parameters: {
+            query: {
+                page?: number;
+                page_size?: number;
+                edition_id: string;
+                q?: string | null;
+                stage?: components["schemas"]["SalesStage"][] | null;
+                lead_owner_id?: string | null;
+                sort?: "created_at" | "-created_at" | "updated_at" | "-updated_at" | "company_name" | "-company_name";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ExhibitorLeadOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_lead_api_v1_exhibitor_leads_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExhibitorLeadCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExhibitorLeadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_lead_api_v1_exhibitor_leads__lead_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExhibitorLeadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_lead_api_v1_exhibitor_leads__lead_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExhibitorLeadUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExhibitorLeadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_stage_api_v1_exhibitor_leads__lead_id__stage_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StageChangeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExhibitorLeadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lead_activity_api_v1_exhibitor_leads__lead_id__activity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogOut"][];
                 };
             };
             /** @description Validation Error */

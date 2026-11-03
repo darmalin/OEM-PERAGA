@@ -9,6 +9,7 @@ from app.modules.audit import router as audit
 from app.modules.campaigns import router as campaigns
 from app.modules.checkin import router as checkin
 from app.modules.exhibitions import router as exhibitions
+from app.modules.exhibitors import router as exhibitors
 from app.modules.identity import router as identity
 from app.modules.importexport import router as importexport
 from app.modules.mail import router as mail
@@ -30,6 +31,7 @@ def build_api_router() -> APIRouter:
     router.include_router(importexport.router)  # before /visitor-leads/{lead_id}
     router.include_router(telemarketing.router)
     router.include_router(visitors.router)
+    router.include_router(exhibitors.router)
     router.include_router(registrations.router)
     router.include_router(mail.router)
     router.include_router(campaigns.router)
