@@ -7,8 +7,8 @@ from sqlalchemy import ColumnElement, Row, and_, false, func, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import Scope
-from app.modules.exhibitors.models import ExhibitorLead
-from app.modules.exhibitors.schemas import ExhibitorLeadListParams
+from app.modules.exhibitors.models import Booth, ExhibitorContract, ExhibitorLead
+from app.modules.exhibitors.schemas import BoothListParams, ExhibitorLeadListParams
 from app.modules.identity.models import User, UserTeamMembership
 
 
@@ -50,14 +50,15 @@ def _filters(p: ExhibitorLeadListParams) -> ColumnElement[bool]:
 
 async def list_leads(
     session: AsyncSession, scope: Scope, p: ExhibitorLeadListParams
-) -> tuple[Sequence[Row[ExhibitorLead, str | None]], int]:
+) -> tuple[Sequence[Row[ExhibitorLead, str | None, str | None]], int]:
     where = (scope_clause(scope), _filters(p))
     total = await session.scalar(select(func.count(ExhibitorLead.id)).where(*where)) or 0
     column = getattr(ExhibitorLead, p.sort.lstrip("-"))
     order = column.desc() if p.sort.startswith("-") else column.asc()
     stmt = (
-        select(ExhibitorLead, User.full_name)
+        select(ExhibitorLead, User.full_name, Booth.code)
         .outerjoin(User, User.id == ExhibitorLead.lead_owner_id)
+        .outerjoin(Booth, Booth.id == ExhibitorLead.booth_id)
         .where(*where)
         .order_by(order, ExhibitorLead.id)
         .offset(p.offset)
@@ -100,3 +101,67 @@ async def owner_name(session: AsyncSession, user_id: uuid.UUID | None) -> str | 
     if user_id is None:
         return None
     return await session.scalar(select(User.full_name).where(User.id == user_id))
+
+
+async def booth_code(session: AsyncSession, booth_id: uuid.UUID | None) -> str | None:
+    if booth_id is None:
+        return None
+    return await session.scalar(select(Booth.code).where(Booth.id == booth_id))
+
+
+async def contract_status(session: AsyncSession, lead_id: uuid.UUID) -> str | None:
+    return await session.scalar(
+        select(ExhibitorContract.status).where(ExhibitorContract.exhibitor_lead_id == lead_id)
+    )
+
+
+# --- booths ------------------------------------------------------------------------------
+# Booths are edition master data: callers resolve the edition scope before these run.
+
+
+async def list_booths(
+    session: AsyncSession, edition_id: uuid.UUID, p: BoothListParams
+) -> tuple[Sequence[Row[Booth, uuid.UUID | None, str | None]], int]:
+    conds: list[ColumnElement[bool]] = [Booth.edition_id == edition_id]
+    if not p.include_inactive:
+        conds.append(Booth.is_active.is_(True))
+    if p.q and p.q.strip():
+        like = f"%{p.q.strip().lower()}%"
+        conds.append(or_(func.lower(Booth.code).like(like), func.lower(Booth.hall).like(like)))
+    if p.available is True:
+        conds.append(ExhibitorLead.id.is_(None))
+    elif p.available is False:
+        conds.append(ExhibitorLead.id.is_not(None))
+    joined = select(Booth.id).outerjoin(ExhibitorLead, ExhibitorLead.booth_id == Booth.id)
+    total = (
+        await session.scalar(select(func.count()).select_from(joined.where(*conds).subquery())) or 0
+    )
+    stmt = (
+        select(Booth, ExhibitorLead.id, ExhibitorLead.company_name)
+        .outerjoin(ExhibitorLead, ExhibitorLead.booth_id == Booth.id)
+        .where(*conds)
+        .order_by(Booth.code, Booth.id)
+        .offset(p.offset)
+        .limit(p.page_size)
+    )
+    return (await session.execute(stmt)).all(), total
+
+
+async def get_booth(
+    session: AsyncSession, booth_id: uuid.UUID, *, for_update: bool = False
+) -> Booth | None:
+    stmt = select(Booth).where(Booth.id == booth_id)
+    if for_update:
+        stmt = stmt.with_for_update()
+    return await session.scalar(stmt)
+
+
+async def booth_holder(session: AsyncSession, booth_id: uuid.UUID) -> tuple[uuid.UUID, str] | None:
+    row = (
+        await session.execute(
+            select(ExhibitorLead.id, ExhibitorLead.company_name).where(
+                ExhibitorLead.booth_id == booth_id
+            )
+        )
+    ).first()
+    return (row[0], row[1]) if row else None

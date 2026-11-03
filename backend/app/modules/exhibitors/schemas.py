@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.core.pagination import PageParams
 from app.modules.exhibitors.rules import SalesStage
@@ -62,6 +62,7 @@ class ExhibitorLeadOut(BaseModel):
     qualified_at: datetime | None
     converted_at: datetime | None
     booth_id: uuid.UUID | None
+    booth_code: str | None = None
     booth_assigned_at: datetime | None
     lead_owner_id: uuid.UUID | None
     lead_owner_name: str | None = None
@@ -81,3 +82,67 @@ class ExhibitorLeadListParams(PageParams):
     stage: list[SalesStage] | None = None
     lead_owner_id: uuid.UUID | None = None
     sort: SortParam = "-updated_at"
+
+
+class BoothAssignIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    booth_id: uuid.UUID | None  # None releases the booth
+    version: int
+
+
+# --- booths ------------------------------------------------------------------------------
+
+Currency = Annotated[str, StringConstraints(pattern=r"^[A-Za-z]{3}$", to_upper=True)]
+
+
+class BoothFields(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str | None = Field(default=None, max_length=30)
+    hall: str | None = Field(default=None, max_length=100)
+    area_sqm: Decimal | None = Field(default=None, gt=0, max_digits=8, decimal_places=2)
+    price: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=2)
+    currency: Currency | None = None
+    is_active: bool | None = None
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class BoothCreateIn(BoothFields):
+    edition_id: uuid.UUID
+    code: str = Field(max_length=30)
+    area_sqm: Decimal = Field(gt=0, max_digits=8, decimal_places=2)
+    price: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
+    currency: Currency | None = None  # edition default currency when omitted
+
+
+class BoothUpdateIn(BoothFields):
+    version: int
+
+
+class BoothOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    edition_id: uuid.UUID
+    code: str
+    hall: str | None
+    area_sqm: Decimal
+    price: Decimal
+    currency: str
+    is_active: bool
+    notes: str | None
+    is_available: bool = True
+    # The holder is shown only to callers with edition-wide access (sales may hold OWNED scope).
+    exhibitor_lead_id: uuid.UUID | None = None
+    exhibitor_company_name: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+
+class BoothListParams(PageParams):
+    edition_id: uuid.UUID
+    q: str | None = Field(default=None, max_length=100)
+    available: bool | None = None
+    include_inactive: bool = False

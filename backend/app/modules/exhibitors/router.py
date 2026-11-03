@@ -10,6 +10,11 @@ from app.core.pagination import Page
 from app.modules.audit.schemas import AuditLogOut
 from app.modules.exhibitors import service
 from app.modules.exhibitors.schemas import (
+    BoothAssignIn,
+    BoothCreateIn,
+    BoothListParams,
+    BoothOut,
+    BoothUpdateIn,
     ExhibitorLeadCreateIn,
     ExhibitorLeadListParams,
     ExhibitorLeadOut,
@@ -77,3 +82,39 @@ async def lead_activity(
     ctx: AuthContext = Depends(require("exhibitor_lead.read")),
 ) -> list[AuditLogOut]:
     return await service.activity(session, ctx, lead_id)
+
+
+@router.put("/exhibitor-leads/{lead_id}/booth", response_model=ExhibitorLeadOut)
+async def assign_booth(
+    lead_id: uuid.UUID,
+    data: BoothAssignIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_lead.update")),
+) -> ExhibitorLeadOut:
+    return await service.assign_booth(session, ctx, lead_id, data)
+
+
+@router.get("/booths", response_model=Page[BoothOut])
+async def list_booths(
+    session: Session,
+    params: Annotated[BoothListParams, Query()],
+    ctx: AuthContext = Depends(require("booth.manage", "exhibitor_lead.read")),
+) -> Page[BoothOut]:
+    return await service.list_booths(session, ctx, params)
+
+
+@router.post("/booths", response_model=BoothOut, status_code=status.HTTP_201_CREATED)
+async def create_booth(
+    data: BoothCreateIn, session: Session, ctx: AuthContext = Depends(require("booth.manage"))
+) -> BoothOut:
+    return await service.create_booth(session, ctx, data)
+
+
+@router.patch("/booths/{booth_id}", response_model=BoothOut)
+async def update_booth(
+    booth_id: uuid.UUID,
+    data: BoothUpdateIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("booth.manage")),
+) -> BoothOut:
+    return await service.update_booth(session, ctx, booth_id, data)

@@ -150,10 +150,16 @@ Catatan Phase 2: URL mengikuti pola project (flat, `edition_id` di query/body), 
 perlu (misalnya `EXHIBITOR_SALES` dengan scope OWNED/TEAM) atau cukup custom role.
 
 ### Phase 3: Booth
-- [ ] CRUD booth per edition (`booth.manage`)
-- [ ] List booth dengan status terpakai/kosong (dihitung)
-- [ ] `POST .../exhibitor-leads/{id}/booth` assign/pindah/lepas booth, audit; konflik booth → `Conflict`
-- [ ] Tes, termasuk dua sales memilih booth yang sama bersamaan
+- [x] Permission `booth.manage` (migration `0027`, Super Admin + Exhibition Admin)
+- [x] `POST /api/v1/booths`, `PATCH /api/v1/booths/{id}` (akses edition penuh; currency default dari edition; kode unik per edition → 409 `DUPLICATE_BOOTH_CODE`; booth yang dipegang lead tidak bisa dinonaktifkan → 409 `BOOTH_IN_USE`). Tidak ada delete, pakai `is_active`
+- [x] `GET /api/v1/booths?edition_id=` (`booth.manage` atau `exhibitor_lead.read`; filter `available`, `q`, `include_inactive`). `is_available` dihitung; nama perusahaan pemegang hanya untuk akses edition penuh
+- [x] `PUT /api/v1/exhibitor-leads/{id}/booth` `{booth_id | null, version}` assign/pindah/lepas, audit `booth_change`. Hanya OPPORTUNITY (EXHIBITOR hanya pindah, tidak lepas); booth harus aktif dan dari edition yang sama; dipegang lead lain → 409 `BOOTH_TAKEN`; contract SIGNED → 409 `CONTRACT_SIGNED`
+- [x] Lead menampilkan `booth_code`
+- [x] Tes (`tests/test_booths.py`), termasuk dua user memilih booth yang sama bersamaan
+- [x] OpenAPI + types frontend di-regenerate
+
+Catatan untuk Phase 4: contract menyalin `booth_price` saat dibuat. Kalau booth exhibitor
+dipindah sebelum contract SIGNED, `booth_price` (dan total) contract DRAFT harus ikut diperbarui.
 
 ### Phase 4: Convert & akun portal
 - [ ] Jawab E2, E6, dan siapa yang menerbitkan nomor contract

@@ -14,9 +14,14 @@ from app.modules.audit import service as audit_service
 from app.modules.audit.schemas import AuditLogOut
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitors import repository as repo
-from app.modules.exhibitors.models import ExhibitorLead
-from app.modules.exhibitors.rules import SalesStage, can_move
+from app.modules.exhibitors.models import Booth, ExhibitorLead
+from app.modules.exhibitors.rules import BOOTH_STAGES, ContractStatus, SalesStage, can_move
 from app.modules.exhibitors.schemas import (
+    BoothAssignIn,
+    BoothCreateIn,
+    BoothListParams,
+    BoothOut,
+    BoothUpdateIn,
     ExhibitorLeadCreateIn,
     ExhibitorLeadListParams,
     ExhibitorLeadOut,
@@ -39,6 +44,11 @@ _TEXT_FIELDS = (
     "company_name", "contact_name", "product_categories", "booth_preference", "notes",
 )  # fmt: skip
 _REQUIRED = ("company_name", "contact_name", "email")
+
+
+class BoothTaken(Conflict):
+    code = "BOOTH_TAKEN"
+    default_message = "This booth is already held by another exhibitor lead."
 
 
 class DuplicateExhibitorLead(Conflict):
@@ -82,19 +92,27 @@ def _integrity_error(e: IntegrityError) -> Exception:
     msg = str(e.orig)
     if "uq_exhibitor_leads_edition_email" in msg:
         return DuplicateExhibitorLead(fields={"email": "Already used in this edition."})
+    if "uq_exhibitor_leads_booth" in msg:
+        return BoothTaken()
+    if "uq_booths_edition_id_code" in msg:
+        return Conflict(
+            "Booth code already used in this edition.",
+            code="DUPLICATE_BOOTH_CODE",
+            fields={"code": "Already used in this edition."},
+        )
     if "fk_exhibitor_leads_lead_owner_id_users" in msg:
         return ValidationFailed(fields={"lead_owner_id": "Unknown user."})
     return e
 
 
-async def _flush(session: AsyncSession, lead: ExhibitorLead) -> None:
+async def _flush(session: AsyncSession, row: ExhibitorLead | Booth) -> None:
     try:
         async with session.begin_nested():
-            session.add(lead)
+            session.add(row)
             await session.flush()
     except IntegrityError as e:
         raise _integrity_error(e) from e
-    await session.refresh(lead)
+    await session.refresh(row)
 
 
 async def _raise_if_duplicate(
@@ -107,6 +125,7 @@ async def _raise_if_duplicate(
 async def _out(session: AsyncSession, lead: ExhibitorLead) -> ExhibitorLeadOut:
     out = ExhibitorLeadOut.model_validate(lead)
     out.lead_owner_name = await repo.owner_name(session, lead.lead_owner_id)
+    out.booth_code = await repo.booth_code(session, lead.booth_id)
     return out
 
 
@@ -189,9 +208,10 @@ async def list_leads(
     scope = ctx.scope_for(params.edition_id)
     rows, total = await repo.list_leads(session, scope, params)
     items = []
-    for lead, owner in rows:
+    for lead, owner, booth_code in rows:
         item = ExhibitorLeadOut.model_validate(lead)
         item.lead_owner_name = owner
+        item.booth_code = booth_code
         items.append(item)
     return Page(items=items, total=total, page=params.page, page_size=params.page_size)
 
@@ -261,3 +281,140 @@ async def activity(
     scope = await _scope_for_lead(session, ctx, lead_id)
     lead = await _get(session, scope, lead_id)
     return await audit_service.entity_timeline(session, lead.edition_id, ENTITY, lead.id)
+
+
+async def assign_booth(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, data: BoothAssignIn
+) -> ExhibitorLeadOut:
+    """Assign, move, or release the booth of an opportunity (or of an exhibitor, moves only)."""
+    scope = await _scope_for_lead(session, ctx, lead_id)
+    lead = await _get(session, scope, lead_id, for_update=True)
+    check_version(lead.version, data.version)
+    await exhibitions_service.ensure_writable(session, lead.edition_id)
+    if data.booth_id == lead.booth_id:
+        return await _out(session, lead)
+    if SalesStage(lead.stage) not in BOOTH_STAGES:
+        raise ValidationFailed(
+            "Only an opportunity can hold a booth.", code="BOOTH_NEEDS_OPPORTUNITY"
+        )
+    if data.booth_id is None and lead.stage == SalesStage.EXHIBITOR:
+        raise ValidationFailed("An exhibitor keeps a booth; move it instead.")
+    if await repo.contract_status(session, lead.id) == ContractStatus.SIGNED:
+        raise Conflict("The contract is signed; the booth cannot change.", code="CONTRACT_SIGNED")
+    if data.booth_id is not None:
+        # Locking the booth row makes two assignments of one booth wait for each other.
+        booth = await repo.get_booth(session, data.booth_id, for_update=True)
+        if booth is None or booth.edition_id != lead.edition_id:
+            raise NotFound("Booth not found.")
+        if not booth.is_active:
+            raise ValidationFailed("This booth is inactive.", code="BOOTH_INACTIVE")
+        holder = await repo.booth_holder(session, booth.id)
+        if holder is not None and holder[0] != lead.id:
+            raise BoothTaken()
+    changes = {
+        "booth_id": data.booth_id,
+        "booth_assigned_at": datetime.now(UTC) if data.booth_id else None,
+    }
+    return await _out(session, await _save(session, lead, changes, "booth_change"))
+
+
+# --- booths ------------------------------------------------------------------------------
+
+BOOTH_ENTITY = "booth"
+BOOTH_AUDIT_FIELDS = ("code", "hall", "area_sqm", "price", "currency", "is_active", "notes")
+_BOOTH_REQUIRED = ("code", "area_sqm", "price", "currency", "is_active")
+
+
+def _booth_out(booth: Booth, holder: tuple[uuid.UUID, str] | None, show_holder: bool) -> BoothOut:
+    out = BoothOut.model_validate(booth)
+    out.is_available = holder is None
+    if holder is not None and show_holder:
+        out.exhibitor_lead_id, out.exhibitor_company_name = holder
+    return out
+
+
+def _require_booth_manager(ctx: AuthContext, edition_id: uuid.UUID) -> None:
+    if not ctx.scope_for(edition_id, "booth.manage").full_access:
+        raise PermissionDenied()
+
+
+def _clean_booth(values: dict[str, Any]) -> dict[str, Any]:
+    out = {k: clean_text(v) if k in ("code", "hall", "notes") else v for k, v in values.items()}
+    missing = {k: "Required." for k in _BOOTH_REQUIRED if k in out and out[k] is None}
+    if missing:
+        raise ValidationFailed(fields=missing)
+    return out
+
+
+async def _save_booth(session: AsyncSession, booth: Booth, before: dict[str, Any] | None) -> None:
+    await _flush(session, booth)
+    await audit.record(
+        session,
+        entity_type=BOOTH_ENTITY,
+        entity_id=booth.id,
+        action="create" if before is None else "update",
+        before=before,
+        after=audit.snapshot(booth, BOOTH_AUDIT_FIELDS),
+        edition_id=booth.edition_id,
+    )
+
+
+async def list_booths(
+    session: AsyncSession, ctx: AuthContext, params: BoothListParams
+) -> Page[BoothOut]:
+    """Booths of an edition with availability; holders only for edition-wide access."""
+    scopes = []
+    for permission in ("booth.manage", "exhibitor_lead.read"):
+        try:
+            scopes.append(ctx.scope_for(params.edition_id, permission))
+        except NotFound:
+            continue
+    if not scopes:
+        raise NotFound("Edition not found.", code="EDITION_NOT_FOUND")
+    show_holder = any(s.full_access for s in scopes)
+    rows, total = await repo.list_booths(session, params.edition_id, params)
+    items = [
+        _booth_out(booth, (lead_id, company) if lead_id and company else None, show_holder)
+        for booth, lead_id, company in rows
+    ]
+    return Page(items=items, total=total, page=params.page, page_size=params.page_size)
+
+
+async def create_booth(session: AsyncSession, ctx: AuthContext, data: BoothCreateIn) -> BoothOut:
+    """Add a booth to an edition; currency defaults to the edition's."""
+    _require_booth_manager(ctx, data.edition_id)
+    edition = await exhibitions_service.ensure_writable(session, data.edition_id)
+    values = data.model_dump(exclude={"edition_id"})
+    values["currency"] = values["currency"] or edition.default_currency
+    values["is_active"] = True if values["is_active"] is None else values["is_active"]
+    actor = current_actor_id()
+    booth = Booth(
+        edition_id=data.edition_id, created_by=actor, updated_by=actor, **_clean_booth(values)
+    )
+    await _save_booth(session, booth, None)
+    return _booth_out(booth, None, True)
+
+
+async def update_booth(
+    session: AsyncSession, ctx: AuthContext, booth_id: uuid.UUID, data: BoothUpdateIn
+) -> BoothOut:
+    """Edit a booth; a booth held by a lead cannot be deactivated."""
+    booth = await repo.get_booth(session, booth_id, for_update=True)
+    if booth is None:
+        raise NotFound("Booth not found.")
+    try:
+        _require_booth_manager(ctx, booth.edition_id)
+    except NotFound as e:
+        raise NotFound("Booth not found.") from e
+    check_version(booth.version, data.version)
+    await exhibitions_service.ensure_writable(session, booth.edition_id)
+    changes = _clean_booth(data.model_dump(exclude_unset=True, exclude={"version"}))
+    holder = await repo.booth_holder(session, booth.id)
+    if changes.get("is_active") is False and holder is not None:
+        raise Conflict("Release the booth before deactivating it.", code="BOOTH_IN_USE")
+    before = audit.snapshot(booth, BOOTH_AUDIT_FIELDS)
+    for key, value in changes.items():
+        setattr(booth, key, value)
+    booth.updated_by = current_actor_id()
+    await _save_booth(session, booth, before)
+    return _booth_out(booth, holder, True)
