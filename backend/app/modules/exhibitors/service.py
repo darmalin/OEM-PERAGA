@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
@@ -7,14 +7,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import audit
 from app.core.authorization import AuthContext, Scope
+from app.core.config import get_settings
 from app.core.context import current_actor_id
+from app.core.crypto import new_token, sha256_hex
 from app.core.errors import Conflict, NotFound, PermissionDenied, ValidationFailed, check_version
 from app.core.pagination import Page
 from app.modules.audit import service as audit_service
 from app.modules.audit.schemas import AuditLogOut
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitors import repository as repo
-from app.modules.exhibitors.models import Booth, ExhibitorLead
+from app.modules.exhibitors.models import (
+    Booth,
+    ExhibitorAccount,
+    ExhibitorContract,
+    ExhibitorLead,
+)
 from app.modules.exhibitors.rules import BOOTH_STAGES, ContractStatus, SalesStage, can_move
 from app.modules.exhibitors.schemas import (
     BoothAssignIn,
@@ -22,10 +29,13 @@ from app.modules.exhibitors.schemas import (
     BoothListParams,
     BoothOut,
     BoothUpdateIn,
+    ConvertIn,
+    ConvertOut,
     ExhibitorLeadCreateIn,
     ExhibitorLeadListParams,
     ExhibitorLeadOut,
     ExhibitorLeadUpdateIn,
+    InvitationOut,
     StageChangeIn,
 )
 from app.modules.visitors.rules import (
@@ -299,8 +309,10 @@ async def assign_booth(
         )
     if data.booth_id is None and lead.stage == SalesStage.EXHIBITOR:
         raise ValidationFailed("An exhibitor keeps a booth; move it instead.")
-    if await repo.contract_status(session, lead.id) == ContractStatus.SIGNED:
+    contract = await repo.get_contract(session, lead.id, for_update=True)
+    if contract is not None and contract.status == ContractStatus.SIGNED:
         raise Conflict("The contract is signed; the booth cannot change.", code="CONTRACT_SIGNED")
+    booth: Booth | None = None
     if data.booth_id is not None:
         # Locking the booth row makes two assignments of one booth wait for each other.
         booth = await repo.get_booth(session, data.booth_id, for_update=True)
@@ -315,7 +327,32 @@ async def assign_booth(
         "booth_id": data.booth_id,
         "booth_assigned_at": datetime.now(UTC) if data.booth_id else None,
     }
-    return await _out(session, await _save(session, lead, changes, "booth_change"))
+    lead = await _save(session, lead, changes, "booth_change")
+    if contract is not None and booth is not None:
+        await _reprice_contract(session, contract, booth)
+    return await _out(session, lead)
+
+
+async def _reprice_contract(
+    session: AsyncSession, contract: ExhibitorContract, booth: Booth
+) -> None:
+    """A DRAFT contract follows its exhibitor's booth; the discount is kept where it fits."""
+    before = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
+    contract.booth_price = booth.price
+    contract.discount_amount = min(contract.discount_amount, booth.price)
+    contract.total_amount = booth.price - contract.discount_amount
+    contract.currency = booth.currency
+    contract.updated_by = current_actor_id()
+    await session.flush()
+    await audit.record(
+        session,
+        entity_type=CONTRACT_ENTITY,
+        entity_id=contract.id,
+        action="reprice",
+        before=before,
+        after=audit.snapshot(contract, CONTRACT_AUDIT_FIELDS),
+        edition_id=contract.edition_id,
+    )
 
 
 # --- booths ------------------------------------------------------------------------------
@@ -418,3 +455,152 @@ async def update_booth(
     booth.updated_by = current_actor_id()
     await _save_booth(session, booth, before)
     return _booth_out(booth, holder, True)
+
+
+# --- convert and portal invitations ----------------------------------------------------
+
+CONTRACT_ENTITY = "exhibitor_contract"
+CONTRACT_AUDIT_FIELDS = (
+    "contract_number", "pic_name", "company_address", "tax_id", "booth_price",
+    "discount_amount", "total_amount", "currency", "status", "signed_at", "signed_file_name",
+)  # fmt: skip
+ACCOUNT_ENTITY = "exhibitor_account"
+ACCOUNT_AUDIT_FIELDS = ("email", "is_active", "activated_at")
+
+
+def portal_url(path: str) -> str:
+    """Portal on its own host in production, under /exhibitor on the desk host otherwise."""
+    s = get_settings()
+    base = s.portal_base_url.rstrip("/") or f"{s.public_base_url.rstrip('/')}/exhibitor"
+    return f"{base}/{path.lstrip('/')}"
+
+
+def _issue_invitation(account: ExhibitorAccount) -> InvitationOut:
+    """New single-use link; any earlier link of the account stops working."""
+    token = new_token()
+    expires_at = datetime.now(UTC) + timedelta(seconds=get_settings().portal_invite_ttl_seconds)
+    account.invite_token_hash = sha256_hex(token)
+    account.invite_expires_at = expires_at
+    return InvitationOut(url=portal_url(f"accept-invite?token={token}"), expires_at=expires_at)
+
+
+async def _account_for(
+    session: AsyncSession, lead: ExhibitorLead
+) -> tuple[ExhibitorAccount, InvitationOut | None]:
+    """The lead's portal account by email: reused across editions, created on first convert."""
+    account = await repo.account_by_email(session, lead.email_normalized, for_update=True)
+    if account is not None and not account.is_active:
+        raise Conflict("The portal account of this email is deactivated.", code="ACCOUNT_INACTIVE")
+    if account is not None and account.password_hash is not None:
+        return account, None
+    created = account is None
+    if account is None:
+        actor = current_actor_id()
+        account = ExhibitorAccount(
+            email=lead.email,
+            email_normalized=lead.email_normalized,
+            is_active=True,
+            created_by=actor,
+            updated_by=actor,
+        )
+    invitation = _issue_invitation(account)
+    try:
+        async with session.begin_nested():
+            session.add(account)
+            await session.flush()
+    except IntegrityError as e:
+        # Two editions converting the same email at once; the retry finds the account.
+        raise Conflict("Try again.", code="ACCOUNT_CREATED_CONCURRENTLY") from e
+    await audit.record(
+        session,
+        entity_type=ACCOUNT_ENTITY,
+        entity_id=account.id,
+        action="create" if created else "invite",
+        after=audit.snapshot(account, ACCOUNT_AUDIT_FIELDS)
+        | {"invite_expires_at": invitation.expires_at},
+    )
+    return account, invitation
+
+
+async def convert(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, data: ConvertIn
+) -> ConvertOut:
+    """Opportunity with a booth becomes an exhibitor: portal account, DRAFT contract."""
+    scope = await _scope_for_lead(session, ctx, lead_id)
+    lead = await _get(session, scope, lead_id, for_update=True)
+    check_version(lead.version, data.version)
+    edition = await exhibitions_service.ensure_writable(session, lead.edition_id)
+    if not can_move(SalesStage(lead.stage), SalesStage.EXHIBITOR):
+        raise ValidationFailed(
+            f"Cannot convert a lead in stage {lead.stage}.", code="INVALID_STAGE_TRANSITION"
+        )
+    if lead.booth_id is None:
+        raise ValidationFailed("Assign a booth before converting.", code="BOOTH_REQUIRED")
+    booth = await repo.get_booth(session, lead.booth_id)
+    assert booth is not None  # noqa: S101 - FK
+    account, invitation = await _account_for(session, lead)
+    now = datetime.now(UTC)
+    lead = await _save(
+        session,
+        lead,
+        {"stage": SalesStage.EXHIBITOR, "converted_at": now, "exhibitor_account_id": account.id},
+        "convert",
+    )
+    number = await repo.next_contract_number(session, lead.edition_id)
+    actor = current_actor_id()
+    contract = ExhibitorContract(
+        edition_id=lead.edition_id,
+        exhibitor_lead_id=lead.id,
+        contract_number=f"{edition.code}-C-{number:04d}",
+        booth_price=booth.price,
+        discount_amount=0,
+        total_amount=booth.price,
+        currency=booth.currency,
+        status=ContractStatus.DRAFT,
+        created_by=actor,
+        updated_by=actor,
+    )
+    session.add(contract)
+    await session.flush()
+    await audit.record(
+        session,
+        entity_type=CONTRACT_ENTITY,
+        entity_id=contract.id,
+        action="create",
+        after=audit.snapshot(contract, CONTRACT_AUDIT_FIELDS),
+        edition_id=contract.edition_id,
+    )
+    assert contract.contract_number is not None  # noqa: S101 - set above
+    return ConvertOut(
+        lead=await _out(session, lead),
+        contract_number=contract.contract_number,
+        invitation=invitation,
+    )
+
+
+async def reissue_invitation(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID
+) -> InvitationOut:
+    """New invitation link for an exhibitor whose account has no password yet."""
+    scope = await _scope_for_lead(session, ctx, lead_id)
+    lead = await _get(session, scope, lead_id)
+    if lead.exhibitor_account_id is None:
+        raise ValidationFailed("Convert the lead first.", code="NOT_AN_EXHIBITOR")
+    account = await repo.get_account(session, lead.exhibitor_account_id, for_update=True)
+    assert account is not None  # noqa: S101 - FK
+    if account.password_hash is not None:
+        raise Conflict("The account is already active.", code="ACCOUNT_ALREADY_ACTIVE")
+    if not account.is_active:
+        raise Conflict("The portal account is deactivated.", code="ACCOUNT_INACTIVE")
+    invitation = _issue_invitation(account)
+    account.updated_by = current_actor_id()
+    await session.flush()
+    await audit.record(
+        session,
+        entity_type=ACCOUNT_ENTITY,
+        entity_id=account.id,
+        action="invite",
+        after={"invite_expires_at": invitation.expires_at},
+        edition_id=lead.edition_id,
+    )
+    return invitation

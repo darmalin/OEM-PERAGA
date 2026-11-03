@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
@@ -146,3 +146,69 @@ class BoothListParams(PageParams):
     q: str | None = Field(default=None, max_length=100)
     available: bool | None = None
     include_inactive: bool = False
+
+
+# --- convert and invitations (staff) -----------------------------------------------------
+
+
+class ConvertIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int
+
+
+class InvitationOut(BaseModel):
+    """The raw link is shown once; only its hash is stored."""
+
+    url: str
+    expires_at: datetime
+
+
+class ConvertOut(BaseModel):
+    lead: ExhibitorLeadOut
+    contract_number: str
+    # None when the account already has a password (an exhibitor from another edition).
+    invitation: InvitationOut | None
+
+
+# --- exhibitor portal --------------------------------------------------------------------
+
+
+class InvitationTokenIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(min_length=20, max_length=200)
+
+
+class InvitationInfoOut(BaseModel):
+    email: str
+
+
+class AcceptInvitationIn(InvitationTokenIn):
+    password: str = Field(max_length=200)
+
+
+class PortalLoginIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str = Field(max_length=320)
+    password: str = Field(max_length=200)
+
+
+class PortalExhibitorOut(BaseModel):
+    exhibitor_lead_id: uuid.UUID
+    edition_id: uuid.UUID
+    edition_name: str
+    edition_start_date: date
+    edition_end_date: date
+    company_name: str
+    booth_code: str | None
+    contract_number: str | None
+    contract_status: str | None
+
+
+class PortalMeOut(BaseModel):
+    account_id: uuid.UUID
+    email: str
+    csrf_token: str
+    exhibitors: list[PortalExhibitorOut]

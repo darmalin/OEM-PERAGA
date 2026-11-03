@@ -12,6 +12,7 @@ class Source(StrEnum):
     WORKER = "WORKER"
     SCANNER = "SCANNER"
     PUBLIC = "PUBLIC"  # campaign forms: no login
+    PORTAL = "PORTAL"  # exhibitor portal: the actor is an exhibitor account, not a user
 
 
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)

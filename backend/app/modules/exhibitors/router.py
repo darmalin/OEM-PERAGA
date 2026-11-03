@@ -1,28 +1,39 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import AuthContext, require
+from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.pagination import Page
 from app.modules.audit.schemas import AuditLogOut
-from app.modules.exhibitors import service
+from app.modules.exhibitors import portal, service
+from app.modules.exhibitors.portal import PortalContext, portal_account
 from app.modules.exhibitors.schemas import (
+    AcceptInvitationIn,
     BoothAssignIn,
     BoothCreateIn,
     BoothListParams,
     BoothOut,
     BoothUpdateIn,
+    ConvertIn,
+    ConvertOut,
     ExhibitorLeadCreateIn,
     ExhibitorLeadListParams,
     ExhibitorLeadOut,
     ExhibitorLeadUpdateIn,
+    InvitationInfoOut,
+    InvitationOut,
+    InvitationTokenIn,
+    PortalLoginIn,
+    PortalMeOut,
     StageChangeIn,
 )
 
 router = APIRouter(tags=["exhibitors"])
+portal_router = APIRouter(prefix="/portal", tags=["exhibitor-portal"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
@@ -118,3 +129,83 @@ async def update_booth(
     ctx: AuthContext = Depends(require("booth.manage")),
 ) -> BoothOut:
     return await service.update_booth(session, ctx, booth_id, data)
+
+
+@router.post("/exhibitor-leads/{lead_id}/convert", response_model=ConvertOut)
+async def convert(
+    lead_id: uuid.UUID,
+    data: ConvertIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor.invite")),
+) -> ConvertOut:
+    return await service.convert(session, ctx, lead_id, data)
+
+
+@router.post("/exhibitor-leads/{lead_id}/portal-invitation", response_model=InvitationOut)
+async def reissue_invitation(
+    lead_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor.invite")),
+) -> InvitationOut:
+    return await service.reissue_invitation(session, ctx, lead_id)
+
+
+# --- exhibitor portal --------------------------------------------------------------------
+
+
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _set_portal_cookie(response: Response, session_id: str) -> None:
+    s = get_settings()
+    # Host-only cookie: on the portal subdomain in production; on the desk host in dev it sits
+    # beside the staff cookie under another name and another Redis namespace.
+    response.set_cookie(
+        s.portal_session_cookie_name,
+        session_id,
+        httponly=True,
+        secure=s.session_cookie_secure,
+        samesite="lax",
+        path="/",
+        max_age=s.session_absolute_timeout_seconds,
+    )
+
+
+@portal_router.post("/invitations/inspect", response_model=InvitationInfoOut)
+async def inspect_invitation(
+    data: InvitationTokenIn, request: Request, session: Session
+) -> InvitationInfoOut:
+    email = await portal.invitation_email(session, data.token, _client_ip(request))
+    return InvitationInfoOut(email=email)
+
+
+@portal_router.post("/invitations/accept", response_model=PortalMeOut)
+async def accept_invitation(
+    data: AcceptInvitationIn, request: Request, response: Response, session: Session
+) -> PortalMeOut:
+    account, sess = await portal.accept_invitation(
+        session, data.token, data.password, _client_ip(request)
+    )
+    _set_portal_cookie(response, sess.session_id)
+    return await portal.me(session, account.id, sess.csrf_token)
+
+
+@portal_router.post("/auth/login", response_model=PortalMeOut)
+async def portal_login(
+    data: PortalLoginIn, request: Request, response: Response, session: Session
+) -> PortalMeOut:
+    account, sess = await portal.login(session, data.email, data.password, _client_ip(request))
+    _set_portal_cookie(response, sess.session_id)
+    return await portal.me(session, account.id, sess.csrf_token)
+
+
+@portal_router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def portal_logout(response: Response, ctx: PortalContext = Depends(portal_account)) -> None:
+    await portal.logout(ctx)
+    response.delete_cookie(get_settings().portal_session_cookie_name, path="/")
+
+
+@portal_router.get("/auth/me", response_model=PortalMeOut)
+async def portal_me(session: Session, ctx: PortalContext = Depends(portal_account)) -> PortalMeOut:
+    return await portal.me(session, ctx.account_id, ctx.session.csrf_token)

@@ -46,6 +46,7 @@ PERMISSIONS: dict[str, str] = {
     "exhibitor_lead.create": "Create exhibitor leads",
     "exhibitor_lead.update": "Edit exhibitor leads and move their sales stage",
     "booth.manage": "Create and edit the booths of an edition",
+    "exhibitor.invite": "Convert exhibitor leads and issue portal invitation links",
 }
 
 _TM_MANAGER = [

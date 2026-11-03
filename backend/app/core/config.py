@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     # Own host for the forms, e.g. https://events.example.com: links become {this}/{token}.
     # Empty: forms stay on the desk host at /r/{token}.
     campaign_base_url: str = ""
+    # Exhibitor portal (docs/EXHIBITOR_LEADS_SALES_PIPELINE.md): own subdomain in production,
+    # e.g. https://exhibitor.example.com. Empty: the portal is {public_base_url}/exhibitor.
+    portal_base_url: str = ""
+    portal_session_cookie_name: str = "ems_portal_session"
+    portal_invite_ttl_seconds: int = 7 * 24 * 60 * 60
     campaign_submissions_per_ip_per_hour: int = 20
     campaign_submissions_per_link_per_hour: int = 1000
 

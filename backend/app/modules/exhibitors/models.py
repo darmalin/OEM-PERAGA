@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Index,
+    Integer,
     Numeric,
     String,
     Text,
@@ -60,6 +61,54 @@ class Booth(UUIDPk, Timestamps, Versioned, Base):
     updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 
 
+class ExhibitorAccount(UUIDPk, Timestamps, Versioned, Base):
+    """Portal login of an exhibitor company, kept apart from staff users.
+
+    Not edition data: one account can exhibit in several editions (one lead per edition).
+    """
+
+    __tablename__ = "exhibitor_accounts"
+    __table_args__ = (
+        UniqueConstraint("email_normalized"),
+        Index(
+            "uq_exhibitor_accounts_invite_token_hash",
+            "invite_token_hash",
+            unique=True,
+            postgresql_where=text("invite_token_hash IS NOT NULL"),
+        ),
+        CheckConstraint(
+            "(invite_token_hash IS NULL) = (invite_expires_at IS NULL)", name="invite_complete"
+        ),
+        CheckConstraint(
+            "activated_at IS NULL OR password_hash IS NOT NULL", name="activated_has_password"
+        ),
+    )
+
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    email_normalized: Mapped[str] = mapped_column(String(320), nullable=False)
+    # NULL until the invitation is accepted.
+    password_hash: Mapped[str | None] = mapped_column(String(255))
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # SHA-256 of the single-use invitation token; the raw token is shown once, never stored.
+    invite_token_hash: Mapped[str | None] = mapped_column(String(64))
+    invite_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
+class ExhibitorContractCounter(Base):
+    """Per-edition contract number counter, incremented with UPSERT ... RETURNING."""
+
+    __tablename__ = "exhibitor_contract_counters"
+
+    edition_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("exhibition_editions.id", ondelete="CASCADE"), primary_key=True
+    )
+    last_value: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
 class ExhibitorLead(UUIDPk, Timestamps, Versioned, Base):
     """A company that may rent a booth. Not a visitor lead: separate table, separate pipeline."""
 
@@ -92,6 +141,17 @@ class ExhibitorLead(UUIDPk, Timestamps, Versioned, Base):
         ),
         CheckConstraint("stage <> 'EXHIBITOR' OR booth_id IS NOT NULL", name="exhibitor_has_booth"),
         CheckConstraint(
+            "stage <> 'EXHIBITOR' OR exhibitor_account_id IS NOT NULL", name="exhibitor_has_account"
+        ),
+        # One portal account exhibits once per edition.
+        Index(
+            "uq_exhibitor_leads_edition_account",
+            "edition_id",
+            "exhibitor_account_id",
+            unique=True,
+            postgresql_where=text("exhibitor_account_id IS NOT NULL"),
+        ),
+        CheckConstraint(
             "budget_estimate IS NULL OR budget_estimate >= 0", name="budget_not_negative"
         ),
     )
@@ -116,6 +176,9 @@ class ExhibitorLead(UUIDPk, Timestamps, Versioned, Base):
     converted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     booth_id: Mapped[uuid.UUID | None] = mapped_column()
     booth_assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    exhibitor_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("exhibitor_accounts.id"), index=True
+    )
 
     lead_owner_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))

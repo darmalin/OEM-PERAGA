@@ -3,14 +3,14 @@
 import asyncio
 import uuid
 from datetime import UTC, datetime
-from decimal import Decimal
 from typing import Any
 
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from app.core.db import get_sessionmaker
 from app.modules.exhibitions.models import Edition
-from app.modules.exhibitors.models import ExhibitorContract, ExhibitorLead
+from app.modules.exhibitors.models import ExhibitorContract
 from tests.factories import RoleGrant, actor, make_edition
 from tests.test_exhibitor_leads import SALES_ROLE, admin_for, create, move, sales_role
 
@@ -150,26 +150,21 @@ async def test_signed_contract_freezes_the_booth() -> None:
     lead = await opportunity(admin, edition, "sales-040@example.test")
     lead = (await assign(admin, lead, a01["id"])).json()
 
-    # Conversion and signing come in phases 4 and 5; set the state directly.
+    r = await admin.post(f"{LEADS}/{lead['id']}/convert", json={"version": lead["version"]})
+    assert r.status_code == 200, r.text
+    # Signing comes in phase 5; set the state directly.
     async with get_sessionmaker()() as session, session.begin():
-        row = await session.get(ExhibitorLead, uuid.UUID(lead["id"]))
-        assert row is not None
-        row.stage = "EXHIBITOR"
-        session.add(
-            ExhibitorContract(
-                edition_id=edition.id,
-                exhibitor_lead_id=row.id,
-                contract_number="C-001",
-                pic_name="Test Contact",
-                company_address="Jl. Example 1",
-                booth_price=Decimal(15000000),
-                total_amount=Decimal(15000000),
-                currency="IDR",
-                status="SIGNED",
-                signed_at=datetime.now(UTC),
-                signed_file_key="contracts/test.pdf",
+        contract = await session.scalar(
+            select(ExhibitorContract).where(
+                ExhibitorContract.exhibitor_lead_id == uuid.UUID(lead["id"])
             )
         )
+        assert contract is not None
+        contract.pic_name = "Test Contact"
+        contract.company_address = "Jl. Example 1"
+        contract.status = "SIGNED"
+        contract.signed_at = datetime.now(UTC)
+        contract.signed_file_key = "contracts/test.pdf"
     lead = (await admin.get(f"{LEADS}/{lead['id']}")).json()
     assert (await assign(admin, lead, None)).status_code == 422  # an exhibitor keeps a booth
     r = await assign(admin, lead, a02["id"])

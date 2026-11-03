@@ -22,6 +22,10 @@ PUBLIC_ROUTES = {
     ("POST", "/api/v1/auth/login"),
     ("POST", "/api/v1/auth/password-reset/request"),
     ("POST", "/api/v1/auth/password-reset/confirm"),
+    # Exhibitor portal sign-in; the rest of /portal is guarded by portal_account.
+    ("POST", "/api/v1/portal/invitations/inspect"),
+    ("POST", "/api/v1/portal/invitations/accept"),
+    ("POST", "/api/v1/portal/auth/login"),
 }
 
 

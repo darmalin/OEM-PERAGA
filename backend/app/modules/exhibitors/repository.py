@@ -4,10 +4,17 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import ColumnElement, Row, and_, false, func, or_, select, true
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import Scope
-from app.modules.exhibitors.models import Booth, ExhibitorContract, ExhibitorLead
+from app.modules.exhibitors.models import (
+    Booth,
+    ExhibitorAccount,
+    ExhibitorContract,
+    ExhibitorContractCounter,
+    ExhibitorLead,
+)
 from app.modules.exhibitors.schemas import BoothListParams, ExhibitorLeadListParams
 from app.modules.identity.models import User, UserTeamMembership
 
@@ -109,12 +116,6 @@ async def booth_code(session: AsyncSession, booth_id: uuid.UUID | None) -> str |
     return await session.scalar(select(Booth.code).where(Booth.id == booth_id))
 
 
-async def contract_status(session: AsyncSession, lead_id: uuid.UUID) -> str | None:
-    return await session.scalar(
-        select(ExhibitorContract.status).where(ExhibitorContract.exhibitor_lead_id == lead_id)
-    )
-
-
 # --- booths ------------------------------------------------------------------------------
 # Booths are edition master data: callers resolve the edition scope before these run.
 
@@ -165,3 +166,76 @@ async def booth_holder(session: AsyncSession, booth_id: uuid.UUID) -> tuple[uuid
         )
     ).first()
     return (row[0], row[1]) if row else None
+
+
+# --- contracts ---------------------------------------------------------------------------
+
+
+async def get_contract(
+    session: AsyncSession, lead_id: uuid.UUID, *, for_update: bool = False
+) -> ExhibitorContract | None:
+    stmt = select(ExhibitorContract).where(ExhibitorContract.exhibitor_lead_id == lead_id)
+    if for_update:
+        stmt = stmt.with_for_update()
+    return await session.scalar(stmt)
+
+
+async def next_contract_number(session: AsyncSession, edition_id: uuid.UUID) -> int:
+    """Next per-edition number; the row lock is held until the transaction ends."""
+    stmt = (
+        insert(ExhibitorContractCounter)
+        .values(edition_id=edition_id, last_value=1)
+        .on_conflict_do_update(
+            index_elements=[ExhibitorContractCounter.edition_id],
+            set_={"last_value": ExhibitorContractCounter.last_value + 1},
+        )
+        .returning(ExhibitorContractCounter.last_value)
+    )
+    return int((await session.execute(stmt)).scalar_one())
+
+
+# --- portal accounts (not edition data: an account spans editions) ---------------------
+
+
+async def account_by_email(
+    session: AsyncSession, email_normalized: str, *, for_update: bool = False
+) -> ExhibitorAccount | None:
+    stmt = select(ExhibitorAccount).where(ExhibitorAccount.email_normalized == email_normalized)
+    if for_update:
+        stmt = stmt.with_for_update()
+    return await session.scalar(stmt)
+
+
+async def account_by_invite(
+    session: AsyncSession, token_hash: str, *, for_update: bool = False
+) -> ExhibitorAccount | None:
+    stmt = select(ExhibitorAccount).where(ExhibitorAccount.invite_token_hash == token_hash)
+    if for_update:
+        stmt = stmt.with_for_update()
+    return await session.scalar(stmt)
+
+
+async def get_account(
+    session: AsyncSession, account_id: uuid.UUID, *, for_update: bool = False
+) -> ExhibitorAccount | None:
+    stmt = select(ExhibitorAccount).where(ExhibitorAccount.id == account_id)
+    if for_update:
+        stmt = stmt.with_for_update()
+    return await session.scalar(stmt)
+
+
+async def account_exhibitors(
+    session: AsyncSession, account_id: uuid.UUID
+) -> Sequence[Row[ExhibitorLead, str | None, ExhibitorContract | None]]:
+    """The account's own exhibitor records: the portal's only view of exhibitor data."""
+    stmt = (
+        select(ExhibitorLead, Booth.code, ExhibitorContract)
+        .outerjoin(Booth, Booth.id == ExhibitorLead.booth_id)
+        .outerjoin(ExhibitorContract, ExhibitorContract.exhibitor_lead_id == ExhibitorLead.id)
+        .where(
+            ExhibitorLead.exhibitor_account_id == account_id,
+            ExhibitorLead.stage == "EXHIBITOR",
+        )
+        .order_by(ExhibitorLead.converted_at.desc())
+    )
+    return (await session.execute(stmt)).all()

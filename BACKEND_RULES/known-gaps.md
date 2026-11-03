@@ -47,6 +47,8 @@ Defaults are in code; changing them later may need a migration. Full list in `FE
 | F3 | P2 | Gate scans are attributed to the device, not to the gate staff member using it. | Optional staff session on device calls, stored as `recorded_by`. |
 | F4 | P3 | QR email delivery is at-least-once: a worker crash after the SMTP call and before `SENT` is committed sends the email again. | Accept, or use a provider idempotency key if the provider supports one. |
 | F5 | P3 | Retention purge job (depends on D9). | Celery Beat task per retention rule. |
+| F6 | P2 | Exhibitor portal has no "forgot password". Staff can only re-issue an invitation while the account has no password. | Portal password reset by link (like staff reset), or a staff action that clears the password and issues a new invitation. |
+| F7 | P2 | Exhibitor portal accounts cannot be deactivated from the API (`is_active` exists, nothing sets it). | Staff endpoint (`exhibitor.invite`) that deactivates the account and drops its portal sessions (`sessions.destroy_all_for_user(id, sessions.PORTAL)`). |
 
 ## Performance and scale
 

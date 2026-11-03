@@ -1186,6 +1186,125 @@ export interface paths {
         patch: operations["update_booth_api_v1_booths__booth_id__patch"];
         trace?: never;
     };
+    "/api/v1/exhibitor-leads/{lead_id}/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Convert */
+        post: operations["convert_api_v1_exhibitor_leads__lead_id__convert_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/portal-invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reissue Invitation */
+        post: operations["reissue_invitation_api_v1_exhibitor_leads__lead_id__portal_invitation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/invitations/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inspect Invitation */
+        post: operations["inspect_invitation_api_v1_portal_invitations_inspect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Invitation */
+        post: operations["accept_invitation_api_v1_portal_invitations_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Login */
+        post: operations["portal_login_api_v1_portal_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Logout */
+        post: operations["portal_logout_api_v1_portal_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Me */
+        get: operations["portal_me_api_v1_portal_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/visitor-registrations": {
         parameters: {
             query?: never;
@@ -1926,6 +2045,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AcceptInvitationIn */
+        AcceptInvitationIn: {
+            /** Token */
+            token: string;
+            /** Password */
+            password: string;
+        };
         /** ActivateIn */
         ActivateIn: {
             /** Activation Code */
@@ -2717,6 +2843,18 @@ export interface components {
          * @enum {string}
          */
         ConditionOp: "contains" | "equals" | "starts_with" | "is" | "is_not" | "is_set" | "not_set" | "between" | "before" | "after" | "gt" | "lt";
+        /** ConvertIn */
+        ConvertIn: {
+            /** Version */
+            version: number;
+        };
+        /** ConvertOut */
+        ConvertOut: {
+            lead: components["schemas"]["ExhibitorLeadOut"];
+            /** Contract Number */
+            contract_number: string;
+            invitation: components["schemas"]["InvitationOut"] | null;
+        };
         /** Count */
         Count: {
             /** Key */
@@ -4399,6 +4537,29 @@ export interface components {
             /** Invalid */
             invalid: number;
         };
+        /** InvitationInfoOut */
+        InvitationInfoOut: {
+            /** Email */
+            email: string;
+        };
+        /**
+         * InvitationOut
+         * @description The raw link is shown once; only its hash is stored.
+         */
+        InvitationOut: {
+            /** Url */
+            url: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /** InvitationTokenIn */
+        InvitationTokenIn: {
+            /** Token */
+            token: string;
+        };
         /** JobAccepted */
         JobAccepted: {
             /**
@@ -5118,6 +5279,60 @@ export interface components {
             code: string;
             /** Description */
             description: string;
+        };
+        /** PortalExhibitorOut */
+        PortalExhibitorOut: {
+            /**
+             * Exhibitor Lead Id
+             * Format: uuid
+             */
+            exhibitor_lead_id: string;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /** Edition Name */
+            edition_name: string;
+            /**
+             * Edition Start Date
+             * Format: date
+             */
+            edition_start_date: string;
+            /**
+             * Edition End Date
+             * Format: date
+             */
+            edition_end_date: string;
+            /** Company Name */
+            company_name: string;
+            /** Booth Code */
+            booth_code: string | null;
+            /** Contract Number */
+            contract_number: string | null;
+            /** Contract Status */
+            contract_status: string | null;
+        };
+        /** PortalLoginIn */
+        PortalLoginIn: {
+            /** Email */
+            email: string;
+            /** Password */
+            password: string;
+        };
+        /** PortalMeOut */
+        PortalMeOut: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Email */
+            email: string;
+            /** Csrf Token */
+            csrf_token: string;
+            /** Exhibitors */
+            exhibitors: components["schemas"]["PortalExhibitorOut"][];
         };
         /** PreviewOut */
         PreviewOut: {
@@ -9002,6 +9217,209 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    convert_api_v1_exhibitor_leads__lead_id__convert_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConvertIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConvertOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reissue_invitation_api_v1_exhibitor_leads__lead_id__portal_invitation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inspect_invitation_api_v1_portal_invitations_inspect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationTokenIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationInfoOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_invitation_api_v1_portal_invitations_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInvitationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalMeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_login_api_v1_portal_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortalLoginIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalMeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_logout_api_v1_portal_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    portal_me_api_v1_portal_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalMeOut"];
                 };
             };
         };

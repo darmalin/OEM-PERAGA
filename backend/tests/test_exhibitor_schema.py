@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.db import get_sessionmaker, new_id
 from app.modules.exhibitors.models import (
     Booth,
+    ExhibitorAccount,
     ExhibitorContract,
     ExhibitorLead,
     ExhibitorPayment,
@@ -48,10 +49,16 @@ def _lead(edition_id: uuid.UUID, email: str = "sales-001@example.test", **kw: An
     )
 
 
+def _account() -> ExhibitorAccount:
+    return ExhibitorAccount(
+        id=new_id(), email="portal@example.test", email_normalized="portal@example.test"
+    )
+
+
 async def _exhibitor(edition_id: uuid.UUID) -> tuple[ExhibitorLead, ExhibitorContract]:
-    booth = _booth(edition_id)
-    await _add(booth)
-    lead = _lead(edition_id, stage="EXHIBITOR", booth_id=booth.id)
+    booth, account = _booth(edition_id), _account()
+    await _add(booth, account)
+    lead = _lead(edition_id, stage="EXHIBITOR", booth_id=booth.id, exhibitor_account_id=account.id)
     contract = ExhibitorContract(
         edition_id=edition_id,
         exhibitor_lead_id=lead.id,
@@ -88,20 +95,29 @@ async def test_booth_from_another_edition_rejected() -> None:
 
 
 @pytest.mark.parametrize(
-    ("stage", "with_booth", "constraint"),
+    ("stage", "with_booth", "with_account", "constraint"),
     [
-        ("LEAD", True, "booth_only_when_selling"),
-        ("LOST", True, "booth_only_when_selling"),
-        ("EXHIBITOR", False, "exhibitor_has_booth"),
-        ("WON", False, "stage_valid"),
+        ("LEAD", True, False, "booth_only_when_selling"),
+        ("LOST", True, False, "booth_only_when_selling"),
+        ("EXHIBITOR", False, True, "exhibitor_has_booth"),
+        ("EXHIBITOR", True, False, "exhibitor_has_account"),
+        ("WON", False, False, "stage_valid"),
     ],
 )
-async def test_stage_and_booth_consistency(stage: str, with_booth: bool, constraint: str) -> None:
+async def test_stage_and_booth_consistency(
+    stage: str, with_booth: bool, with_account: bool, constraint: str
+) -> None:
     edition = await make_edition()
-    booth = _booth(edition.id)
-    await _add(booth)
+    booth, account = _booth(edition.id), _account()
+    await _add(booth, account)
+    lead = _lead(
+        edition.id,
+        stage=stage,
+        booth_id=booth.id if with_booth else None,
+        exhibitor_account_id=account.id if with_account else None,
+    )
     with pytest.raises(IntegrityError, match=constraint):
-        await _add(_lead(edition.id, stage=stage, booth_id=booth.id if with_booth else None))
+        await _add(lead)
 
 
 async def test_signed_contract_needs_its_fields_and_pdf() -> None:

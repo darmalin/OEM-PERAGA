@@ -72,6 +72,11 @@ def hash_password(password: str) -> str:
     return _hasher.hash(password)
 
 
+def verify_password(password: str, password_hash: str | None) -> bool:
+    """Constant-work check: an unknown account still costs one hash verification."""
+    return _hasher.verify(password, password_hash or _DUMMY_HASH) and password_hash is not None
+
+
 # --- principal ---------------------------------------------------------------------------
 
 

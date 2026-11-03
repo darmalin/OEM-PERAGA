@@ -33,9 +33,9 @@ membukanya. Keputusan yang sudah dijawab (2026-11-03):
 | P2 | Lead gagal | Stage `LOST` + alasan; bisa dibuka lagi ke `LEAD` |
 | P3 | Contract | Field (nomor, PIC, alamat, NPWP, harga, diskon, total) + upload PDF yang sudah ditandatangani |
 
-Masih terbuka (jawab sebelum Phase 4): **E2** siapa yang membuat akun portal (staff mengundang
-atau daftar sendiri), **E6** domain portal (sama dengan staff app atau subdomain terpisah),
-dan siapa yang menerbitkan nomor contract (manual oleh staff atau otomatis).
+| E2 | Pembuatan akun portal | Undangan dari staff berupa **link** (tidak wajib lewat email); exhibitor membuka link lalu mengisi password |
+| E6 | Domain portal | Production: subdomain sendiri (`EMS_PORTAL_BASE_URL`). Dev/staging: domain yang sama, di `/exhibitor` |
+| C1 | Nomor contract | Otomatis per edition: `<kode edition>-C-0001` |
 
 ---
 
@@ -104,18 +104,28 @@ Satu baris per pembayaran (termin). `contract_id`, `amount` (> 0), `paid_on`, `m
 (`BANK_TRANSFER`, `CASH`, `OTHER`), `reference`, `proof_file_key`, `status`, `reviewed_by`,
 `reviewed_at` (wajib terisi kecuali `PENDING`), `notes`.
 
-### Akun portal (Phase 4)
-Belum dibuat. Didesain bersama login portal: akun terpisah dari `users` staff, session terpisah
-dari session staff, password Argon2id, undangan dengan token sekali pakai (hash di DB).
+### `exhibitor_accounts` (migration `0028`)
+Login portal, terpisah dari `users` staff. **Bukan data per edition**: satu akun (per email)
+bisa jadi exhibitor di beberapa edition; `exhibitor_leads.exhibitor_account_id` menunjuk ke akun
+(unik per edition, wajib untuk stage EXHIBITOR). Kolom: `email` + `email_normalized` (unik),
+`password_hash` (NULL sampai undangan diterima, Argon2id), `is_active`, `activated_at`,
+`last_login_at`, `invite_token_hash` (SHA-256; token mentah hanya ditampilkan sekali) +
+`invite_expires_at` (default 7 hari, `EMS_PORTAL_INVITE_TTL_SECONDS`).
+
+### `exhibitor_contract_counters`
+Counter nomor contract per edition, dinaikkan dengan `INSERT ... ON CONFLICT DO UPDATE ... RETURNING`.
 
 ---
 
 ## Aturan backend khusus fitur ini
 
 - Setiap query filter `edition_id` + scope user (`Scope`), seperti modul lain.
-- Permission: `exhibitor_lead.read`, `exhibitor_lead.create`, `exhibitor_lead.update` (sudah ada);
-  rencana: `booth.manage`, `exhibitor_contract.read`, `exhibitor_payment.record`,
-  `exhibitor_payment.verify`. Dicek di setiap endpoint.
+- Permission: `exhibitor_lead.read`, `exhibitor_lead.create`, `exhibitor_lead.update`,
+  `booth.manage`, `exhibitor.invite` (sudah ada); rencana: `exhibitor_contract.read`,
+  `exhibitor_payment.record`, `exhibitor_payment.verify`. Dicek di setiap endpoint.
+- Portal: cookie sendiri (`ems_portal_session`), namespace session Redis sendiri (`psess:`),
+  CSRF sama seperti staff, rate limit + lockout login sama seperti staff dengan counter terpisah.
+  Audit dari portal memakai source `PORTAL` dan entity `exhibitor_account`.
 - Duplikat email per edition ditangkap dari `IntegrityError` dan dikembalikan sebagai `Conflict`.
 - Pindah booth hanya boleh sebelum contract `SIGNED`. Lead ke `LOST` melepas booth-nya.
 - Contract `SIGNED` tidak bisa diedit.
@@ -162,11 +172,16 @@ Catatan untuk Phase 4: contract menyalin `booth_price` saat dibuat. Kalau booth 
 dipindah sebelum contract SIGNED, `booth_price` (dan total) contract DRAFT harus ikut diperbarui.
 
 ### Phase 4: Convert & akun portal
-- [ ] Jawab E2, E6, dan siapa yang menerbitkan nomor contract
-- [ ] Tabel akun portal + undangan (migration)
-- [ ] `POST .../exhibitor-leads/{id}/convert`: stage EXHIBITOR, buat contract DRAFT, kirim undangan
-- [ ] Login/logout/aktivasi portal, session terpisah dari staff
-- [ ] Tes auth + rate limit login
+- [x] Keputusan E2, E6, C1 (2026-11-03)
+- [x] Migration `0028`: `exhibitor_accounts`, `exhibitor_leads.exhibitor_account_id`, `exhibitor_contract_counters`, permission `exhibitor.invite`
+- [x] `POST /api/v1/exhibitor-leads/{id}/convert` `{version}` (`exhibitor.invite`): butuh OPPORTUNITY + booth; stage EXHIBITOR, akun portal (dipakai ulang kalau email sudah punya akun aktif), contract DRAFT bernomor dengan harga dari booth. Respons berisi link undangan (atau `null` kalau akun sudah punya password)
+- [x] `POST /api/v1/exhibitor-leads/{id}/portal-invitation`: link baru, link lama mati; 409 kalau akun sudah aktif
+- [x] Pindah booth saat contract DRAFT ikut memperbarui harga dan total contract (audit `reprice`)
+- [x] Portal (`/api/v1/portal`): `POST /invitations/inspect`, `POST /invitations/accept` (set password + login), `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` (akun + exhibitor miliknya: edition, booth, nomor & status contract)
+- [x] Tes (`tests/test_exhibitor_portal.py`): undangan sekali pakai/kadaluarsa/diganti, session staff dan portal tidak tercampur, CSRF, exhibitor yang kembali di edition lain
+
+Belum dibangun (dicatat di `BACKEND_RULES/known-gaps.md` F6, F7): reset password portal,
+dan menonaktifkan akun portal. Routing nginx untuk subdomain portal ikut Phase 7 (frontend).
 
 ### Phase 5: Contract (portal)
 - [ ] Portal: lihat & isi contract DRAFT

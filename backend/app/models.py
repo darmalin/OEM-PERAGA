@@ -9,7 +9,9 @@ from app.modules.checkin.models import Gate, ScanAttempt, ScannerDevice, Visitor
 from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition, Venue
 from app.modules.exhibitors.models import (
     Booth,
+    ExhibitorAccount,
     ExhibitorContract,
+    ExhibitorContractCounter,
     ExhibitorLead,
     ExhibitorPayment,
 )
@@ -68,7 +70,9 @@ __all__ = [
     "EmailLog",
     "EmailTemplate",
     "Exhibition",
+    "ExhibitorAccount",
     "ExhibitorContract",
+    "ExhibitorContractCounter",
     "ExhibitorLead",
     "ExhibitorPayment",
     "ExportJob",
