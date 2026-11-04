@@ -293,3 +293,58 @@ async def payment_sums(session: AsyncSession, contract_id: uuid.UUID) -> dict[st
         .group_by(ExhibitorPayment.status)
     )
     return {status: total for status, total in (await session.execute(stmt)).all()}
+
+
+# --- pipeline summary ----------------------------------------------------------------------
+
+
+async def stage_counts(session: AsyncSession, scope: Scope) -> dict[str, int]:
+    stmt = (
+        select(ExhibitorLead.stage, func.count())
+        .where(scope_clause(scope))
+        .group_by(ExhibitorLead.stage)
+    )
+    return {stage: n for stage, n in (await session.execute(stmt)).all()}
+
+
+async def booth_counts(session: AsyncSession, edition_id: uuid.UUID) -> tuple[int, int]:
+    """(active booths, active booths held by a lead) of the edition."""
+    held = func.count(ExhibitorLead.id)
+    stmt = (
+        select(func.count(Booth.id), held)
+        .outerjoin(ExhibitorLead, ExhibitorLead.booth_id == Booth.id)
+        .where(Booth.edition_id == edition_id, Booth.is_active.is_(True))
+    )
+    total, taken = (await session.execute(stmt)).one()
+    return int(total), int(taken)
+
+
+async def contract_rows(
+    session: AsyncSession, scope: Scope
+) -> Sequence[Row[ExhibitorContract, Decimal]]:
+    """Contracts in scope with the verified sum of each."""
+    verified = (
+        select(func.coalesce(func.sum(ExhibitorPayment.amount), 0))
+        .where(
+            ExhibitorPayment.contract_id == ExhibitorContract.id,
+            ExhibitorPayment.status == "VERIFIED",
+        )
+        .scalar_subquery()
+    )
+    stmt = (
+        select(ExhibitorContract, verified)
+        .join(ExhibitorLead, ExhibitorLead.id == ExhibitorContract.exhibitor_lead_id)
+        .where(scope_clause(scope))
+    )
+    return (await session.execute(stmt)).all()
+
+
+async def pending_by_contract(session: AsyncSession, scope: Scope) -> dict[uuid.UUID, Decimal]:
+    stmt = (
+        select(ExhibitorPayment.contract_id, func.sum(ExhibitorPayment.amount))
+        .join(ExhibitorContract, ExhibitorContract.id == ExhibitorPayment.contract_id)
+        .join(ExhibitorLead, ExhibitorLead.id == ExhibitorContract.exhibitor_lead_id)
+        .where(scope_clause(scope), ExhibitorPayment.status == "PENDING")
+        .group_by(ExhibitorPayment.contract_id)
+    )
+    return {cid: total for cid, total in (await session.execute(stmt)).all()}

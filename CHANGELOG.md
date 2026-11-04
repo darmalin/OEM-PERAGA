@@ -5,6 +5,29 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+Exhibitor sales and the exhibitor portal (FEATURES/11, docs/EXHIBITOR_LEADS_SALES_PIPELINE.md).
+Migrations 0025 to 0029 (new tables `booths`, `exhibitor_leads`, `exhibitor_contracts`,
+`exhibitor_payments`, `exhibitor_accounts`, `exhibitor_contract_counters`; new permissions for
+Super Admin and Exhibition Admin). Run on deploy, then `python -m app.cli ensure-buckets` (the
+migrate service does both) for the new `contracts` bucket.
+
+- **Exhibitor Leads** (menu Exhibitors): leads separate from visitor leads, stages Lead,
+  Opportunity, Exhibitor, Lost (with a reason, can be reopened). List, board, and lead page.
+- **Booths**: booths per edition with price; an Opportunity holds one booth, one lead per booth.
+- **Convert**: an Opportunity with a booth becomes an Exhibitor with a numbered Draft contract
+  (`<edition code>-C-0001`) and a portal account. Staff copy the one-time invitation link and send
+  it by any channel; it expires after 7 days and can be made again.
+- **Contract**: the exhibitor fills PIC, address, and NPWP in the portal and uploads the signed
+  PDF; the contract is then read-only. Staff can set a discount and upload the signed copy for
+  the exhibitor.
+- **Payments**: staff record installments against a signed contract, attach proof, and verify or
+  reject each one. Never more than the contract total. The exhibitor sees the status in the portal.
+- **Exhibitor portal** at `/exhibitor/`. In production set `EMS_PORTAL_BASE_URL` to give it its own
+  subdomain (PRODUCTION.md 4c); old `/exhibitor/` links redirect there.
+- **Overview**: "How are exhibitor sales going?" panel (leads per stage, booths held, money).
+- Known gaps: portal forgot-password and account deactivation (F6, F7), reopening a signed
+  contract (F8), setting the Lead Owner from the desk (W16).
+
 ## v1.3.0 (2026-10-28)
 
 Migration 0024 (two columns on `teams`, runs on deploy).

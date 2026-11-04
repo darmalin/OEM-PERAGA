@@ -1064,6 +1064,23 @@ export interface paths {
         patch: operations["update_lead_source_api_v1_lead_sources__source_id__patch"];
         trace?: never;
     };
+    "/api/v1/exhibitor-leads/pipeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pipeline */
+        get: operations["pipeline_api_v1_exhibitor_leads_pipeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exhibitor-leads": {
         parameters: {
             query?: never;
@@ -5628,6 +5645,42 @@ export interface components {
             /** Description */
             description: string;
         };
+        /**
+         * PipelineMoney
+         * @description Per currency: booths can be priced in different currencies.
+         */
+        PipelineMoney: {
+            /** Currency */
+            currency: string;
+            /** Signed Contracts */
+            signed_contracts: number;
+            /** Signed Value */
+            signed_value: string;
+            /** Verified Amount */
+            verified_amount: string;
+            /** Pending Amount */
+            pending_amount: string;
+            /** Outstanding Amount */
+            outstanding_amount: string;
+            /** Paid Contracts */
+            paid_contracts: number;
+        };
+        /**
+         * PipelineOut
+         * @description Sales pipeline of one edition, counted inside the caller's lead scope.
+         */
+        PipelineOut: {
+            /** Stages */
+            stages: components["schemas"]["StageCount"][];
+            /** Draft Contracts */
+            draft_contracts: number;
+            /** Booths For Sale */
+            booths_for_sale: number;
+            /** Booths Held */
+            booths_held: number;
+            /** Money */
+            money: components["schemas"]["PipelineMoney"][];
+        };
         /** PortalExhibitorOut */
         PortalExhibitorOut: {
             /**
@@ -6285,6 +6338,12 @@ export interface components {
             lost_reason?: string | null;
             /** Version */
             version: number;
+        };
+        /** StageCount */
+        StageCount: {
+            stage: components["schemas"]["SalesStage"];
+            /** Count */
+            count: number;
         };
         /** SyncIn */
         SyncIn: {
@@ -9258,6 +9317,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadSourceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pipeline_api_v1_exhibitor_leads_pipeline_get: {
+        parameters: {
+            query: {
+                edition_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PipelineOut"];
                 };
             };
             /** @description Validation Error */

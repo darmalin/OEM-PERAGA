@@ -2,6 +2,7 @@ import { api, call } from "@ems/api";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
+import { ExhibitorPipelinePanel } from "@/features/exhibitors/pipeline-panel";
 import { useReport } from "@/features/reports";
 import { can, useMe } from "@/lib/auth";
 import { useEdition } from "@/lib/edition";
@@ -45,12 +46,17 @@ function Overview() {
           </>
         ) : can(me, "telemarketing.call") ? (
           <QueuePreview editionId={edition.id} timezone={edition.timezone} />
-        ) : (
+        ) : can(me, "exhibitor_lead.read") ? null : (
           <Panel>
             <EmptyState title="Your role has no overview numbers. Use the menu to open your pages." />
           </Panel>
         )}
       </div>
+      {can(me, "exhibitor_lead.read") ? (
+        <div className="mt-6">
+          <ExhibitorPipelinePanel editionId={edition.id} />
+        </div>
+      ) : null}
     </Page>
   );
 }

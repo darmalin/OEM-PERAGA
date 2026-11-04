@@ -280,6 +280,37 @@ class PortalPaymentsOut(PaymentTotals):
     items: list[PortalPaymentOut]
 
 
+class PipelineParams(BaseModel):
+    edition_id: uuid.UUID
+
+
+class StageCount(BaseModel):
+    stage: SalesStage
+    count: int
+
+
+class PipelineMoney(BaseModel):
+    """Per currency: booths can be priced in different currencies."""
+
+    currency: str
+    signed_contracts: int
+    signed_value: Decimal
+    verified_amount: Decimal
+    pending_amount: Decimal
+    outstanding_amount: Decimal
+    paid_contracts: int
+
+
+class PipelineOut(BaseModel):
+    """Sales pipeline of one edition, counted inside the caller's lead scope."""
+
+    stages: list[StageCount]
+    draft_contracts: int
+    booths_for_sale: int
+    booths_held: int
+    money: list[PipelineMoney]
+
+
 # --- exhibitor portal --------------------------------------------------------------------
 
 

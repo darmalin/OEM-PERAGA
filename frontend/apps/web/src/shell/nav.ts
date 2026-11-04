@@ -64,7 +64,7 @@ export const PANELS: PanelDef[] = [
       {
         label: "",
         items: [
-          { label: "Overview", to: "/app", icon: LayoutDashboard, perms: ["report.view", "visitor.read", "gate.view_history"] },
+          { label: "Overview", to: "/app", icon: LayoutDashboard, perms: ["report.view", "visitor.read", "gate.view_history", "exhibitor_lead.read"] },
         ],
       },
       {

@@ -6,7 +6,9 @@ Breakdown of `DEV_DOCS/EMS-Visitor-CRM-Specification.md` into buildable work. Ea
 
 In: auth and permissions, exhibitions and editions, visitor lead CRUD, duplicate rules, Excel import, assignment, telemarketing calls, verification, follow-ups, registration and QR, QR email, gate scanner (online and offline), audit log, dashboard, export.
 
-Out (do not build, §1.2 and §18): exhibitor CRM, booth inventory, proposals, contracts, exhibitor portal, the twelve exhibitor forms, invoices, payments, refunds, credit notes.
+Out (do not build, §1.2 and §18): proposals, the twelve exhibitor forms, invoices, refunds, credit notes, a payment gateway.
+
+Moved in by the owner (2026-11-03, FEATURES/11): exhibitor leads and sales stages, booth inventory, contracts with a signed PDF, payment tagging (installments, verified by hand), and the exhibitor portal for those.
 
 ## Feature files
 
@@ -23,7 +25,7 @@ Out (do not build, §1.2 and §18): exhibitor CRM, booth inventory, proposals, c
 | 08 | [08-registration-qr-email.md](08-registration-qr-email.md) | §7 | M4 |
 | 09 | [09-gate-scanner.md](09-gate-scanner.md) | §8 | M5 |
 | 10 | [10-reporting-export.md](10-reporting-export.md) | §11 | M6 |
-| 11 | [11-exhibitor-portal.md](11-exhibitor-portal.md) | outside §1.2 | not planned; decisions E1 to E6 first |
+| 11 | [11-exhibitor-portal.md](11-exhibitor-portal.md) | owner request 2026-11-03 (outside §1.2) | done (backend, desk pages, exhibitor portal) |
 | 12 | [12-campaign-links.md](12-campaign-links.md) | owner request 2026-10-26 | done (backend, admin UI, public form) |
 
 ## Milestones (§15)

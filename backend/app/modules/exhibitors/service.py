@@ -59,9 +59,12 @@ from app.modules.exhibitors.schemas import (
     PaymentReviewIn,
     PaymentsOut,
     PaymentTotals,
+    PipelineMoney,
+    PipelineOut,
     PortalPaymentOut,
     PortalPaymentsOut,
     StageChangeIn,
+    StageCount,
 )
 from app.modules.visitors.rules import (
     NormalizationError,
@@ -1064,3 +1067,47 @@ async def payment_proof(
         raise NotFound("The proof is no longer available.") from e
     ext = PurePosixPath(payment.proof_file_key).suffix
     return chunks, f"payment-{payment.id}{ext}", _FILE_KINDS[ext][0]
+
+
+# --- pipeline summary ----------------------------------------------------------------------
+
+
+async def pipeline(session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID) -> PipelineOut:
+    """Leads per stage and contract money of one edition, inside the caller's scope.
+    Booth counts are edition-wide: the booth list is not lead data."""
+    scope = ctx.scope_for(edition_id)
+    stages = await repo.stage_counts(session, scope)
+    for_sale, held = await repo.booth_counts(session, edition_id)
+    pending = await repo.pending_by_contract(session, scope)
+    money: dict[str, PipelineMoney] = {}
+    drafts = 0
+    for contract, verified in await repo.contract_rows(session, scope):
+        if contract.status != ContractStatus.SIGNED:
+            drafts += 1
+            continue
+        total = contract.total_amount if contract.total_amount is not None else ZERO
+        m = money.setdefault(
+            contract.currency,
+            PipelineMoney(
+                currency=contract.currency,
+                signed_contracts=0,
+                signed_value=ZERO,
+                verified_amount=ZERO,
+                pending_amount=ZERO,
+                outstanding_amount=ZERO,
+                paid_contracts=0,
+            ),
+        )
+        m.signed_contracts += 1
+        m.signed_value += total
+        m.verified_amount += verified
+        m.pending_amount += pending.get(contract.id, ZERO)
+        m.outstanding_amount += max(total - verified, ZERO)
+        m.paid_contracts += payment_state(total, verified) == PaymentState.PAID
+    return PipelineOut(
+        stages=[StageCount(stage=s, count=stages.get(s, 0)) for s in SalesStage],
+        draft_contracts=drafts,
+        booths_for_sale=for_sale,
+        booths_held=held,
+        money=sorted(money.values(), key=lambda m: m.currency),
+    )

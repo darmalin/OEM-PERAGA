@@ -28,7 +28,7 @@ membukanya. Keputusan yang sudah dijawab (2026-11-03):
 
 | # | Keputusan | Jawaban |
 |---|---|---|
-| E3 | Login portal | Satu akun per exhibitor per edition |
+| E3 | Login portal | Satu akun per exhibitor (per email); akun yang sama dipakai lagi kalau exhibitor ikut edition lain |
 | P1 | Payment | Bisa termin (DP, pelunasan); tiap pembayaran dicatat sendiri |
 | P2 | Lead gagal | Stage `LOST` + alasan; bisa dibuka lagi ke `LEAD` |
 | P3 | Contract | Field (nomor, PIC, alamat, NPWP, harga, diskon, total) + upload PDF yang sudah ditandatangani |
@@ -219,7 +219,7 @@ Catatan: rencana permission `exhibitor_contract.read` tidak dipakai; contract da
 Belum dibangun (FRONTEND_RULES/known-gaps.md W16, W17): memilih Lead Owner dari desk, dan drag di board.
 
 ### Phase 8: Dokumentasi & laporan
-- [ ] Update `FEATURES/11-exhibitor-portal.md` dan `FEATURES/README.md` (scope baru)
-- [ ] Ringkasan pipeline di dashboard (jumlah per stage, total terbayar)
-- [ ] Regenerate OpenAPI client frontend (`make gen-api`)
-- [ ] CHANGELOG
+- [x] `FEATURES/11-exhibitor-portal.md` ditulis ulang (yang dibangun, keputusan, aturan, gap) dan `FEATURES/README.md` (scope baru)
+- [x] Ringkasan pipeline: `GET /api/v1/exhibitor-leads/pipeline?edition_id=` (`exhibitor_lead.read`; jumlah per stage dan uang dihitung dalam scope user, booth per edition), panel "How are exhibitor sales going?" di Overview (`/app`). Tes `tests/test_exhibitor_pipeline.py`
+- [x] Regenerate OpenAPI client frontend (`make gen-api`)
+- [x] CHANGELOG (Unreleased)

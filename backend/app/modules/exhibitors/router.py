@@ -36,6 +36,8 @@ from app.modules.exhibitors.schemas import (
     PaymentOut,
     PaymentReviewIn,
     PaymentsOut,
+    PipelineOut,
+    PipelineParams,
     PortalLoginIn,
     PortalMeOut,
     PortalPaymentsOut,
@@ -46,6 +48,16 @@ router = APIRouter(tags=["exhibitors"])
 portal_router = APIRouter(prefix="/portal", tags=["exhibitor-portal"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 PDF = "application/pdf"
+
+
+# Before /exhibitor-leads/{lead_id}, which would take "pipeline" as an id.
+@router.get("/exhibitor-leads/pipeline", response_model=PipelineOut)
+async def pipeline(
+    session: Session,
+    params: Annotated[PipelineParams, Query()],
+    ctx: AuthContext = Depends(require("exhibitor_lead.read")),
+) -> PipelineOut:
+    return await service.pipeline(session, ctx, params.edition_id)
 
 
 @router.get("/exhibitor-leads", response_model=Page[ExhibitorLeadOut])
