@@ -24,6 +24,9 @@ import { Route as AppReportsRouteImport } from './routes/app/reports'
 import { Route as AppScansRouteImport } from './routes/app/scans'
 import { Route as SystemIndexRouteImport } from './routes/system/index'
 import { Route as SystemAuditLogRouteImport } from './routes/system/audit-log'
+import { Route as AppBoothsIndexRouteImport } from './routes/app/booths/index'
+import { Route as AppBoothsBoothIdRouteImport } from './routes/app/booths/$boothId'
+import { Route as AppBoothsNewRouteImport } from './routes/app/booths/new'
 import { Route as AppCampaignLinksLinkIdRouteImport } from './routes/app/campaign-links/$linkId'
 import { Route as AppCampaignLinksNewRouteImport } from './routes/app/campaign-links/new'
 import { Route as AppCampaignsIndexRouteImport } from './routes/app/campaigns/index'
@@ -38,6 +41,9 @@ import { Route as AppEditionsNewRouteImport } from './routes/app/editions/new'
 import { Route as AppExhibitionsIndexRouteImport } from './routes/app/exhibitions/index'
 import { Route as AppExhibitionsExhibitionIdRouteImport } from './routes/app/exhibitions/$exhibitionId'
 import { Route as AppExhibitionsNewRouteImport } from './routes/app/exhibitions/new'
+import { Route as AppExhibitorLeadsIndexRouteImport } from './routes/app/exhibitor-leads/index'
+import { Route as AppExhibitorLeadsBoardRouteImport } from './routes/app/exhibitor-leads/board'
+import { Route as AppExhibitorLeadsNewRouteImport } from './routes/app/exhibitor-leads/new'
 import { Route as AppExportsIndexRouteImport } from './routes/app/exports/index'
 import { Route as AppExportsNewRouteImport } from './routes/app/exports/new'
 import { Route as AppFieldOptionsIndexRouteImport } from './routes/app/field-options/index'
@@ -81,6 +87,11 @@ import { Route as SystemUsersIndexRouteImport } from './routes/system/users/inde
 import { Route as SystemUsersNewRouteImport } from './routes/system/users/new'
 import { Route as AppDevicesDeviceIdIndexRouteImport } from './routes/app/devices/$deviceId/index'
 import { Route as AppDevicesDeviceIdRevokeRouteImport } from './routes/app/devices/$deviceId/revoke'
+import { Route as AppExhibitorLeadsLeadIdIndexRouteImport } from './routes/app/exhibitor-leads/$leadId/index'
+import { Route as AppExhibitorLeadsLeadIdBoothRouteImport } from './routes/app/exhibitor-leads/$leadId/booth'
+import { Route as AppExhibitorLeadsLeadIdConvertRouteImport } from './routes/app/exhibitor-leads/$leadId/convert'
+import { Route as AppExhibitorLeadsLeadIdInvitationRouteImport } from './routes/app/exhibitor-leads/$leadId/invitation'
+import { Route as AppExhibitorLeadsLeadIdStageRouteImport } from './routes/app/exhibitor-leads/$leadId/stage'
 import { Route as AppRegistrationsRegistrationIdIndexRouteImport } from './routes/app/registrations/$registrationId/index'
 import { Route as AppRegistrationsRegistrationIdRevokeRouteImport } from './routes/app/registrations/$registrationId/revoke'
 import { Route as AppVisitorLeadsLeadIdIndexRouteImport } from './routes/app/visitor-leads/$leadId/index'
@@ -88,6 +99,8 @@ import { Route as AppVisitorLeadsLeadIdFollowupRouteImport } from './routes/app/
 import { Route as AppVisitorLeadsLeadIdLogCallRouteImport } from './routes/app/visitor-leads/$leadId/log-call'
 import { Route as AppVisitorLeadsLeadIdRegisterRouteImport } from './routes/app/visitor-leads/$leadId/register'
 import { Route as SystemUsersUserIdIndexRouteImport } from './routes/system/users/$userId/index'
+import { Route as AppExhibitorLeadsLeadIdPaymentsPaymentIdRouteImport } from './routes/app/exhibitor-leads/$leadId/payments/$paymentId'
+import { Route as AppExhibitorLeadsLeadIdPaymentsNewRouteImport } from './routes/app/exhibitor-leads/$leadId/payments/new'
 import { Route as SystemUsersUserIdRolesNewRouteImport } from './routes/system/users/$userId/roles/new'
 
 const IndexRoute = IndexRouteImport.update({
@@ -165,6 +178,21 @@ const SystemAuditLogRoute = SystemAuditLogRouteImport.update({
   path: '/audit-log',
   getParentRoute: () => SystemRoute,
 } as any)
+const AppBoothsIndexRoute = AppBoothsIndexRouteImport.update({
+  id: '/booths/',
+  path: '/booths/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBoothsBoothIdRoute = AppBoothsBoothIdRouteImport.update({
+  id: '/booths/$boothId',
+  path: '/booths/$boothId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBoothsNewRoute = AppBoothsNewRouteImport.update({
+  id: '/booths/new',
+  path: '/booths/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCampaignLinksLinkIdRoute = AppCampaignLinksLinkIdRouteImport.update({
   id: '/campaign-links/$linkId',
   path: '/campaign-links/$linkId',
@@ -234,6 +262,21 @@ const AppExhibitionsExhibitionIdRoute =
 const AppExhibitionsNewRoute = AppExhibitionsNewRouteImport.update({
   id: '/exhibitions/new',
   path: '/exhibitions/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExhibitorLeadsIndexRoute = AppExhibitorLeadsIndexRouteImport.update({
+  id: '/exhibitor-leads/',
+  path: '/exhibitor-leads/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExhibitorLeadsBoardRoute = AppExhibitorLeadsBoardRouteImport.update({
+  id: '/exhibitor-leads/board',
+  path: '/exhibitor-leads/board',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExhibitorLeadsNewRoute = AppExhibitorLeadsNewRouteImport.update({
+  id: '/exhibitor-leads/new',
+  path: '/exhibitor-leads/new',
   getParentRoute: () => AppRoute,
 } as any)
 const AppExportsIndexRoute = AppExportsIndexRouteImport.update({
@@ -456,6 +499,36 @@ const AppDevicesDeviceIdRevokeRoute =
     path: '/devices/$deviceId/revoke',
     getParentRoute: () => AppRoute,
   } as any)
+const AppExhibitorLeadsLeadIdIndexRoute =
+  AppExhibitorLeadsLeadIdIndexRouteImport.update({
+    id: '/exhibitor-leads/$leadId/',
+    path: '/exhibitor-leads/$leadId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppExhibitorLeadsLeadIdBoothRoute =
+  AppExhibitorLeadsLeadIdBoothRouteImport.update({
+    id: '/exhibitor-leads/$leadId/booth',
+    path: '/exhibitor-leads/$leadId/booth',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppExhibitorLeadsLeadIdConvertRoute =
+  AppExhibitorLeadsLeadIdConvertRouteImport.update({
+    id: '/exhibitor-leads/$leadId/convert',
+    path: '/exhibitor-leads/$leadId/convert',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppExhibitorLeadsLeadIdInvitationRoute =
+  AppExhibitorLeadsLeadIdInvitationRouteImport.update({
+    id: '/exhibitor-leads/$leadId/invitation',
+    path: '/exhibitor-leads/$leadId/invitation',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppExhibitorLeadsLeadIdStageRoute =
+  AppExhibitorLeadsLeadIdStageRouteImport.update({
+    id: '/exhibitor-leads/$leadId/stage',
+    path: '/exhibitor-leads/$leadId/stage',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppRegistrationsRegistrationIdIndexRoute =
   AppRegistrationsRegistrationIdIndexRouteImport.update({
     id: '/registrations/$registrationId/',
@@ -497,6 +570,18 @@ const SystemUsersUserIdIndexRoute = SystemUsersUserIdIndexRouteImport.update({
   path: '/users/$userId/',
   getParentRoute: () => SystemRoute,
 } as any)
+const AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute =
+  AppExhibitorLeadsLeadIdPaymentsPaymentIdRouteImport.update({
+    id: '/exhibitor-leads/$leadId/payments/$paymentId',
+    path: '/exhibitor-leads/$leadId/payments/$paymentId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppExhibitorLeadsLeadIdPaymentsNewRoute =
+  AppExhibitorLeadsLeadIdPaymentsNewRouteImport.update({
+    id: '/exhibitor-leads/$leadId/payments/new',
+    path: '/exhibitor-leads/$leadId/payments/new',
+    getParentRoute: () => AppRoute,
+  } as any)
 const SystemUsersUserIdRolesNewRoute =
   SystemUsersUserIdRolesNewRouteImport.update({
     id: '/users/$userId/roles/new',
@@ -520,6 +605,8 @@ export interface FileRoutesByFullPath {
   '/system/audit-log': typeof SystemAuditLogRoute
   '/app/': typeof AppIndexRoute
   '/system/': typeof SystemIndexRoute
+  '/app/booths/$boothId': typeof AppBoothsBoothIdRoute
+  '/app/booths/new': typeof AppBoothsNewRoute
   '/app/campaign-links/$linkId': typeof AppCampaignLinksLinkIdRoute
   '/app/campaign-links/new': typeof AppCampaignLinksNewRoute
   '/app/custom-fields/$fieldId': typeof AppCustomFieldsFieldIdRoute
@@ -529,6 +616,8 @@ export interface FileRoutesByFullPath {
   '/app/editions/new': typeof AppEditionsNewRoute
   '/app/exhibitions/$exhibitionId': typeof AppExhibitionsExhibitionIdRoute
   '/app/exhibitions/new': typeof AppExhibitionsNewRoute
+  '/app/exhibitor-leads/board': typeof AppExhibitorLeadsBoardRoute
+  '/app/exhibitor-leads/new': typeof AppExhibitorLeadsNewRoute
   '/app/exports/new': typeof AppExportsNewRoute
   '/app/field-options/$optionId': typeof AppFieldOptionsOptionIdRoute
   '/app/field-options/new': typeof AppFieldOptionsNewRoute
@@ -555,11 +644,13 @@ export interface FileRoutesByFullPath {
   '/system/teams/$teamId': typeof SystemTeamsTeamIdRoute
   '/system/teams/new': typeof SystemTeamsNewRoute
   '/system/users/new': typeof SystemUsersNewRoute
+  '/app/booths/': typeof AppBoothsIndexRoute
   '/app/campaigns/': typeof AppCampaignsIndexRoute
   '/app/custom-fields/': typeof AppCustomFieldsIndexRoute
   '/app/devices/': typeof AppDevicesIndexRoute
   '/app/editions/': typeof AppEditionsIndexRoute
   '/app/exhibitions/': typeof AppExhibitionsIndexRoute
+  '/app/exhibitor-leads/': typeof AppExhibitorLeadsIndexRoute
   '/app/exports/': typeof AppExportsIndexRoute
   '/app/field-options/': typeof AppFieldOptionsIndexRoute
   '/app/followups/': typeof AppFollowupsIndexRoute
@@ -576,14 +667,21 @@ export interface FileRoutesByFullPath {
   '/system/teams/': typeof SystemTeamsIndexRoute
   '/system/users/': typeof SystemUsersIndexRoute
   '/app/devices/$deviceId/revoke': typeof AppDevicesDeviceIdRevokeRoute
+  '/app/exhibitor-leads/$leadId/booth': typeof AppExhibitorLeadsLeadIdBoothRoute
+  '/app/exhibitor-leads/$leadId/convert': typeof AppExhibitorLeadsLeadIdConvertRoute
+  '/app/exhibitor-leads/$leadId/invitation': typeof AppExhibitorLeadsLeadIdInvitationRoute
+  '/app/exhibitor-leads/$leadId/stage': typeof AppExhibitorLeadsLeadIdStageRoute
   '/app/registrations/$registrationId/revoke': typeof AppRegistrationsRegistrationIdRevokeRoute
   '/app/visitor-leads/$leadId/followup': typeof AppVisitorLeadsLeadIdFollowupRoute
   '/app/visitor-leads/$leadId/log-call': typeof AppVisitorLeadsLeadIdLogCallRoute
   '/app/visitor-leads/$leadId/register': typeof AppVisitorLeadsLeadIdRegisterRoute
   '/app/devices/$deviceId/': typeof AppDevicesDeviceIdIndexRoute
+  '/app/exhibitor-leads/$leadId/': typeof AppExhibitorLeadsLeadIdIndexRoute
   '/app/registrations/$registrationId/': typeof AppRegistrationsRegistrationIdIndexRoute
   '/app/visitor-leads/$leadId/': typeof AppVisitorLeadsLeadIdIndexRoute
   '/system/users/$userId/': typeof SystemUsersUserIdIndexRoute
+  '/app/exhibitor-leads/$leadId/payments/$paymentId': typeof AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute
+  '/app/exhibitor-leads/$leadId/payments/new': typeof AppExhibitorLeadsLeadIdPaymentsNewRoute
   '/system/users/$userId/roles/new': typeof SystemUsersUserIdRolesNewRoute
 }
 export interface FileRoutesByTo {
@@ -600,6 +698,8 @@ export interface FileRoutesByTo {
   '/system/audit-log': typeof SystemAuditLogRoute
   '/app': typeof AppIndexRoute
   '/system': typeof SystemIndexRoute
+  '/app/booths/$boothId': typeof AppBoothsBoothIdRoute
+  '/app/booths/new': typeof AppBoothsNewRoute
   '/app/campaign-links/$linkId': typeof AppCampaignLinksLinkIdRoute
   '/app/campaign-links/new': typeof AppCampaignLinksNewRoute
   '/app/custom-fields/$fieldId': typeof AppCustomFieldsFieldIdRoute
@@ -609,6 +709,8 @@ export interface FileRoutesByTo {
   '/app/editions/new': typeof AppEditionsNewRoute
   '/app/exhibitions/$exhibitionId': typeof AppExhibitionsExhibitionIdRoute
   '/app/exhibitions/new': typeof AppExhibitionsNewRoute
+  '/app/exhibitor-leads/board': typeof AppExhibitorLeadsBoardRoute
+  '/app/exhibitor-leads/new': typeof AppExhibitorLeadsNewRoute
   '/app/exports/new': typeof AppExportsNewRoute
   '/app/field-options/$optionId': typeof AppFieldOptionsOptionIdRoute
   '/app/field-options/new': typeof AppFieldOptionsNewRoute
@@ -635,11 +737,13 @@ export interface FileRoutesByTo {
   '/system/teams/$teamId': typeof SystemTeamsTeamIdRoute
   '/system/teams/new': typeof SystemTeamsNewRoute
   '/system/users/new': typeof SystemUsersNewRoute
+  '/app/booths': typeof AppBoothsIndexRoute
   '/app/campaigns': typeof AppCampaignsIndexRoute
   '/app/custom-fields': typeof AppCustomFieldsIndexRoute
   '/app/devices': typeof AppDevicesIndexRoute
   '/app/editions': typeof AppEditionsIndexRoute
   '/app/exhibitions': typeof AppExhibitionsIndexRoute
+  '/app/exhibitor-leads': typeof AppExhibitorLeadsIndexRoute
   '/app/exports': typeof AppExportsIndexRoute
   '/app/field-options': typeof AppFieldOptionsIndexRoute
   '/app/followups': typeof AppFollowupsIndexRoute
@@ -656,14 +760,21 @@ export interface FileRoutesByTo {
   '/system/teams': typeof SystemTeamsIndexRoute
   '/system/users': typeof SystemUsersIndexRoute
   '/app/devices/$deviceId/revoke': typeof AppDevicesDeviceIdRevokeRoute
+  '/app/exhibitor-leads/$leadId/booth': typeof AppExhibitorLeadsLeadIdBoothRoute
+  '/app/exhibitor-leads/$leadId/convert': typeof AppExhibitorLeadsLeadIdConvertRoute
+  '/app/exhibitor-leads/$leadId/invitation': typeof AppExhibitorLeadsLeadIdInvitationRoute
+  '/app/exhibitor-leads/$leadId/stage': typeof AppExhibitorLeadsLeadIdStageRoute
   '/app/registrations/$registrationId/revoke': typeof AppRegistrationsRegistrationIdRevokeRoute
   '/app/visitor-leads/$leadId/followup': typeof AppVisitorLeadsLeadIdFollowupRoute
   '/app/visitor-leads/$leadId/log-call': typeof AppVisitorLeadsLeadIdLogCallRoute
   '/app/visitor-leads/$leadId/register': typeof AppVisitorLeadsLeadIdRegisterRoute
   '/app/devices/$deviceId': typeof AppDevicesDeviceIdIndexRoute
+  '/app/exhibitor-leads/$leadId': typeof AppExhibitorLeadsLeadIdIndexRoute
   '/app/registrations/$registrationId': typeof AppRegistrationsRegistrationIdIndexRoute
   '/app/visitor-leads/$leadId': typeof AppVisitorLeadsLeadIdIndexRoute
   '/system/users/$userId': typeof SystemUsersUserIdIndexRoute
+  '/app/exhibitor-leads/$leadId/payments/$paymentId': typeof AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute
+  '/app/exhibitor-leads/$leadId/payments/new': typeof AppExhibitorLeadsLeadIdPaymentsNewRoute
   '/system/users/$userId/roles/new': typeof SystemUsersUserIdRolesNewRoute
 }
 export interface FileRoutesById {
@@ -683,6 +794,8 @@ export interface FileRoutesById {
   '/system/audit-log': typeof SystemAuditLogRoute
   '/app/': typeof AppIndexRoute
   '/system/': typeof SystemIndexRoute
+  '/app/booths/$boothId': typeof AppBoothsBoothIdRoute
+  '/app/booths/new': typeof AppBoothsNewRoute
   '/app/campaign-links/$linkId': typeof AppCampaignLinksLinkIdRoute
   '/app/campaign-links/new': typeof AppCampaignLinksNewRoute
   '/app/custom-fields/$fieldId': typeof AppCustomFieldsFieldIdRoute
@@ -692,6 +805,8 @@ export interface FileRoutesById {
   '/app/editions/new': typeof AppEditionsNewRoute
   '/app/exhibitions/$exhibitionId': typeof AppExhibitionsExhibitionIdRoute
   '/app/exhibitions/new': typeof AppExhibitionsNewRoute
+  '/app/exhibitor-leads/board': typeof AppExhibitorLeadsBoardRoute
+  '/app/exhibitor-leads/new': typeof AppExhibitorLeadsNewRoute
   '/app/exports/new': typeof AppExportsNewRoute
   '/app/field-options/$optionId': typeof AppFieldOptionsOptionIdRoute
   '/app/field-options/new': typeof AppFieldOptionsNewRoute
@@ -718,11 +833,13 @@ export interface FileRoutesById {
   '/system/teams/$teamId': typeof SystemTeamsTeamIdRoute
   '/system/teams/new': typeof SystemTeamsNewRoute
   '/system/users/new': typeof SystemUsersNewRoute
+  '/app/booths/': typeof AppBoothsIndexRoute
   '/app/campaigns/': typeof AppCampaignsIndexRoute
   '/app/custom-fields/': typeof AppCustomFieldsIndexRoute
   '/app/devices/': typeof AppDevicesIndexRoute
   '/app/editions/': typeof AppEditionsIndexRoute
   '/app/exhibitions/': typeof AppExhibitionsIndexRoute
+  '/app/exhibitor-leads/': typeof AppExhibitorLeadsIndexRoute
   '/app/exports/': typeof AppExportsIndexRoute
   '/app/field-options/': typeof AppFieldOptionsIndexRoute
   '/app/followups/': typeof AppFollowupsIndexRoute
@@ -739,14 +856,21 @@ export interface FileRoutesById {
   '/system/teams/': typeof SystemTeamsIndexRoute
   '/system/users/': typeof SystemUsersIndexRoute
   '/app/devices/$deviceId/revoke': typeof AppDevicesDeviceIdRevokeRoute
+  '/app/exhibitor-leads/$leadId/booth': typeof AppExhibitorLeadsLeadIdBoothRoute
+  '/app/exhibitor-leads/$leadId/convert': typeof AppExhibitorLeadsLeadIdConvertRoute
+  '/app/exhibitor-leads/$leadId/invitation': typeof AppExhibitorLeadsLeadIdInvitationRoute
+  '/app/exhibitor-leads/$leadId/stage': typeof AppExhibitorLeadsLeadIdStageRoute
   '/app/registrations/$registrationId/revoke': typeof AppRegistrationsRegistrationIdRevokeRoute
   '/app/visitor-leads/$leadId/followup': typeof AppVisitorLeadsLeadIdFollowupRoute
   '/app/visitor-leads/$leadId/log-call': typeof AppVisitorLeadsLeadIdLogCallRoute
   '/app/visitor-leads/$leadId/register': typeof AppVisitorLeadsLeadIdRegisterRoute
   '/app/devices/$deviceId/': typeof AppDevicesDeviceIdIndexRoute
+  '/app/exhibitor-leads/$leadId/': typeof AppExhibitorLeadsLeadIdIndexRoute
   '/app/registrations/$registrationId/': typeof AppRegistrationsRegistrationIdIndexRoute
   '/app/visitor-leads/$leadId/': typeof AppVisitorLeadsLeadIdIndexRoute
   '/system/users/$userId/': typeof SystemUsersUserIdIndexRoute
+  '/app/exhibitor-leads/$leadId/payments/$paymentId': typeof AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute
+  '/app/exhibitor-leads/$leadId/payments/new': typeof AppExhibitorLeadsLeadIdPaymentsNewRoute
   '/system/users/$userId/roles/new': typeof SystemUsersUserIdRolesNewRoute
 }
 export interface FileRouteTypes {
@@ -767,6 +891,8 @@ export interface FileRouteTypes {
     | '/system/audit-log'
     | '/app/'
     | '/system/'
+    | '/app/booths/$boothId'
+    | '/app/booths/new'
     | '/app/campaign-links/$linkId'
     | '/app/campaign-links/new'
     | '/app/custom-fields/$fieldId'
@@ -776,6 +902,8 @@ export interface FileRouteTypes {
     | '/app/editions/new'
     | '/app/exhibitions/$exhibitionId'
     | '/app/exhibitions/new'
+    | '/app/exhibitor-leads/board'
+    | '/app/exhibitor-leads/new'
     | '/app/exports/new'
     | '/app/field-options/$optionId'
     | '/app/field-options/new'
@@ -802,11 +930,13 @@ export interface FileRouteTypes {
     | '/system/teams/$teamId'
     | '/system/teams/new'
     | '/system/users/new'
+    | '/app/booths/'
     | '/app/campaigns/'
     | '/app/custom-fields/'
     | '/app/devices/'
     | '/app/editions/'
     | '/app/exhibitions/'
+    | '/app/exhibitor-leads/'
     | '/app/exports/'
     | '/app/field-options/'
     | '/app/followups/'
@@ -823,14 +953,21 @@ export interface FileRouteTypes {
     | '/system/teams/'
     | '/system/users/'
     | '/app/devices/$deviceId/revoke'
+    | '/app/exhibitor-leads/$leadId/booth'
+    | '/app/exhibitor-leads/$leadId/convert'
+    | '/app/exhibitor-leads/$leadId/invitation'
+    | '/app/exhibitor-leads/$leadId/stage'
     | '/app/registrations/$registrationId/revoke'
     | '/app/visitor-leads/$leadId/followup'
     | '/app/visitor-leads/$leadId/log-call'
     | '/app/visitor-leads/$leadId/register'
     | '/app/devices/$deviceId/'
+    | '/app/exhibitor-leads/$leadId/'
     | '/app/registrations/$registrationId/'
     | '/app/visitor-leads/$leadId/'
     | '/system/users/$userId/'
+    | '/app/exhibitor-leads/$leadId/payments/$paymentId'
+    | '/app/exhibitor-leads/$leadId/payments/new'
     | '/system/users/$userId/roles/new'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -847,6 +984,8 @@ export interface FileRouteTypes {
     | '/system/audit-log'
     | '/app'
     | '/system'
+    | '/app/booths/$boothId'
+    | '/app/booths/new'
     | '/app/campaign-links/$linkId'
     | '/app/campaign-links/new'
     | '/app/custom-fields/$fieldId'
@@ -856,6 +995,8 @@ export interface FileRouteTypes {
     | '/app/editions/new'
     | '/app/exhibitions/$exhibitionId'
     | '/app/exhibitions/new'
+    | '/app/exhibitor-leads/board'
+    | '/app/exhibitor-leads/new'
     | '/app/exports/new'
     | '/app/field-options/$optionId'
     | '/app/field-options/new'
@@ -882,11 +1023,13 @@ export interface FileRouteTypes {
     | '/system/teams/$teamId'
     | '/system/teams/new'
     | '/system/users/new'
+    | '/app/booths'
     | '/app/campaigns'
     | '/app/custom-fields'
     | '/app/devices'
     | '/app/editions'
     | '/app/exhibitions'
+    | '/app/exhibitor-leads'
     | '/app/exports'
     | '/app/field-options'
     | '/app/followups'
@@ -903,14 +1046,21 @@ export interface FileRouteTypes {
     | '/system/teams'
     | '/system/users'
     | '/app/devices/$deviceId/revoke'
+    | '/app/exhibitor-leads/$leadId/booth'
+    | '/app/exhibitor-leads/$leadId/convert'
+    | '/app/exhibitor-leads/$leadId/invitation'
+    | '/app/exhibitor-leads/$leadId/stage'
     | '/app/registrations/$registrationId/revoke'
     | '/app/visitor-leads/$leadId/followup'
     | '/app/visitor-leads/$leadId/log-call'
     | '/app/visitor-leads/$leadId/register'
     | '/app/devices/$deviceId'
+    | '/app/exhibitor-leads/$leadId'
     | '/app/registrations/$registrationId'
     | '/app/visitor-leads/$leadId'
     | '/system/users/$userId'
+    | '/app/exhibitor-leads/$leadId/payments/$paymentId'
+    | '/app/exhibitor-leads/$leadId/payments/new'
     | '/system/users/$userId/roles/new'
   id:
     | '__root__'
@@ -929,6 +1079,8 @@ export interface FileRouteTypes {
     | '/system/audit-log'
     | '/app/'
     | '/system/'
+    | '/app/booths/$boothId'
+    | '/app/booths/new'
     | '/app/campaign-links/$linkId'
     | '/app/campaign-links/new'
     | '/app/custom-fields/$fieldId'
@@ -938,6 +1090,8 @@ export interface FileRouteTypes {
     | '/app/editions/new'
     | '/app/exhibitions/$exhibitionId'
     | '/app/exhibitions/new'
+    | '/app/exhibitor-leads/board'
+    | '/app/exhibitor-leads/new'
     | '/app/exports/new'
     | '/app/field-options/$optionId'
     | '/app/field-options/new'
@@ -964,11 +1118,13 @@ export interface FileRouteTypes {
     | '/system/teams/$teamId'
     | '/system/teams/new'
     | '/system/users/new'
+    | '/app/booths/'
     | '/app/campaigns/'
     | '/app/custom-fields/'
     | '/app/devices/'
     | '/app/editions/'
     | '/app/exhibitions/'
+    | '/app/exhibitor-leads/'
     | '/app/exports/'
     | '/app/field-options/'
     | '/app/followups/'
@@ -985,14 +1141,21 @@ export interface FileRouteTypes {
     | '/system/teams/'
     | '/system/users/'
     | '/app/devices/$deviceId/revoke'
+    | '/app/exhibitor-leads/$leadId/booth'
+    | '/app/exhibitor-leads/$leadId/convert'
+    | '/app/exhibitor-leads/$leadId/invitation'
+    | '/app/exhibitor-leads/$leadId/stage'
     | '/app/registrations/$registrationId/revoke'
     | '/app/visitor-leads/$leadId/followup'
     | '/app/visitor-leads/$leadId/log-call'
     | '/app/visitor-leads/$leadId/register'
     | '/app/devices/$deviceId/'
+    | '/app/exhibitor-leads/$leadId/'
     | '/app/registrations/$registrationId/'
     | '/app/visitor-leads/$leadId/'
     | '/system/users/$userId/'
+    | '/app/exhibitor-leads/$leadId/payments/$paymentId'
+    | '/app/exhibitor-leads/$leadId/payments/new'
     | '/system/users/$userId/roles/new'
   fileRoutesById: FileRoutesById
 }
@@ -1112,6 +1275,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemAuditLogRouteImport
       parentRoute: typeof SystemRoute
     }
+    '/app/booths/': {
+      id: '/app/booths/'
+      path: '/booths'
+      fullPath: '/app/booths/'
+      preLoaderRoute: typeof AppBoothsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/booths/$boothId': {
+      id: '/app/booths/$boothId'
+      path: '/booths/$boothId'
+      fullPath: '/app/booths/$boothId'
+      preLoaderRoute: typeof AppBoothsBoothIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/booths/new': {
+      id: '/app/booths/new'
+      path: '/booths/new'
+      fullPath: '/app/booths/new'
+      preLoaderRoute: typeof AppBoothsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/campaign-links/$linkId': {
       id: '/app/campaign-links/$linkId'
       path: '/campaign-links/$linkId'
@@ -1208,6 +1392,27 @@ declare module '@tanstack/react-router' {
       path: '/exhibitions/new'
       fullPath: '/app/exhibitions/new'
       preLoaderRoute: typeof AppExhibitionsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-leads/': {
+      id: '/app/exhibitor-leads/'
+      path: '/exhibitor-leads'
+      fullPath: '/app/exhibitor-leads/'
+      preLoaderRoute: typeof AppExhibitorLeadsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-leads/board': {
+      id: '/app/exhibitor-leads/board'
+      path: '/exhibitor-leads/board'
+      fullPath: '/app/exhibitor-leads/board'
+      preLoaderRoute: typeof AppExhibitorLeadsBoardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-leads/new': {
+      id: '/app/exhibitor-leads/new'
+      path: '/exhibitor-leads/new'
+      fullPath: '/app/exhibitor-leads/new'
+      preLoaderRoute: typeof AppExhibitorLeadsNewRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/exports/': {
@@ -1511,6 +1716,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDevicesDeviceIdRevokeRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/exhibitor-leads/$leadId/': {
+      id: '/app/exhibitor-leads/$leadId/'
+      path: '/exhibitor-leads/$leadId'
+      fullPath: '/app/exhibitor-leads/$leadId/'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-leads/$leadId/booth': {
+      id: '/app/exhibitor-leads/$leadId/booth'
+      path: '/exhibitor-leads/$leadId/booth'
+      fullPath: '/app/exhibitor-leads/$leadId/booth'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdBoothRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-leads/$leadId/convert': {
+      id: '/app/exhibitor-leads/$leadId/convert'
+      path: '/exhibitor-leads/$leadId/convert'
+      fullPath: '/app/exhibitor-leads/$leadId/convert'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdConvertRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-leads/$leadId/invitation': {
+      id: '/app/exhibitor-leads/$leadId/invitation'
+      path: '/exhibitor-leads/$leadId/invitation'
+      fullPath: '/app/exhibitor-leads/$leadId/invitation'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdInvitationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-leads/$leadId/stage': {
+      id: '/app/exhibitor-leads/$leadId/stage'
+      path: '/exhibitor-leads/$leadId/stage'
+      fullPath: '/app/exhibitor-leads/$leadId/stage'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdStageRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/registrations/$registrationId/': {
       id: '/app/registrations/$registrationId/'
       path: '/registrations/$registrationId'
@@ -1560,6 +1800,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemUsersUserIdIndexRouteImport
       parentRoute: typeof SystemRoute
     }
+    '/app/exhibitor-leads/$leadId/payments/$paymentId': {
+      id: '/app/exhibitor-leads/$leadId/payments/$paymentId'
+      path: '/exhibitor-leads/$leadId/payments/$paymentId'
+      fullPath: '/app/exhibitor-leads/$leadId/payments/$paymentId'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdPaymentsPaymentIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-leads/$leadId/payments/new': {
+      id: '/app/exhibitor-leads/$leadId/payments/new'
+      path: '/exhibitor-leads/$leadId/payments/new'
+      fullPath: '/app/exhibitor-leads/$leadId/payments/new'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdPaymentsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/system/users/$userId/roles/new': {
       id: '/system/users/$userId/roles/new'
       path: '/users/$userId/roles/new'
@@ -1578,6 +1832,8 @@ interface AppRouteChildren {
   AppReportsRoute: typeof AppReportsRoute
   AppScansRoute: typeof AppScansRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppBoothsBoothIdRoute: typeof AppBoothsBoothIdRoute
+  AppBoothsNewRoute: typeof AppBoothsNewRoute
   AppCampaignLinksLinkIdRoute: typeof AppCampaignLinksLinkIdRoute
   AppCampaignLinksNewRoute: typeof AppCampaignLinksNewRoute
   AppCustomFieldsFieldIdRoute: typeof AppCustomFieldsFieldIdRoute
@@ -1587,6 +1843,8 @@ interface AppRouteChildren {
   AppEditionsNewRoute: typeof AppEditionsNewRoute
   AppExhibitionsExhibitionIdRoute: typeof AppExhibitionsExhibitionIdRoute
   AppExhibitionsNewRoute: typeof AppExhibitionsNewRoute
+  AppExhibitorLeadsBoardRoute: typeof AppExhibitorLeadsBoardRoute
+  AppExhibitorLeadsNewRoute: typeof AppExhibitorLeadsNewRoute
   AppExportsNewRoute: typeof AppExportsNewRoute
   AppFieldOptionsOptionIdRoute: typeof AppFieldOptionsOptionIdRoute
   AppFieldOptionsNewRoute: typeof AppFieldOptionsNewRoute
@@ -1604,11 +1862,13 @@ interface AppRouteChildren {
   AppVisitorLeadsBoardRoute: typeof AppVisitorLeadsBoardRoute
   AppVisitorLeadsNewRoute: typeof AppVisitorLeadsNewRoute
   AppVisitorLeadsRegistrationsRoute: typeof AppVisitorLeadsRegistrationsRoute
+  AppBoothsIndexRoute: typeof AppBoothsIndexRoute
   AppCampaignsIndexRoute: typeof AppCampaignsIndexRoute
   AppCustomFieldsIndexRoute: typeof AppCustomFieldsIndexRoute
   AppDevicesIndexRoute: typeof AppDevicesIndexRoute
   AppEditionsIndexRoute: typeof AppEditionsIndexRoute
   AppExhibitionsIndexRoute: typeof AppExhibitionsIndexRoute
+  AppExhibitorLeadsIndexRoute: typeof AppExhibitorLeadsIndexRoute
   AppExportsIndexRoute: typeof AppExportsIndexRoute
   AppFieldOptionsIndexRoute: typeof AppFieldOptionsIndexRoute
   AppFollowupsIndexRoute: typeof AppFollowupsIndexRoute
@@ -1619,13 +1879,20 @@ interface AppRouteChildren {
   AppVenuesIndexRoute: typeof AppVenuesIndexRoute
   AppVisitorLeadsIndexRoute: typeof AppVisitorLeadsIndexRoute
   AppDevicesDeviceIdRevokeRoute: typeof AppDevicesDeviceIdRevokeRoute
+  AppExhibitorLeadsLeadIdBoothRoute: typeof AppExhibitorLeadsLeadIdBoothRoute
+  AppExhibitorLeadsLeadIdConvertRoute: typeof AppExhibitorLeadsLeadIdConvertRoute
+  AppExhibitorLeadsLeadIdInvitationRoute: typeof AppExhibitorLeadsLeadIdInvitationRoute
+  AppExhibitorLeadsLeadIdStageRoute: typeof AppExhibitorLeadsLeadIdStageRoute
   AppRegistrationsRegistrationIdRevokeRoute: typeof AppRegistrationsRegistrationIdRevokeRoute
   AppVisitorLeadsLeadIdFollowupRoute: typeof AppVisitorLeadsLeadIdFollowupRoute
   AppVisitorLeadsLeadIdLogCallRoute: typeof AppVisitorLeadsLeadIdLogCallRoute
   AppVisitorLeadsLeadIdRegisterRoute: typeof AppVisitorLeadsLeadIdRegisterRoute
   AppDevicesDeviceIdIndexRoute: typeof AppDevicesDeviceIdIndexRoute
+  AppExhibitorLeadsLeadIdIndexRoute: typeof AppExhibitorLeadsLeadIdIndexRoute
   AppRegistrationsRegistrationIdIndexRoute: typeof AppRegistrationsRegistrationIdIndexRoute
   AppVisitorLeadsLeadIdIndexRoute: typeof AppVisitorLeadsLeadIdIndexRoute
+  AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute: typeof AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute
+  AppExhibitorLeadsLeadIdPaymentsNewRoute: typeof AppExhibitorLeadsLeadIdPaymentsNewRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1636,6 +1903,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppReportsRoute: AppReportsRoute,
   AppScansRoute: AppScansRoute,
   AppIndexRoute: AppIndexRoute,
+  AppBoothsBoothIdRoute: AppBoothsBoothIdRoute,
+  AppBoothsNewRoute: AppBoothsNewRoute,
   AppCampaignLinksLinkIdRoute: AppCampaignLinksLinkIdRoute,
   AppCampaignLinksNewRoute: AppCampaignLinksNewRoute,
   AppCustomFieldsFieldIdRoute: AppCustomFieldsFieldIdRoute,
@@ -1645,6 +1914,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppEditionsNewRoute: AppEditionsNewRoute,
   AppExhibitionsExhibitionIdRoute: AppExhibitionsExhibitionIdRoute,
   AppExhibitionsNewRoute: AppExhibitionsNewRoute,
+  AppExhibitorLeadsBoardRoute: AppExhibitorLeadsBoardRoute,
+  AppExhibitorLeadsNewRoute: AppExhibitorLeadsNewRoute,
   AppExportsNewRoute: AppExportsNewRoute,
   AppFieldOptionsOptionIdRoute: AppFieldOptionsOptionIdRoute,
   AppFieldOptionsNewRoute: AppFieldOptionsNewRoute,
@@ -1662,11 +1933,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppVisitorLeadsBoardRoute: AppVisitorLeadsBoardRoute,
   AppVisitorLeadsNewRoute: AppVisitorLeadsNewRoute,
   AppVisitorLeadsRegistrationsRoute: AppVisitorLeadsRegistrationsRoute,
+  AppBoothsIndexRoute: AppBoothsIndexRoute,
   AppCampaignsIndexRoute: AppCampaignsIndexRoute,
   AppCustomFieldsIndexRoute: AppCustomFieldsIndexRoute,
   AppDevicesIndexRoute: AppDevicesIndexRoute,
   AppEditionsIndexRoute: AppEditionsIndexRoute,
   AppExhibitionsIndexRoute: AppExhibitionsIndexRoute,
+  AppExhibitorLeadsIndexRoute: AppExhibitorLeadsIndexRoute,
   AppExportsIndexRoute: AppExportsIndexRoute,
   AppFieldOptionsIndexRoute: AppFieldOptionsIndexRoute,
   AppFollowupsIndexRoute: AppFollowupsIndexRoute,
@@ -1677,15 +1950,25 @@ const AppRouteChildren: AppRouteChildren = {
   AppVenuesIndexRoute: AppVenuesIndexRoute,
   AppVisitorLeadsIndexRoute: AppVisitorLeadsIndexRoute,
   AppDevicesDeviceIdRevokeRoute: AppDevicesDeviceIdRevokeRoute,
+  AppExhibitorLeadsLeadIdBoothRoute: AppExhibitorLeadsLeadIdBoothRoute,
+  AppExhibitorLeadsLeadIdConvertRoute: AppExhibitorLeadsLeadIdConvertRoute,
+  AppExhibitorLeadsLeadIdInvitationRoute:
+    AppExhibitorLeadsLeadIdInvitationRoute,
+  AppExhibitorLeadsLeadIdStageRoute: AppExhibitorLeadsLeadIdStageRoute,
   AppRegistrationsRegistrationIdRevokeRoute:
     AppRegistrationsRegistrationIdRevokeRoute,
   AppVisitorLeadsLeadIdFollowupRoute: AppVisitorLeadsLeadIdFollowupRoute,
   AppVisitorLeadsLeadIdLogCallRoute: AppVisitorLeadsLeadIdLogCallRoute,
   AppVisitorLeadsLeadIdRegisterRoute: AppVisitorLeadsLeadIdRegisterRoute,
   AppDevicesDeviceIdIndexRoute: AppDevicesDeviceIdIndexRoute,
+  AppExhibitorLeadsLeadIdIndexRoute: AppExhibitorLeadsLeadIdIndexRoute,
   AppRegistrationsRegistrationIdIndexRoute:
     AppRegistrationsRegistrationIdIndexRoute,
   AppVisitorLeadsLeadIdIndexRoute: AppVisitorLeadsLeadIdIndexRoute,
+  AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute:
+    AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute,
+  AppExhibitorLeadsLeadIdPaymentsNewRoute:
+    AppExhibitorLeadsLeadIdPaymentsNewRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

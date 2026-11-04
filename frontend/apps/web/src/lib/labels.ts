@@ -101,6 +101,11 @@ const LABELS: Record<string, Record<string, string>> = {
     multi_select: "Multi Select",
     checkbox: "Checkbox",
   },
+  sales_stage: { LEAD: "Lead", OPPORTUNITY: "Opportunity", EXHIBITOR: "Exhibitor", LOST: "Lost" },
+  contract_status: { DRAFT: "Draft", SIGNED: "Signed" },
+  payment_status: { PENDING: "Pending", VERIFIED: "Verified", REJECTED: "Rejected" },
+  payment_method: { BANK_TRANSFER: "Bank Transfer", CASH: "Cash", OTHER: "Other" },
+  payment_state: { UNPAID: "Unpaid", PARTIAL: "Partially Paid", PAID: "Paid" },
   option_field: {
     BUSINESS_TYPE: "Business Type",
     BRANCH: "Branch",

@@ -55,6 +55,9 @@ EMS_PUBLIC_BASE_URL=https://CHANGE_ME
 # Optional: campaign forms on their own address, e.g. https://events.example.com (links become
 # https://events.example.com/<token>). Empty: forms stay at <public URL>/r/<token>.
 EMS_CAMPAIGN_BASE_URL=
+# Exhibitor portal on its own address in production, e.g. https://exhibitor.example.com.
+# Empty (staging): the portal stays at <public URL>/exhibitor/.
+EMS_PORTAL_BASE_URL=
 EMS_SESSION_COOKIE_NAME=$cookie
 EMS_SESSION_COOKIE_SECURE=true
 EMS_SESSION_IDLE_TIMEOUT_SECONDS=7200
@@ -123,6 +126,14 @@ check() {
     ok "campaign forms at $forms"
   else
     warn "EMS_CAMPAIGN_BASE_URL should be https://<own host>, different from EMS_PUBLIC_BASE_URL"
+  fi
+  local portal; portal="$(get EMS_PORTAL_BASE_URL || true)"
+  if [[ -z "$portal" ]]; then
+    ok "exhibitor portal at $(get EMS_PUBLIC_BASE_URL)/exhibitor/"
+  elif [[ "$portal" =~ ^https://[A-Za-z0-9.-]+/?$ && "${portal%/}" != "$(get EMS_PUBLIC_BASE_URL)" ]]; then
+    ok "exhibitor portal at $portal"
+  else
+    warn "EMS_PORTAL_BASE_URL should be https://<own host>, different from EMS_PUBLIC_BASE_URL"
   fi
   for k in POSTGRES_PASSWORD STORAGE_SECRET_KEY; do
     local v; v="$(get "$k")"

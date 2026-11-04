@@ -11,6 +11,7 @@ mkdirSync(OUT, { recursive: true });
 
 export const PAGES = [
   "/app", "/app/visitor-leads", "/app/visitor-leads/board", "/app/visitor-leads/new", "/app/visitor-leads/assign",
+  "/app/exhibitor-leads", "/app/exhibitor-leads/board", "/app/exhibitor-leads/new", "/app/booths", "/app/booths/new",
   "/app/registrations", "/app/imports", "/app/imports/new", "/app/exports",
   "/app/exports/new", "/app/gates", "/app/gates/new", "/app/devices", "/app/devices/new", "/app/scans",
   "/app/reconciliation", "/app/overrides/new", "/app/reports", "/app/dashboard", "/app/dashboard?tab=daily", "/app/dashboard?tab=user", "/app/dashboard?tab=email", "/app/exhibitions", "/app/exhibitions/new",

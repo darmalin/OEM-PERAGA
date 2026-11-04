@@ -19,6 +19,9 @@ frontend/
 │   └── src/
 │       ├── lib/                # engine (scan, sync, cache), Dexie db, provisional decision, device API
 │       └── ui/                 # activation, scan screen, full-screen result, recent scans
+├── apps/exhibitor/             # exhibitor portal, at /exhibitor/ or on EMS_PORTAL_BASE_URL
+│   ├── e2e/pipeline.mjs        # exhibitor lead to paid through the desk and the portal
+│   └── src/                    # small app, no router library: lib.ts (routes, format), ui.tsx, pages/
 ├── packages/api/               # generated OpenAPI types + typed client (call, upload, downloadFile)
 └── packages/ui/                # shared design tokens (tokens.css) and cn()
 ```
@@ -37,7 +40,7 @@ Decisions that differ from the first plan, with the reason:
 |---|---|---|
 | Admin | `/app` | signed in; nav items filtered by permission (`shell/nav.ts`) |
 | System | `/system` | signed in; nav items filtered by permission |
-| Exhibitor | `/exhibitor` (reserved) | not built; see FEATURES/11 |
+| Exhibitor | `/exhibitor/` (own app, `apps/exhibitor`); own host in production (`EMS_PORTAL_BASE_URL`) | portal session (`ems_portal_session`), separate from staff; see docs/EXHIBITOR_LEADS_SALES_PIPELINE.md |
 
 ## Routing (TanStack Router)
 - File-based routes. URL shape follows Frappe:

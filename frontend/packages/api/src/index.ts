@@ -65,14 +65,16 @@ export async function upload<T>(path: string, form: FormData): Promise<T> {
   return body as T;
 }
 
-/** Download a file the API streams (e.g. the import template) and save it. */
-export async function downloadFile(path: string, filename: string): Promise<void> {
+/** Download a file the API streams (e.g. the import template) and save it. Without a name,
+ * the one in the response's Content-Disposition is used. */
+export async function downloadFile(path: string, filename?: string): Promise<void> {
   const res = await fetch(path, { credentials: "include" });
   if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
+  const served = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1];
   const url = URL.createObjectURL(await res.blob());
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;
+  a.download = filename ?? served ?? "download";
   a.click();
   URL.revokeObjectURL(url);
 }

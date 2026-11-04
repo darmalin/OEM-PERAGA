@@ -3,7 +3,7 @@ TEST_DB_URL = postgresql+asyncpg://ems:ems@postgres:5432/ems_test
 RUN_BACKEND = $(COMPOSE) run --rm --no-deps -T
 TEST_ENV = -e EMS_ENVIRONMENT=test -e EMS_DATABASE_URL=$(TEST_DB_URL) -e EMS_REDIS_URL=redis://redis:6379/15 -e EMS_EMAIL_BACKEND=memory
 
-.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell web scanner campaign web-check e2e e2e-scanner e2e-campaign
+.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell web scanner campaign portal web-check e2e e2e-scanner e2e-campaign e2e-portal
 
 up:
 	$(COMPOSE) up -d --build
@@ -49,6 +49,10 @@ scanner:
 campaign:
 	cd frontend && pnpm install && pnpm dev:campaign
 
+# Exhibitor portal dev server at http://localhost:5176/exhibitor/ (also behind :8080/exhibitor/).
+portal:
+	cd frontend && pnpm install && pnpm dev:portal
+
 web-check:
 	cd frontend && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
@@ -67,6 +71,11 @@ e2e-scanner:
 e2e-campaign:
 	cd frontend/apps/campaign && set -a && . ../../../.env && set +a && \
 	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/form.mjs
+
+# Exhibitor lead to paid, desk and portal; needs `make web` and `make portal` running.
+e2e-portal:
+	cd frontend/apps/exhibitor && set -a && . ../../../.env && set +a && \
+	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/pipeline.mjs
 
 shell:
 	$(COMPOSE) exec api sh

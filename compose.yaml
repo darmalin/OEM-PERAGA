@@ -103,6 +103,8 @@ services:
     environment:
       # Campaign forms on their own host (FEATURES/12); empty keeps them at /r/ on this host.
       EMS_CAMPAIGN_BASE_URL: ${EMS_CAMPAIGN_BASE_URL:-}
+      # Exhibitor portal on its own host; empty keeps it at /exhibitor/ on this host.
+      EMS_PORTAL_BASE_URL: ${EMS_PORTAL_BASE_URL:-}
     depends_on:
       api:
         condition: service_healthy

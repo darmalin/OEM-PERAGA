@@ -4,15 +4,34 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--dir", "frontend/apps/web", "dev"],
+      "runtimeArgs": [
+        "--dir",
+        "frontend/apps/web",
+        "dev"
+      ],
       "port": 5173
     },
     {
       "name": "scanner",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--dir", "frontend/apps/scanner", "dev"],
+      "runtimeArgs": [
+        "--dir",
+        "frontend/apps/scanner",
+        "dev"
+      ],
       "port": 5174,
       "url": "http://localhost:5174"
+    },
+    {
+      "name": "portal",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend/apps/exhibitor",
+        "dev"
+      ],
+      "port": 5176,
+      "url": "http://localhost:5176"
     }
   ]
 }

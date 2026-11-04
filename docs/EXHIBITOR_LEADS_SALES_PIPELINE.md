@@ -207,10 +207,16 @@ Catatan: rencana permission `exhibitor_contract.read` tidak dipakai; contract da
 `exhibitor_lead.read` dan scope lead-nya. Payment PENDING tidak bisa diedit: tolak lalu catat ulang.
 
 ### Phase 7: Frontend
-- [ ] Menu Exhibitor Leads (list, detail, board per stage)
-- [ ] Halaman booth
-- [ ] Panel portal `/exhibitor` (login, contract, payment)
-- [ ] E2E Playwright: lead → paid
+- [x] Menu **Exhibitors** di panel Admin: Exhibitor Leads (`exhibitor_lead.read`), Booths (`booth.manage` atau `exhibitor_lead.read`)
+- [x] Exhibitor Leads: list (cari, filter stage, per edition), board per stage (read-only), tambah lead, detail dengan tab Details / Contract / Payments / Activity
+- [x] Halaman aksi (bukan dialog, sesuai DESIGN.md): `/stage?to=` (Opportunity, Back to Lead, Lost + alasan, Reopen), `/booth` (pilih / lepas booth), `/convert` (link undangan ditampilkan sekali, tombol Copy), `/invitation` (link baru), `/payments/new`, `/payments/$paymentId` (bukti bayar, Verify / Reject)
+- [x] Contract di desk: isi PIC, alamat, NPWP, diskon; upload PDF bertanda tangan atas nama exhibitor; unduh PDF
+- [x] Halaman Booths: list (status Available / Held / Not for Sale, pemegang hanya untuk scope penuh), tambah ("Save and Add Another"), edit
+- [x] Portal `apps/exhibitor` (React, tanpa router library; base `/exhibitor/`): Set Your Password dari link undangan, Sign In, My Exhibitions, halaman exhibition (isi contract, upload PDF, unduh, status payment). Bahasa Inggris, light/dark, mobile
+- [x] nginx: `/exhibitor/` di host desk (dev: `make portal` di :5176 lewat `dev.conf`); prod dengan `EMS_PORTAL_BASE_URL`: `deployments/nginx/portal/` (host sendiri hanya melayani portal + `/api/v1/portal/`, link lama `/exhibitor/...` di-301 ke host baru). Panduan: `deployments/PRODUCTION.md` 4c
+- [x] E2E Playwright `apps/exhibitor/e2e/pipeline.mjs` (`make e2e-portal`): booth, lead, Opportunity, booth, Convert, undangan, password, contract, PDF, payment + bukti, Verify, Paid di desk dan portal. Halaman desk baru masuk `apps/web/e2e/smoke.mjs`
+
+Belum dibangun (FRONTEND_RULES/known-gaps.md W16, W17): memilih Lead Owner dari desk, dan drag di board.
 
 ### Phase 8: Dokumentasi & laporan
 - [ ] Update `FEATURES/11-exhibitor-portal.md` dan `FEATURES/README.md` (scope baru)

@@ -10,3 +10,4 @@ dist/
 openapi.json
 frontend/.corepack
 frontend/apps/web/*-out/
+frontend/apps/exhibitor/e2e-out/

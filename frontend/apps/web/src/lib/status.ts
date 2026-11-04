@@ -49,6 +49,17 @@ const TONES: Record<string, Tone> = {
   ENDED: "gray",
   FULL: "amber",
   EDITION_CLOSED: "gray",
+  // exhibitor sales
+  LEAD: "gray",
+  OPPORTUNITY: "blue",
+  EXHIBITOR: "green",
+  LOST: "red",
+  SIGNED: "green",
+  VERIFIED: "green",
+  REJECTED: "red",
+  UNPAID: "gray",
+  PARTIAL: "amber",
+  PAID: "green",
 };
 
 export function toneFor(status: string | null | undefined): Tone {

@@ -5,11 +5,12 @@
   "scripts": {
     "dev": "pnpm --filter @ems/web dev",
     "dev:scanner": "pnpm --filter @ems/scanner dev",
-    "build": "pnpm --filter @ems/web --filter @ems/scanner --filter @ems/campaign build",
+    "build": "pnpm --filter @ems/web --filter @ems/scanner --filter @ems/campaign --filter @ems/exhibitor build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "gen:api": "pnpm --filter @ems/api gen",
-    "dev:campaign": "pnpm --filter @ems/campaign dev"
+    "dev:campaign": "pnpm --filter @ems/campaign dev",
+    "dev:portal": "pnpm --filter @ems/exhibitor dev"
   }
 }

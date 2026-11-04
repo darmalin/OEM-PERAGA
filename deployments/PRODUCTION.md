@@ -142,6 +142,33 @@ Setelah itu link di menu Form dan QR poster otomatis memakai alamat baru. Link l
 dicetak tetap jalan. Kalau `EMS_CAMPAIGN_BASE_URL` salah format, container `nginx` berhenti dengan
 pesan di `docker compose logs nginx`.
 
+## 4c. Alamat khusus portal exhibitor (opsional, prod saja)
+
+Keputusan owner 2026-11-03: di prod portal exhibitor memakai subdomain sendiri, misalnya
+`exhibitor.example.com`. Di staging/dev portal ada di `<domain CRM>/exhibitor/`, jadi langkah ini
+dilewati. Alamat portal hanya membuka portal dan API portal; halaman admin, API staff, dan scanner
+dijawab 404, dan cookie login portal tidak pernah terkirim ke domain CRM.
+
+1. DNS `exhibitor.example.com` diarahkan ke IP server.
+2. Isi `.env` prod (dipakai API untuk link undangan, dan nginx untuk host-nya):
+   ```bash
+   EMS_PORTAL_BASE_URL=https://exhibitor.example.com
+   ```
+3. nginx host, port sama dengan CRM (prod 8081):
+   ```bash
+   sudo cp /srv/ems-prod/deployments/nginx/host-portal.conf.example /etc/nginx/sites-available/ems-exhibitor
+   sudo sed -i 's/DOMAIN/exhibitor.example.com/; s/PORT/8081/g' /etc/nginx/sites-available/ems-exhibitor
+   sudo ln -sf /etc/nginx/sites-available/ems-exhibitor /etc/nginx/sites-enabled/
+   sudo nginx -t && sudo systemctl reload nginx
+   sudo certbot --nginx -d exhibitor.example.com
+   ```
+4. `deployments/setup.sh check`, lalu `docker compose up -d --build`. Log `nginx` menampilkan
+   `16-portal-host: exhibitor portal on https://exhibitor.example.com`.
+
+Link undangan yang dibuat setelah itu memakai alamat baru. Link lama (`<domain CRM>/exhibitor/...`)
+dialihkan ke alamat baru beserta token-nya. Kalau `EMS_PORTAL_BASE_URL` salah format, container
+`nginx` berhenti dengan pesan di `docker compose logs nginx`.
+
 ## 5. Cek, jalankan, buat Super Admin
 
 Di tiap folder:

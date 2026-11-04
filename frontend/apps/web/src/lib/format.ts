@@ -22,6 +22,14 @@ export function formatNumber(value: number | null | undefined): string {
   return value == null ? "" : new Intl.NumberFormat("en").format(value);
 }
 
+/** Decimal strings from the API (Numeric(14,2)) with their currency code: "IDR 15,000,000". */
+export function formatMoney(value: string | null | undefined, currency: string): string {
+  if (value == null) return "";
+  const amount = Number(value);
+  const whole = Number.isInteger(amount);
+  return `${currency} ${new Intl.NumberFormat("en", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 }).format(amount)}`;
+}
+
 export function formatPercent(value: number | null | undefined): string {
   return value == null ? "n/a" : `${Math.round(value * 1000) / 10}%`;
 }

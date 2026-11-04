@@ -6,7 +6,8 @@ closes or adds a gap. Backend gaps are in `BACKEND_RULES/known-gaps.md`.
 | # | Pri | Gap | Fix |
 |---|---|---|---|
 | W15 | P2 | Since the Follow-ups list and My Calls were removed (2026-10-28), there is no page of follow-ups due today or overdue across leads. Agents find them with the Next Follow-up filter on Visitor Leads or on board cards. | Ask the owner whether a saved filter ("Due today", "Overdue") on Visitor Leads is enough. |
-| W1 | P1 | Exhibitor panel not built: outside spec phase 1 and no backend. | Decisions E1 to E6 in `FEATURES/11-exhibitor-portal.md`, then backend, then the panel. |
+| W16 | P2 | Exhibitor leads show their Lead Owner but the desk cannot set or change it: there is no endpoint listing who may own exhibitor leads (`/api/v1/users` needs `user.manage`). A user with Own Leads scope owns what they create. | Backend: assignable-owners endpoint for `exhibitor_lead.update` (like `visitor-leads/assignable-agents`), then an owner select on the lead. |
+| W17 | P3 | The Exhibitor Leads board is read-only: stages move from the lead page (moves need a reason for Lost, and Convert has its own page). | Drag between Lead and Opportunity if sales work the board. |
 | W2 | P1 | Scanner PWA is built and served at `/scanner/`, but in production the camera is blocked: nginx sends `camera=()` for every location (backend gap S5). Manual code entry works meanwhile. | nginx: `camera=(self)` on `/scanner/` only. |
 | W9 | P2 | Scanner FIRST/REPEAT with a real QR on a phone camera is not run end to end; the offline E2E uses unknown codes, and FIRST/REPEAT is covered by unit tests against a fake server. | Run on a phone over HTTPS with a registration's QR email once S5 is fixed. |
 | W11 | P2 | The board loads 50 cards per column; more are reached through the "more in the list" link, not by scrolling the column. | Infinite scroll per column if teams work the board instead of the list. |

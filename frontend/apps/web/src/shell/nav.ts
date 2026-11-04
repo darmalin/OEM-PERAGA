@@ -7,9 +7,11 @@ import {
   DoorOpen,
   FileDown,
   FileUp,
+  Handshake,
   Gauge,
   HeartPulse,
   KeyRound,
+  LayoutGrid,
   LayoutDashboard,
   ListChecks,
   Mail,
@@ -71,6 +73,13 @@ export const PANELS: PanelDef[] = [
           { label: "Visitor Leads", to: "/app/visitor-leads", icon: Users, perms: ["visitor.read"] },
           { label: "Imports", to: "/app/imports", icon: FileUp, perms: ["visitor.import"] },
           { label: "Exports", to: "/app/exports", icon: FileDown, perms: ["visitor.export", "report.export"] },
+        ],
+      },
+      {
+        label: "Exhibitors",
+        items: [
+          { label: "Exhibitor Leads", to: "/app/exhibitor-leads", icon: Handshake, perms: ["exhibitor_lead.read"] },
+          { label: "Booths", to: "/app/booths", icon: LayoutGrid, perms: ["booth.manage", "exhibitor_lead.read"] },
         ],
       },
       {
