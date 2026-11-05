@@ -35,7 +35,8 @@ stage of the lead, not another table or menu.
 ## What is built
 
 **Desk (Admin panel, menu "Exhibitors")**
-- Exhibitor Leads: list (search, stage filter), board by stage, new lead, detail with Details,
+- Exhibitor Leads: list (search, stage and owner filters), board by stage (drag a card or use its
+  Move to menu; Lost and Convert open their pages, as does leaving Opportunity with a booth), new lead, detail with Details,
   Contract, Payments, and Activity tabs. Actions are pages: move stage, choose booth, Convert
   (shows the one-time invitation link), new invitation link, record payment, payment proof and
   Verify / Reject.
@@ -77,6 +78,5 @@ stage of the lead, not another table or menu.
 
 ## Known gaps
 
-- The board is read-only (FRONTEND_RULES/known-gaps.md W17).
 - Edition remarks and exhibitor dates (price periods, Order Expired, Catalog Expired) are still
   display only (FEATURES/02, W13).

@@ -31,6 +31,9 @@ migrate service does both) for the new `contracts` bucket.
 - **Lead Owner**: edition-wide users assign or reassign exhibitor leads (lead page, and on
   the new-lead form); the list filters by owner. Only active users who can edit exhibitor leads
   in that edition can own one.
+- **Board**: drag an exhibitor lead to another stage, or use the card's Move to menu. Lead to
+  Opportunity and reopening a Lost lead move at once; Lost asks for a reason, Exhibitor opens
+  Convert (or Choose Booth first), and leaving Opportunity with a booth confirms the release.
 - **Reopen Contract**: an Exhibition Admin can put a signed contract back to Draft with a reason,
   for example after a wrong PDF. Not possible while it has pending or verified payments.
 

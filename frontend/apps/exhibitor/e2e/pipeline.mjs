@@ -30,6 +30,16 @@ for (const [name, page] of [["desk", desk], ["portal", portal]]) {
   page.on("pageerror", (e) => errors.push(`${name}: ${e}`));
 }
 const toast = (text) => desk.locator("[data-sonner-toast]", { hasText: text }).first().waitFor({ timeout: 10000 });
+/** Native HTML5 drag with real mouse steps; Playwright's dragTo did not start one on the board. */
+async function drag(page, source, target) {
+  const a = await source.boundingBox();
+  const b = await target.boundingBox();
+  const [x0, y0, x1, y1] = [a.x + a.width / 2, a.y + a.height - 15, b.x + b.width / 2, b.y + 60];
+  await page.mouse.move(x0, y0);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) await page.mouse.move(x0 + ((x1 - x0) * i) / 10, y0 + ((y1 - y0) * i) / 10, { steps: 2 });
+  await page.mouse.up();
+}
 const shot = (page, name) => page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
 
 try {
@@ -63,10 +73,27 @@ try {
   await desk.getByRole("link", { name: "Reassign" }).waitFor();
   check(true, "lead owner assigned");
 
-  await desk.getByRole("link", { name: "Mark Opportunity" }).click();
-  await desk.getByRole("button", { name: "Move to Opportunity" }).click();
+  // Board: drag the card from Lead to Opportunity, then read its menu.
+  const leadUrl = desk.url();
+  await desk.goto(`${DESK}/app/exhibitor-leads/board`);
+  const card = desk.locator("article", { hasText: company });
+  await card.waitFor();
+  await drag(desk, card, desk.getByRole("listitem", { name: /^Opportunity,/ }));
   await toast("Moved to Opportunity");
-  check(true, "moved to Opportunity");
+  await desk.getByRole("listitem", { name: /^Opportunity,/ }).locator("article", { hasText: company }).waitFor();
+  check(true, "dragged to Opportunity on the board");
+  await desk.getByRole("button", { name: `Move ${company}` }).click();
+  const menu = await desk.getByRole("menuitem").allTextContents();
+  check(
+    JSON.stringify(menu) === JSON.stringify(["Lead", "Lost", "Exhibitor (choose a booth first)"]),
+    `card menu offers ${menu.join(", ")}`,
+  );
+  await desk.keyboard.press("Escape");
+  // Lost needs a reason: dropping there opens the stage page instead of moving.
+  await drag(desk, desk.locator("article", { hasText: company }), desk.getByRole("listitem", { name: /^Lost,/ }));
+  await desk.getByRole("heading", { name: "Move to Lost" }).waitFor();
+  check(true, "drop on Lost opens the reason page");
+  await desk.goto(leadUrl);
 
   await desk.getByRole("link", { name: "Choose Booth" }).click();
   await desk.getByRole("radio", { name: new RegExp(boothCode) }).check();
