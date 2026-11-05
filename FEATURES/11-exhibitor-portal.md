@@ -49,6 +49,10 @@ stage of the lead, not another table or menu.
   contract details form, signed PDF upload, signed PDF download, payment status.
 - Own cookie (`ems_portal_session`) and Redis session namespace; staff and portal sessions never
   open each other's API.
+- Forgotten password: staff make a **password reset link** from the lead (same page as a new
+  invitation, valid 24 hours). Using it sets a new password and ends the exhibitor's other
+  sessions. Staff can also **disable** the account (ends its sessions, closes the portal for every
+  edition, cancels open links) and enable it again.
 
 **Permissions** (Super Admin and Exhibition Admin by default): `exhibitor_lead.read`,
 `exhibitor_lead.create`, `exhibitor_lead.update`, `booth.manage`, `exhibitor.invite`,
@@ -67,7 +71,6 @@ stage of the lead, not another table or menu.
 
 ## Known gaps
 
-- Portal: no forgot-password, accounts cannot be deactivated (BACKEND_RULES/known-gaps.md F6, F7).
 - A signed contract cannot be reopened when the wrong PDF was uploaded (F8).
 - The desk cannot set the Lead Owner of an exhibitor lead; the board is read-only
   (FRONTEND_RULES/known-gaps.md W16, W17).

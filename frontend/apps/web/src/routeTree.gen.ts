@@ -91,6 +91,7 @@ import { Route as AppExhibitorLeadsLeadIdIndexRouteImport } from './routes/app/e
 import { Route as AppExhibitorLeadsLeadIdBoothRouteImport } from './routes/app/exhibitor-leads/$leadId/booth'
 import { Route as AppExhibitorLeadsLeadIdConvertRouteImport } from './routes/app/exhibitor-leads/$leadId/convert'
 import { Route as AppExhibitorLeadsLeadIdInvitationRouteImport } from './routes/app/exhibitor-leads/$leadId/invitation'
+import { Route as AppExhibitorLeadsLeadIdPortalAccountRouteImport } from './routes/app/exhibitor-leads/$leadId/portal-account'
 import { Route as AppExhibitorLeadsLeadIdStageRouteImport } from './routes/app/exhibitor-leads/$leadId/stage'
 import { Route as AppRegistrationsRegistrationIdIndexRouteImport } from './routes/app/registrations/$registrationId/index'
 import { Route as AppRegistrationsRegistrationIdRevokeRouteImport } from './routes/app/registrations/$registrationId/revoke'
@@ -523,6 +524,12 @@ const AppExhibitorLeadsLeadIdInvitationRoute =
     path: '/exhibitor-leads/$leadId/invitation',
     getParentRoute: () => AppRoute,
   } as any)
+const AppExhibitorLeadsLeadIdPortalAccountRoute =
+  AppExhibitorLeadsLeadIdPortalAccountRouteImport.update({
+    id: '/exhibitor-leads/$leadId/portal-account',
+    path: '/exhibitor-leads/$leadId/portal-account',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppExhibitorLeadsLeadIdStageRoute =
   AppExhibitorLeadsLeadIdStageRouteImport.update({
     id: '/exhibitor-leads/$leadId/stage',
@@ -670,6 +677,7 @@ export interface FileRoutesByFullPath {
   '/app/exhibitor-leads/$leadId/booth': typeof AppExhibitorLeadsLeadIdBoothRoute
   '/app/exhibitor-leads/$leadId/convert': typeof AppExhibitorLeadsLeadIdConvertRoute
   '/app/exhibitor-leads/$leadId/invitation': typeof AppExhibitorLeadsLeadIdInvitationRoute
+  '/app/exhibitor-leads/$leadId/portal-account': typeof AppExhibitorLeadsLeadIdPortalAccountRoute
   '/app/exhibitor-leads/$leadId/stage': typeof AppExhibitorLeadsLeadIdStageRoute
   '/app/registrations/$registrationId/revoke': typeof AppRegistrationsRegistrationIdRevokeRoute
   '/app/visitor-leads/$leadId/followup': typeof AppVisitorLeadsLeadIdFollowupRoute
@@ -763,6 +771,7 @@ export interface FileRoutesByTo {
   '/app/exhibitor-leads/$leadId/booth': typeof AppExhibitorLeadsLeadIdBoothRoute
   '/app/exhibitor-leads/$leadId/convert': typeof AppExhibitorLeadsLeadIdConvertRoute
   '/app/exhibitor-leads/$leadId/invitation': typeof AppExhibitorLeadsLeadIdInvitationRoute
+  '/app/exhibitor-leads/$leadId/portal-account': typeof AppExhibitorLeadsLeadIdPortalAccountRoute
   '/app/exhibitor-leads/$leadId/stage': typeof AppExhibitorLeadsLeadIdStageRoute
   '/app/registrations/$registrationId/revoke': typeof AppRegistrationsRegistrationIdRevokeRoute
   '/app/visitor-leads/$leadId/followup': typeof AppVisitorLeadsLeadIdFollowupRoute
@@ -859,6 +868,7 @@ export interface FileRoutesById {
   '/app/exhibitor-leads/$leadId/booth': typeof AppExhibitorLeadsLeadIdBoothRoute
   '/app/exhibitor-leads/$leadId/convert': typeof AppExhibitorLeadsLeadIdConvertRoute
   '/app/exhibitor-leads/$leadId/invitation': typeof AppExhibitorLeadsLeadIdInvitationRoute
+  '/app/exhibitor-leads/$leadId/portal-account': typeof AppExhibitorLeadsLeadIdPortalAccountRoute
   '/app/exhibitor-leads/$leadId/stage': typeof AppExhibitorLeadsLeadIdStageRoute
   '/app/registrations/$registrationId/revoke': typeof AppRegistrationsRegistrationIdRevokeRoute
   '/app/visitor-leads/$leadId/followup': typeof AppVisitorLeadsLeadIdFollowupRoute
@@ -956,6 +966,7 @@ export interface FileRouteTypes {
     | '/app/exhibitor-leads/$leadId/booth'
     | '/app/exhibitor-leads/$leadId/convert'
     | '/app/exhibitor-leads/$leadId/invitation'
+    | '/app/exhibitor-leads/$leadId/portal-account'
     | '/app/exhibitor-leads/$leadId/stage'
     | '/app/registrations/$registrationId/revoke'
     | '/app/visitor-leads/$leadId/followup'
@@ -1049,6 +1060,7 @@ export interface FileRouteTypes {
     | '/app/exhibitor-leads/$leadId/booth'
     | '/app/exhibitor-leads/$leadId/convert'
     | '/app/exhibitor-leads/$leadId/invitation'
+    | '/app/exhibitor-leads/$leadId/portal-account'
     | '/app/exhibitor-leads/$leadId/stage'
     | '/app/registrations/$registrationId/revoke'
     | '/app/visitor-leads/$leadId/followup'
@@ -1144,6 +1156,7 @@ export interface FileRouteTypes {
     | '/app/exhibitor-leads/$leadId/booth'
     | '/app/exhibitor-leads/$leadId/convert'
     | '/app/exhibitor-leads/$leadId/invitation'
+    | '/app/exhibitor-leads/$leadId/portal-account'
     | '/app/exhibitor-leads/$leadId/stage'
     | '/app/registrations/$registrationId/revoke'
     | '/app/visitor-leads/$leadId/followup'
@@ -1744,6 +1757,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExhibitorLeadsLeadIdInvitationRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/exhibitor-leads/$leadId/portal-account': {
+      id: '/app/exhibitor-leads/$leadId/portal-account'
+      path: '/exhibitor-leads/$leadId/portal-account'
+      fullPath: '/app/exhibitor-leads/$leadId/portal-account'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdPortalAccountRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/exhibitor-leads/$leadId/stage': {
       id: '/app/exhibitor-leads/$leadId/stage'
       path: '/exhibitor-leads/$leadId/stage'
@@ -1882,6 +1902,7 @@ interface AppRouteChildren {
   AppExhibitorLeadsLeadIdBoothRoute: typeof AppExhibitorLeadsLeadIdBoothRoute
   AppExhibitorLeadsLeadIdConvertRoute: typeof AppExhibitorLeadsLeadIdConvertRoute
   AppExhibitorLeadsLeadIdInvitationRoute: typeof AppExhibitorLeadsLeadIdInvitationRoute
+  AppExhibitorLeadsLeadIdPortalAccountRoute: typeof AppExhibitorLeadsLeadIdPortalAccountRoute
   AppExhibitorLeadsLeadIdStageRoute: typeof AppExhibitorLeadsLeadIdStageRoute
   AppRegistrationsRegistrationIdRevokeRoute: typeof AppRegistrationsRegistrationIdRevokeRoute
   AppVisitorLeadsLeadIdFollowupRoute: typeof AppVisitorLeadsLeadIdFollowupRoute
@@ -1954,6 +1975,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppExhibitorLeadsLeadIdConvertRoute: AppExhibitorLeadsLeadIdConvertRoute,
   AppExhibitorLeadsLeadIdInvitationRoute:
     AppExhibitorLeadsLeadIdInvitationRoute,
+  AppExhibitorLeadsLeadIdPortalAccountRoute:
+    AppExhibitorLeadsLeadIdPortalAccountRoute,
   AppExhibitorLeadsLeadIdStageRoute: AppExhibitorLeadsLeadIdStageRoute,
   AppRegistrationsRegistrationIdRevokeRoute:
     AppRegistrationsRegistrationIdRevokeRoute,

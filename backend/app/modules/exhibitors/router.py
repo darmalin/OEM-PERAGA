@@ -38,6 +38,8 @@ from app.modules.exhibitors.schemas import (
     PaymentsOut,
     PipelineOut,
     PipelineParams,
+    PortalAccountOut,
+    PortalAccountUpdateIn,
     PortalLoginIn,
     PortalMeOut,
     PortalPaymentsOut,
@@ -311,6 +313,25 @@ def _download(chunks: Iterator[bytes], filename: str, media_type: str = PDF) -> 
     )
 
 
+@router.get("/exhibitor-leads/{lead_id}/portal-account", response_model=PortalAccountOut)
+async def get_portal_account(
+    lead_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_lead.read")),
+) -> PortalAccountOut:
+    return await service.get_portal_account(session, ctx, lead_id)
+
+
+@router.put("/exhibitor-leads/{lead_id}/portal-account", response_model=PortalAccountOut)
+async def set_portal_account_active(
+    lead_id: uuid.UUID,
+    data: PortalAccountUpdateIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor.invite")),
+) -> PortalAccountOut:
+    return await service.set_portal_account_active(session, ctx, lead_id, data)
+
+
 # --- exhibitor portal --------------------------------------------------------------------
 
 
@@ -337,8 +358,8 @@ def _set_portal_cookie(response: Response, session_id: str) -> None:
 async def inspect_invitation(
     data: InvitationTokenIn, request: Request, session: Session
 ) -> InvitationInfoOut:
-    email = await portal.invitation_email(session, data.token, _client_ip(request))
-    return InvitationInfoOut(email=email)
+    email, purpose = await portal.invitation_info(session, data.token, _client_ip(request))
+    return InvitationInfoOut(email=email, purpose=purpose)
 
 
 @portal_router.post("/invitations/accept", response_model=PortalMeOut)

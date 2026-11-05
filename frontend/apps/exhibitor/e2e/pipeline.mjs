@@ -1,6 +1,7 @@
 // Exhibitor lead to paid, through the desk and the exhibitor portal UIs (FRONTEND_RULES/testing.md).
 // Desk: booth, lead, Opportunity, booth hold, Convert. Portal: invitation link, password, contract,
-// signed PDF. Desk: payment with proof, Verify. Portal: Paid.
+// signed PDF. Desk: payment with proof, Verify. Portal: Paid. Then a password reset link and
+// disabling / enabling the portal account.
 //   EMS_URL=http://localhost:5173 EMS_EMAIL=... EMS_PASSWORD=... CHROMIUM=/snap/bin/chromium node e2e/pipeline.mjs
 // The invitation link points at EMS_PUBLIC_BASE_URL/exhibitor (nginx :8080 -> `make portal`).
 import { mkdirSync } from "node:fs";
@@ -118,6 +119,43 @@ try {
   await portal.getByRole("heading", { name: "Payments" }).waitFor();
   check(await portal.getByText("Paid", { exact: true }).first().isVisible(), "portal shows Paid");
   await shot(portal, "portal-paid");
+
+  // Forgotten password: staff make a reset link; the old session ends when it is used.
+  await desk.getByRole("link", { name: "Password Reset Link" }).click();
+  await desk.getByRole("button", { name: "Create Link" }).click();
+  const resetBox = desk.getByLabel("Password Reset Link");
+  await resetBox.waitFor();
+  const resetUrl = await resetBox.inputValue();
+  const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  phone.on("pageerror", (e) => errors.push(`phone: ${e}`));
+  await phone.goto(resetUrl);
+  await phone.getByRole("heading", { name: "Reset Your Password" }).waitFor();
+  await phone.getByLabel("New Password").fill(`exhibitor-${run}-new`);
+  await phone.getByLabel("Confirm Password").fill(`exhibitor-${run}-new`);
+  await phone.getByRole("button", { name: "Save Password and Sign In" }).click();
+  await phone.getByRole("heading", { name: "My Exhibitions" }).waitFor();
+  await portal.reload();
+  await portal.getByRole("heading", { name: "Sign In" }).waitFor();
+  check(true, "password reset by link, other session signed out");
+
+  // Disable, then enable the account.
+  await desk.getByRole("link", { name: "Done" }).click();
+  await desk.getByRole("link", { name: "Disable Account" }).click();
+  await desk.getByRole("button", { name: "Disable Account" }).click();
+  await toast("Portal account disabled");
+  await phone.reload();
+  await phone.getByRole("heading", { name: "Sign In" }).waitFor();
+  await phone.getByLabel("Email").fill(`exhibitor-${run}@example.test`);
+  await phone.getByLabel("Password").fill(`exhibitor-${run}-new`);
+  await phone.getByRole("button", { name: "Sign In" }).click();
+  await phone.getByText("Invalid email or password.").waitFor();
+  await desk.getByRole("link", { name: "Enable Account" }).click();
+  await desk.getByRole("button", { name: "Enable Account" }).click();
+  await toast("Portal account enabled");
+  await phone.getByRole("button", { name: "Sign In" }).click();
+  await phone.getByRole("heading", { name: "My Exhibitions" }).waitFor();
+  check(true, "disabled account cannot sign in; enabled again it can");
+  await shot(desk, "desk-portal-account");
 
   check(errors.length === 0, `no page errors ${errors.join(" | ")}`);
 } catch (e) {

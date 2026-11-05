@@ -4,9 +4,10 @@ import { type FormEvent, useEffect, useState } from "react";
 import { type Me, messageOf, navigate } from "../lib";
 import { Button, Field, Input, Notice, Panel } from "../ui";
 
-type State = { kind: "checking" } | { kind: "invalid" } | { kind: "error"; message: string } | { kind: "ready"; email: string };
+type State = { kind: "checking" } | { kind: "invalid" } | { kind: "error"; message: string } | { kind: "ready"; email: string; reset: boolean };
 
-/** The one-time link from the sales team: set a password, then the portal opens signed in. */
+/** The one-time link from the sales team: set the first password, or a new one after a reset.
+ * Then the portal opens signed in; a reset signs out every other session. */
 export function AcceptInvite({ token, onDone }: { token: string; onDone: (me: Me) => void }) {
   const [state, setState] = useState<State>(token ? { kind: "checking" } : { kind: "invalid" });
   const [password, setPassword] = useState("");
@@ -18,7 +19,7 @@ export function AcceptInvite({ token, onDone }: { token: string; onDone: (me: Me
     if (!token) return;
     let gone = false;
     call(api.POST("/api/v1/portal/invitations/inspect", { body: { token } }))
-      .then((r) => !gone && setState({ kind: "ready", email: r.email }))
+      .then((r) => !gone && setState({ kind: "ready", email: r.email, reset: r.purpose === "PASSWORD_RESET" }))
       .catch((e: unknown) => {
         if (gone) return;
         setState(e instanceof ApiError && e.status < 500 && e.status !== 429 ? { kind: "invalid" } : { kind: "error", message: messageOf(e) });
@@ -50,7 +51,7 @@ export function AcceptInvite({ token, onDone }: { token: string; onDone: (me: Me
 
   return (
     <div className="mx-auto max-w-[420px]">
-      <h1 className="mb-1 text-[24px] leading-8 font-semibold tracking-[-0.01em]">Set Your Password</h1>
+      <h1 className="mb-1 text-[24px] leading-8 font-semibold tracking-[-0.01em]">{state.kind === "ready" && state.reset ? "Reset Your Password" : "Set Your Password"}</h1>
       {state.kind === "checking" ? (
         <p role="status" className="py-8 text-label">Checking the link</p>
       ) : state.kind === "invalid" ? (
@@ -62,7 +63,10 @@ export function AcceptInvite({ token, onDone }: { token: string; onDone: (me: Me
         <div className="mt-4"><Notice>{state.message}</Notice></div>
       ) : (
         <>
-          <p className="mb-6 text-[14px] text-muted">For <span className="font-medium text-ink">{state.email}</span>. You sign in with this email and password from now on.</p>
+          <p className="mb-6 text-[14px] text-muted">
+            For <span className="font-medium text-ink">{state.email}</span>.{" "}
+            {state.reset ? "The new password replaces the old one, and you are signed out on other devices." : "You sign in with this email and password from now on."}
+          </p>
           <Panel>
             <form onSubmit={(e) => void submit(e)} noValidate className="flex flex-col gap-4">
               {errors.form ? <Notice>{errors.form}</Notice> : null}
@@ -74,7 +78,7 @@ export function AcceptInvite({ token, onDone }: { token: string; onDone: (me: Me
               <Field label="Confirm Password" required error={errors.confirm}>
                 {(p) => <Input {...p} type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />}
               </Field>
-              <Button type="submit" variant="primary" loading={busy} disabled={!password}>Set Password and Sign In</Button>
+              <Button type="submit" variant="primary" loading={busy} disabled={!password}>{state.reset ? "Save Password and Sign In" : "Set Password and Sign In"}</Button>
             </form>
           </Panel>
         </>

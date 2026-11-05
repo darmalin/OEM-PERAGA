@@ -113,7 +113,7 @@ async def test_invitation_to_portal_session() -> None:
     token = token_of(converted["invitation"])
 
     r = await portal_client().post(f"{PORTAL}/invitations/inspect", json={"token": token})
-    assert r.json() == {"email": "booth-001@example.test"}
+    assert r.json() == {"email": "booth-001@example.test", "purpose": "INVITATION"}
 
     _, r = await accept(token, "short")
     assert r.status_code == 422
@@ -190,8 +190,7 @@ async def test_expired_and_reissued_invitations() -> None:
     new = token_of((await admin.post(f"{LEADS}/{lead_id}/portal-invitation")).json())
     assert (await accept(new))[1].status_code == 200
     r = await admin.post(f"{LEADS}/{lead_id}/portal-invitation")
-    assert r.status_code == 409
-    assert r.json()["error"]["code"] == "ACCOUNT_ALREADY_ACTIVE"
+    assert r.json()["purpose"] == "PASSWORD_RESET"  # active account: the link resets
 
 
 async def test_returning_exhibitor_reuses_the_account() -> None:

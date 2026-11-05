@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
-from app.core import audit
+from app.core import audit, sessions
 from app.core.authorization import AuthContext, Scope
 from app.core.config import get_settings
 from app.core.context import current_actor_id
@@ -61,6 +61,8 @@ from app.modules.exhibitors.schemas import (
     PaymentTotals,
     PipelineMoney,
     PipelineOut,
+    PortalAccountOut,
+    PortalAccountUpdateIn,
     PortalPaymentOut,
     PortalPaymentsOut,
     StageChangeIn,
@@ -504,12 +506,20 @@ def portal_url(path: str) -> str:
 
 
 def _issue_invitation(account: ExhibitorAccount) -> InvitationOut:
-    """New single-use link; any earlier link of the account stops working."""
+    """New single-use link; any earlier link of the account stops working. On an account with a
+    password the link resets it (known-gaps F6: no email needed, staff send it)."""
+    s = get_settings()
+    reset = account.password_hash is not None
     token = new_token()
-    expires_at = datetime.now(UTC) + timedelta(seconds=get_settings().portal_invite_ttl_seconds)
+    ttl = s.portal_reset_ttl_seconds if reset else s.portal_invite_ttl_seconds
+    expires_at = datetime.now(UTC) + timedelta(seconds=ttl)
     account.invite_token_hash = sha256_hex(token)
     account.invite_expires_at = expires_at
-    return InvitationOut(url=portal_url(f"accept-invite?token={token}"), expires_at=expires_at)
+    return InvitationOut(
+        url=portal_url(f"accept-invite?token={token}"),
+        expires_at=expires_at,
+        purpose="PASSWORD_RESET" if reset else "INVITATION",
+    )
 
 
 async def _account_for(
@@ -606,18 +616,34 @@ async def convert(
     )
 
 
-async def reissue_invitation(
-    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID
-) -> InvitationOut:
-    """New invitation link for an exhibitor whose account has no password yet."""
+async def _lead_account(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, *, for_update: bool = False
+) -> tuple[ExhibitorLead, ExhibitorAccount]:
     scope = await _scope_for_lead(session, ctx, lead_id)
     lead = await _get(session, scope, lead_id)
     if lead.exhibitor_account_id is None:
         raise ValidationFailed("Convert the lead first.", code="NOT_AN_EXHIBITOR")
-    account = await repo.get_account(session, lead.exhibitor_account_id, for_update=True)
+    account = await repo.get_account(session, lead.exhibitor_account_id, for_update=for_update)
     assert account is not None  # noqa: S101 - FK
-    if account.password_hash is not None:
-        raise Conflict("The account is already active.", code="ACCOUNT_ALREADY_ACTIVE")
+    return lead, account
+
+
+def _account_out(account: ExhibitorAccount) -> PortalAccountOut:
+    return PortalAccountOut(
+        email=account.email,
+        is_active=account.is_active,
+        has_password=account.password_hash is not None,
+        activated_at=account.activated_at,
+        last_login_at=account.last_login_at,
+        link_expires_at=account.invite_expires_at,
+    )
+
+
+async def reissue_invitation(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID
+) -> InvitationOut:
+    """New link: an invitation while the account has no password, a password reset after."""
+    lead, account = await _lead_account(session, ctx, lead_id, for_update=True)
     if not account.is_active:
         raise Conflict("The portal account is deactivated.", code="ACCOUNT_INACTIVE")
     invitation = _issue_invitation(account)
@@ -627,11 +653,48 @@ async def reissue_invitation(
         session,
         entity_type=ACCOUNT_ENTITY,
         entity_id=account.id,
-        action="invite",
+        action="invite" if invitation.purpose == "INVITATION" else "password_link",
         after={"invite_expires_at": invitation.expires_at},
         edition_id=lead.edition_id,
     )
     return invitation
+
+
+async def get_portal_account(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID
+) -> PortalAccountOut:
+    return _account_out((await _lead_account(session, ctx, lead_id))[1])
+
+
+async def set_portal_account_active(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, data: PortalAccountUpdateIn
+) -> PortalAccountOut:
+    """Disable or enable the account (known-gaps F7). It is shared by every edition of the
+    exhibitor, so disabling closes the portal for all of them and ends its sessions at once."""
+    lead, account = await _lead_account(session, ctx, lead_id, for_update=True)
+    if account.is_active == data.is_active:
+        return _account_out(account)
+    before = audit.snapshot(account, ACCOUNT_AUDIT_FIELDS)
+    account.is_active = data.is_active
+    if not data.is_active:
+        # An open link must not bring a disabled account back.
+        account.invite_token_hash = None
+        account.invite_expires_at = None
+    account.updated_by = current_actor_id()
+    await session.flush()
+    await session.refresh(account)
+    await audit.record(
+        session,
+        entity_type=ACCOUNT_ENTITY,
+        entity_id=account.id,
+        action="activate_account" if data.is_active else "deactivate_account",
+        before=before,
+        after=audit.snapshot(account, ACCOUNT_AUDIT_FIELDS),
+        edition_id=lead.edition_id,
+    )
+    if not data.is_active:
+        await sessions.destroy_all_for_user(account.id, sessions.PORTAL)
+    return _account_out(account)
 
 
 # --- contract ------------------------------------------------------------------------------

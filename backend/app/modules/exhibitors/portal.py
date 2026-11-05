@@ -27,7 +27,7 @@ from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitors import repository as repo
 from app.modules.exhibitors import service as exhibitors_service
 from app.modules.exhibitors.models import ExhibitorAccount, ExhibitorLead
-from app.modules.exhibitors.schemas import PortalExhibitorOut, PortalMeOut
+from app.modules.exhibitors.schemas import LinkPurpose, PortalExhibitorOut, PortalMeOut
 from app.modules.identity import service as identity_service
 from app.modules.visitors.rules import NormalizationError, normalize_email
 
@@ -73,7 +73,6 @@ async def _invited_account(session: AsyncSession, token: str, client_ip: str) ->
     if (
         account is None
         or not account.is_active
-        or account.password_hash is not None
         or account.invite_expires_at is None
         or account.invite_expires_at < datetime.now(UTC)
     ):
@@ -81,19 +80,23 @@ async def _invited_account(session: AsyncSession, token: str, client_ip: str) ->
     return account
 
 
-async def invitation_email(session: AsyncSession, token: str, client_ip: str) -> str:
-    """Email the invitation is for, shown on the set-password page."""
-    return (await _invited_account(session, token, client_ip)).email
+async def invitation_info(
+    session: AsyncSession, token: str, client_ip: str
+) -> tuple[str, LinkPurpose]:
+    """Email the link is for and whether it is a first password or a reset, for the page."""
+    account = await _invited_account(session, token, client_ip)
+    return account.email, "PASSWORD_RESET" if account.password_hash else "INVITATION"
 
 
 async def accept_invitation(
     session: AsyncSession, token: str, password: str, client_ip: str
 ) -> tuple[ExhibitorAccount, sessions.SessionData]:
-    """Set the password, consume the link, and log in."""
+    """Set the password, consume the link, and log in. A reset also ends every other session."""
     account = await _invited_account(session, token, client_ip)
+    reset = account.password_hash is not None
     now = datetime.now(UTC)
     account.password_hash = identity_service.hash_password(password)
-    account.activated_at = now
+    account.activated_at = account.activated_at or now
     account.last_login_at = now
     account.invite_token_hash = None
     account.invite_expires_at = None
@@ -102,10 +105,12 @@ async def accept_invitation(
         session,
         entity_type=ENTITY,
         entity_id=account.id,
-        action="activate",
-        after={"activated_at": now, "ip": client_ip},
+        action="password_reset" if reset else "activate",
+        after={"activated_at": account.activated_at, "ip": client_ip},
         source=Source.PORTAL,
     )
+    if reset:
+        await sessions.destroy_all_for_user(account.id, sessions.PORTAL)
     return account, await sessions.create(account.id, sessions.PORTAL)
 
 

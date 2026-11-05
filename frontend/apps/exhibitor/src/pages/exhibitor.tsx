@@ -23,17 +23,25 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
     [onSignedOut],
   );
 
-  const load = useCallback(() => {
-    const path = { params: { path: { lead_id: id } } };
-    Promise.all([
-      call(api.GET("/api/v1/portal/exhibitors/{lead_id}/contract", path)),
-      call(api.GET("/api/v1/portal/exhibitors/{lead_id}/payments", path)),
-    ])
-      .then(([contract, payments]) => setState({ kind: "ready", contract, payments }))
-      .catch(failed);
-  }, [id, failed]);
+  // The confirmation is set with the reloaded contract, never before it: the panel remounts
+  // with the new version, and a file picked in the old panel would be lost.
+  const load = useCallback(
+    (message: string | null = null) => {
+      const path = { params: { path: { lead_id: id } } };
+      Promise.all([
+        call(api.GET("/api/v1/portal/exhibitors/{lead_id}/contract", path)),
+        call(api.GET("/api/v1/portal/exhibitors/{lead_id}/payments", path)),
+      ])
+        .then(([contract, payments]) => {
+          setState({ kind: "ready", contract, payments });
+          setFlash(message);
+        })
+        .catch(failed);
+    },
+    [id, failed],
+  );
 
-  useEffect(load, [load]);
+  useEffect(() => load(), [load]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -49,7 +57,7 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
       {state.kind === "loading" ? (
         <p role="status" className="py-10 text-center text-label">Loading</p>
       ) : state.kind === "error" ? (
-        <div className="flex flex-col items-start gap-3"><Notice>{state.message}</Notice><Button onClick={load}>Retry</Button></div>
+        <div className="flex flex-col items-start gap-3"><Notice>{state.message}</Notice><Button onClick={() => load()}>Retry</Button></div>
       ) : (
         <>
           <ContractPanel
@@ -57,7 +65,7 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
             leadId={id}
             contract={state.contract}
             flash={flash}
-            onChange={(message) => { setFlash(message); load(); }}
+            onChange={load}
             onError={failed}
           />
           <PaymentsPanel payments={state.payments} signed={state.contract.status === "SIGNED"} />

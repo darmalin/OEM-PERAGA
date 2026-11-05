@@ -223,3 +223,11 @@ Belum dibangun (FRONTEND_RULES/known-gaps.md W16, W17): memilih Lead Owner dari 
 - [x] Ringkasan pipeline: `GET /api/v1/exhibitor-leads/pipeline?edition_id=` (`exhibitor_lead.read`; jumlah per stage dan uang dihitung dalam scope user, booth per edition), panel "How are exhibitor sales going?" di Overview (`/app`). Tes `tests/test_exhibitor_pipeline.py`
 - [x] Regenerate OpenAPI client frontend (`make gen-api`)
 - [x] CHANGELOG (Unreleased)
+
+### Lanjutan (setelah Phase 8, keputusan owner 2026-11-04)
+- [x] F6 lupa password: link reset dari staff. `POST /exhibitor-leads/{id}/portal-invitation` pada akun yang sudah punya password menghasilkan link `PASSWORD_RESET` (24 jam, `EMS_PORTAL_RESET_TTL_SECONDS`); memakainya mengganti password dan memutus session portal lain. Portal: halaman "Reset Your Password"
+- [x] F7 nonaktifkan akun: `GET/PUT /exhibitor-leads/{id}/portal-account` (`exhibitor_lead.read` / `exhibitor.invite`), body `{is_active}` tanpa `version` (setiap login mengubah versi akun). Disable memutus session, membatalkan link yang masih terbuka, dan menutup portal untuk semua edition. Panel "Exhibitor Portal" di halaman lead menampilkan status dan login terakhir
+- [x] Tes `tests/test_exhibitor_portal_accounts.py`; E2E `pipeline.mjs` ditambah reset password dan disable/enable
+- [ ] W16 pilih Lead Owner dari desk
+- [ ] F8 reopen contract SIGNED (Exhibition Admin, alasan wajib, diblok kalau ada payment PENDING/VERIFIED)
+- [ ] W17 drag di board (setelah yang lain jalan)

@@ -37,7 +37,7 @@ export function Login({ onDone }: { onDone: (me: Me) => void }) {
           <Field label="Email">{(p) => <Input {...p} type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
           <Field label="Password">{(p) => <Input {...p} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />}</Field>
           <Button type="submit" variant="primary" loading={busy}>Sign In</Button>
-          <p className="text-[13px] text-label">No password yet, or forgot it? Ask your sales contact for an invitation link.</p>
+          <p className="text-[13px] text-label">No password yet, or forgot it? Ask your sales contact for a link to set one.</p>
         </form>
       </Panel>
     </div>

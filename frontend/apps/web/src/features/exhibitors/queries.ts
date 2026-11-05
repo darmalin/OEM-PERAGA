@@ -43,3 +43,9 @@ export const boothsQuery = (editionId: string, params: { available?: boolean; in
     queryFn: () =>
       call(api.GET("/api/v1/booths", { params: { query: { edition_id: editionId, page_size: 200, ...params } } })),
   });
+
+export const portalAccountQuery = (leadId: string) =>
+  queryOptions({
+    queryKey: ["exhibitor-lead", leadId, "portal-account"],
+    queryFn: () => call(api.GET("/api/v1/exhibitor-leads/{lead_id}/portal-account", { params: { path: { lead_id: leadId } } })),
+  });

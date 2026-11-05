@@ -8,6 +8,7 @@ import { z } from "zod";
 import { ContractTab } from "@/features/exhibitors/contract-tab";
 import { ExhibitorLeadFields, LEAD_FIELDS, leadBody, type ExhibitorLeadValues } from "@/features/exhibitors/lead-form";
 import { PaymentsTab } from "@/features/exhibitors/payments-tab";
+import { PortalAccountPanel } from "@/features/exhibitors/portal-account-panel";
 import { contractQuery, type ExhibitorLead, exhibitorLeadQuery, STAGE_MOVES } from "@/features/exhibitors/queries";
 import { can, useMe } from "@/lib/auth";
 import { useEditionById } from "@/lib/edition";
@@ -107,25 +108,14 @@ function ExhibitorLeadDetail() {
               )}
             </div>
           </Panel>
-          {exhibitor ? (
-            <Panel>
-              <PanelHeader title="Exhibitor Portal" />
-              <div className="flex flex-col gap-3 p-5 text-[13px]">
-                <p className="text-muted">Converted {formatDateTime(l.converted_at, tz)}. The exhibitor fills the contract and follows payments in the portal.</p>
-                {can(me, "exhibitor.invite") ? (
-                  <Button asChild size="sm" className="self-start">
-                    <Link to="/app/exhibitor-leads/$leadId/invitation" params={{ leadId }}>New Invitation Link</Link>
-                  </Button>
-                ) : null}
-              </div>
-            </Panel>
-          ) : null}
+          {exhibitor ? <PortalAccountPanel lead={l} timezone={tz} /> : null}
           <Panel>
             <PanelHeader title="Record" />
             <div className="p-5">
               <Facts
                 items={[
                   ["Lead Owner", l.lead_owner_name ?? null],
+                  ...(l.converted_at ? ([["Converted", formatDateTime(l.converted_at, tz)]] as [string, string][]) : []),
                   ["Created", formatDateTime(l.created_at, tz)],
                   ["Modified", formatDateTime(l.updated_at, tz)],
                 ]}

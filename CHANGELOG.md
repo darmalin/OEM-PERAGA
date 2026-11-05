@@ -25,8 +25,10 @@ migrate service does both) for the new `contracts` bucket.
 - **Exhibitor portal** at `/exhibitor/`. In production set `EMS_PORTAL_BASE_URL` to give it its own
   subdomain (PRODUCTION.md 4c); old `/exhibitor/` links redirect there.
 - **Overview**: "How are exhibitor sales going?" panel (leads per stage, booths held, money).
-- Known gaps: portal forgot-password and account deactivation (F6, F7), reopening a signed
-  contract (F8), setting the Lead Owner from the desk (W16).
+- **Portal accounts**: staff make a password reset link for an exhibitor who forgot the password
+  (24 hours, signs out other sessions), and can disable or enable the account. The lead page
+  shows the account status and last sign-in.
+- Known gaps: reopening a signed contract (F8), setting the Lead Owner from the desk (W16).
 
 ## v1.3.0 (2026-10-28)
 

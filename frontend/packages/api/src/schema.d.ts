@@ -1326,6 +1326,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exhibitor-leads/{lead_id}/portal-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Portal Account */
+        get: operations["get_portal_account_api_v1_exhibitor_leads__lead_id__portal_account_get"];
+        /** Set Portal Account Active */
+        put: operations["set_portal_account_active_api_v1_exhibitor_leads__lead_id__portal_account_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/portal/invitations/inspect": {
         parameters: {
             query?: never;
@@ -4805,10 +4823,16 @@ export interface components {
         InvitationInfoOut: {
             /** Email */
             email: string;
+            /**
+             * Purpose
+             * @enum {string}
+             */
+            purpose: "INVITATION" | "PASSWORD_RESET";
         };
         /**
          * InvitationOut
-         * @description The raw link is shown once; only its hash is stored.
+         * @description The raw link is shown once; only its hash is stored. INVITATION for an account without a
+         *     password, PASSWORD_RESET for one that has a password (shorter lifetime).
          */
         InvitationOut: {
             /** Url */
@@ -4818,6 +4842,12 @@ export interface components {
              * Format: date-time
              */
             expires_at: string;
+            /**
+             * Purpose
+             * @default INVITATION
+             * @enum {string}
+             */
+            purpose: "INVITATION" | "PASSWORD_RESET";
         };
         /** InvitationTokenIn */
         InvitationTokenIn: {
@@ -5680,6 +5710,33 @@ export interface components {
             booths_held: number;
             /** Money */
             money: components["schemas"]["PipelineMoney"][];
+        };
+        /**
+         * PortalAccountOut
+         * @description The lead's portal account as staff see it; never the hashes.
+         */
+        PortalAccountOut: {
+            /** Email */
+            email: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Has Password */
+            has_password: boolean;
+            /** Activated At */
+            activated_at: string | null;
+            /** Last Login At */
+            last_login_at: string | null;
+            /** Link Expires At */
+            link_expires_at: string | null;
+        };
+        /**
+         * PortalAccountUpdateIn
+         * @description A target state, not a form edit: no version, since every sign-in bumps the account's
+         *     version and disabling must not fail because the exhibitor just signed in.
+         */
+        PortalAccountUpdateIn: {
+            /** Is Active */
+            is_active: boolean;
         };
         /** PortalExhibitorOut */
         PortalExhibitorOut: {
@@ -10059,6 +10116,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_portal_account_api_v1_exhibitor_leads__lead_id__portal_account_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalAccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_portal_account_active_api_v1_exhibitor_leads__lead_id__portal_account_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortalAccountUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalAccountOut"];
                 };
             };
             /** @description Validation Error */

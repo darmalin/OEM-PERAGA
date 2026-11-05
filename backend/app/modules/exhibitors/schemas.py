@@ -157,11 +157,36 @@ class ConvertIn(BaseModel):
     version: int
 
 
+LinkPurpose = Literal["INVITATION", "PASSWORD_RESET"]
+
+
 class InvitationOut(BaseModel):
-    """The raw link is shown once; only its hash is stored."""
+    """The raw link is shown once; only its hash is stored. INVITATION for an account without a
+    password, PASSWORD_RESET for one that has a password (shorter lifetime)."""
 
     url: str
     expires_at: datetime
+    purpose: LinkPurpose = "INVITATION"
+
+
+class PortalAccountOut(BaseModel):
+    """The lead's portal account as staff see it; never the hashes."""
+
+    email: str
+    is_active: bool
+    has_password: bool
+    activated_at: datetime | None
+    last_login_at: datetime | None
+    link_expires_at: datetime | None
+
+
+class PortalAccountUpdateIn(BaseModel):
+    """A target state, not a form edit: no version, since every sign-in bumps the account's
+    version and disabling must not fail because the exhibitor just signed in."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    is_active: bool
 
 
 class ConvertOut(BaseModel):
@@ -322,6 +347,7 @@ class InvitationTokenIn(BaseModel):
 
 class InvitationInfoOut(BaseModel):
     email: str
+    purpose: LinkPurpose
 
 
 class AcceptInvitationIn(InvitationTokenIn):
