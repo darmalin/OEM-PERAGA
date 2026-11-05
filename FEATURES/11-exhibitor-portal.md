@@ -67,6 +67,9 @@ stage of the lead, not another table or menu.
 - A booth is held only by an Opportunity or an Exhibitor, one lead per booth (database index).
   Leaving Opportunity releases it. A signed contract freezes the booth.
 - A Draft contract follows its booth's price when the booth changes. Signed contracts are read-only.
+  An Exhibition Admin (`exhibitor.invite`) can reopen a signed contract to Draft with a reason (for
+  a wrong PDF), unless it has pending or verified payments; the old PDF is kept, its key in the
+  audit entry.
 - Payments are recorded only against a signed contract. Pending plus verified never exceeds the
   contract total; the contract row is locked while recording or verifying.
 - Uploads (signed PDF; proof as PDF, JPG, PNG) are checked by extension, type, and content, up to
@@ -74,7 +77,6 @@ stage of the lead, not another table or menu.
 
 ## Known gaps
 
-- A signed contract cannot be reopened when the wrong PDF was uploaded (F8).
 - The board is read-only (FRONTEND_RULES/known-gaps.md W17).
 - Edition remarks and exhibitor dates (price periods, Order Expired, Catalog Expired) are still
   display only (FEATURES/02, W13).

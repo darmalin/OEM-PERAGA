@@ -1,6 +1,7 @@
 import { api, ApiError, call, downloadFile, upload } from "@ems/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, FileUp } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Download, FileUp, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -162,6 +163,7 @@ function SignedUpload({ contract: c }: { contract: Contract }) {
 }
 
 function SignedCopy({ contract: c }: { contract: Contract }) {
+  const me = useMe();
   const [busy, setBusy] = useState(false);
   const download = async () => {
     setBusy(true);
@@ -176,9 +178,18 @@ function SignedCopy({ contract: c }: { contract: Contract }) {
   return (
     <Section title="Contract Details">
       <Facts items={[["PIC", c.pic_name], ["Address", c.company_address], ["Tax ID", c.tax_id], ["Signed File", c.signed_file_name]]} />
-      <Button className="mt-4" loading={busy} onClick={() => void download()}>
-        <Download aria-hidden />Download Signed PDF
-      </Button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button loading={busy} onClick={() => void download()}>
+          <Download aria-hidden />Download Signed PDF
+        </Button>
+        {can(me, "exhibitor.invite") ? (
+          <Button asChild variant="ghost">
+            <Link to="/app/exhibitor-leads/$leadId/contract-reopen" params={{ leadId: c.exhibitor_lead_id }}>
+              <RotateCcw aria-hidden />Reopen Contract
+            </Link>
+          </Button>
+        ) : null}
+      </div>
     </Section>
   );
 }

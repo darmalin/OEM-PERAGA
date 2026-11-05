@@ -103,7 +103,20 @@ try {
   await shot(portal, "portal-signed");
 
   // Staff record and verify the payment.
+  // Wrong PDF: staff reopen the contract, the exhibitor uploads the right one.
   await desk.getByRole("link", { name: "Open Exhibitor" }).click();
+  await desk.getByRole("tab", { name: "Contract" }).click();
+  await desk.getByRole("link", { name: "Reopen Contract" }).click();
+  await desk.getByLabel(/^Reason/).fill("Exhibitor uploaded last year's contract");
+  await desk.getByRole("button", { name: "Reopen Contract" }).click();
+  await toast("Contract reopened");
+  await portal.reload();
+  await portal.getByLabel(/^Signed PDF/).setInputFiles({ name: "signed-right.pdf", mimeType: "application/pdf", buffer: PDF });
+  await portal.getByRole("button", { name: "Upload Signed Contract" }).click();
+  await portal.getByRole("button", { name: "Download Signed Contract" }).waitFor();
+  check(true, "contract reopened by staff and signed again in the portal");
+
+  await desk.reload();
   await desk.getByRole("tab", { name: "Payments" }).click();
   await desk.getByRole("link", { name: "Record Payment" }).first().click();
   await desk.getByLabel(/^Amount/).fill("15000000");
@@ -162,6 +175,12 @@ try {
   await phone.getByRole("button", { name: "Sign In" }).click();
   await phone.getByRole("heading", { name: "My Exhibitions" }).waitFor();
   check(true, "disabled account cannot sign in; enabled again it can");
+
+  // With a verified payment the contract cannot be reopened.
+  await desk.getByRole("tab", { name: "Contract" }).click();
+  await desk.getByRole("link", { name: "Reopen Contract" }).click();
+  await desk.getByText(/verified payments, so it cannot be reopened/).waitFor();
+  check(await desk.getByRole("button", { name: "Reopen Contract" }).count() === 0, "reopen blocked while payments exist");
   await shot(desk, "desk-portal-account");
 
   check(errors.length === 0, `no page errors ${errors.join(" | ")}`);

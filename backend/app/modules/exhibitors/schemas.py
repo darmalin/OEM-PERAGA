@@ -213,6 +213,13 @@ class ContractUpdateIn(ContractFieldsIn):
     discount_amount: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=2)
 
 
+class ContractReopenIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=1000)
+    version: int
+
+
 class ContractOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

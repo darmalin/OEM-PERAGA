@@ -89,6 +89,7 @@ import { Route as AppDevicesDeviceIdIndexRouteImport } from './routes/app/device
 import { Route as AppDevicesDeviceIdRevokeRouteImport } from './routes/app/devices/$deviceId/revoke'
 import { Route as AppExhibitorLeadsLeadIdIndexRouteImport } from './routes/app/exhibitor-leads/$leadId/index'
 import { Route as AppExhibitorLeadsLeadIdBoothRouteImport } from './routes/app/exhibitor-leads/$leadId/booth'
+import { Route as AppExhibitorLeadsLeadIdContractReopenRouteImport } from './routes/app/exhibitor-leads/$leadId/contract-reopen'
 import { Route as AppExhibitorLeadsLeadIdConvertRouteImport } from './routes/app/exhibitor-leads/$leadId/convert'
 import { Route as AppExhibitorLeadsLeadIdInvitationRouteImport } from './routes/app/exhibitor-leads/$leadId/invitation'
 import { Route as AppExhibitorLeadsLeadIdOwnerRouteImport } from './routes/app/exhibitor-leads/$leadId/owner'
@@ -513,6 +514,12 @@ const AppExhibitorLeadsLeadIdBoothRoute =
     path: '/exhibitor-leads/$leadId/booth',
     getParentRoute: () => AppRoute,
   } as any)
+const AppExhibitorLeadsLeadIdContractReopenRoute =
+  AppExhibitorLeadsLeadIdContractReopenRouteImport.update({
+    id: '/exhibitor-leads/$leadId/contract-reopen',
+    path: '/exhibitor-leads/$leadId/contract-reopen',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppExhibitorLeadsLeadIdConvertRoute =
   AppExhibitorLeadsLeadIdConvertRouteImport.update({
     id: '/exhibitor-leads/$leadId/convert',
@@ -682,6 +689,7 @@ export interface FileRoutesByFullPath {
   '/system/users/': typeof SystemUsersIndexRoute
   '/app/devices/$deviceId/revoke': typeof AppDevicesDeviceIdRevokeRoute
   '/app/exhibitor-leads/$leadId/booth': typeof AppExhibitorLeadsLeadIdBoothRoute
+  '/app/exhibitor-leads/$leadId/contract-reopen': typeof AppExhibitorLeadsLeadIdContractReopenRoute
   '/app/exhibitor-leads/$leadId/convert': typeof AppExhibitorLeadsLeadIdConvertRoute
   '/app/exhibitor-leads/$leadId/invitation': typeof AppExhibitorLeadsLeadIdInvitationRoute
   '/app/exhibitor-leads/$leadId/owner': typeof AppExhibitorLeadsLeadIdOwnerRoute
@@ -777,6 +785,7 @@ export interface FileRoutesByTo {
   '/system/users': typeof SystemUsersIndexRoute
   '/app/devices/$deviceId/revoke': typeof AppDevicesDeviceIdRevokeRoute
   '/app/exhibitor-leads/$leadId/booth': typeof AppExhibitorLeadsLeadIdBoothRoute
+  '/app/exhibitor-leads/$leadId/contract-reopen': typeof AppExhibitorLeadsLeadIdContractReopenRoute
   '/app/exhibitor-leads/$leadId/convert': typeof AppExhibitorLeadsLeadIdConvertRoute
   '/app/exhibitor-leads/$leadId/invitation': typeof AppExhibitorLeadsLeadIdInvitationRoute
   '/app/exhibitor-leads/$leadId/owner': typeof AppExhibitorLeadsLeadIdOwnerRoute
@@ -875,6 +884,7 @@ export interface FileRoutesById {
   '/system/users/': typeof SystemUsersIndexRoute
   '/app/devices/$deviceId/revoke': typeof AppDevicesDeviceIdRevokeRoute
   '/app/exhibitor-leads/$leadId/booth': typeof AppExhibitorLeadsLeadIdBoothRoute
+  '/app/exhibitor-leads/$leadId/contract-reopen': typeof AppExhibitorLeadsLeadIdContractReopenRoute
   '/app/exhibitor-leads/$leadId/convert': typeof AppExhibitorLeadsLeadIdConvertRoute
   '/app/exhibitor-leads/$leadId/invitation': typeof AppExhibitorLeadsLeadIdInvitationRoute
   '/app/exhibitor-leads/$leadId/owner': typeof AppExhibitorLeadsLeadIdOwnerRoute
@@ -974,6 +984,7 @@ export interface FileRouteTypes {
     | '/system/users/'
     | '/app/devices/$deviceId/revoke'
     | '/app/exhibitor-leads/$leadId/booth'
+    | '/app/exhibitor-leads/$leadId/contract-reopen'
     | '/app/exhibitor-leads/$leadId/convert'
     | '/app/exhibitor-leads/$leadId/invitation'
     | '/app/exhibitor-leads/$leadId/owner'
@@ -1069,6 +1080,7 @@ export interface FileRouteTypes {
     | '/system/users'
     | '/app/devices/$deviceId/revoke'
     | '/app/exhibitor-leads/$leadId/booth'
+    | '/app/exhibitor-leads/$leadId/contract-reopen'
     | '/app/exhibitor-leads/$leadId/convert'
     | '/app/exhibitor-leads/$leadId/invitation'
     | '/app/exhibitor-leads/$leadId/owner'
@@ -1166,6 +1178,7 @@ export interface FileRouteTypes {
     | '/system/users/'
     | '/app/devices/$deviceId/revoke'
     | '/app/exhibitor-leads/$leadId/booth'
+    | '/app/exhibitor-leads/$leadId/contract-reopen'
     | '/app/exhibitor-leads/$leadId/convert'
     | '/app/exhibitor-leads/$leadId/invitation'
     | '/app/exhibitor-leads/$leadId/owner'
@@ -1756,6 +1769,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExhibitorLeadsLeadIdBoothRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/exhibitor-leads/$leadId/contract-reopen': {
+      id: '/app/exhibitor-leads/$leadId/contract-reopen'
+      path: '/exhibitor-leads/$leadId/contract-reopen'
+      fullPath: '/app/exhibitor-leads/$leadId/contract-reopen'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdContractReopenRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/exhibitor-leads/$leadId/convert': {
       id: '/app/exhibitor-leads/$leadId/convert'
       path: '/exhibitor-leads/$leadId/convert'
@@ -1920,6 +1940,7 @@ interface AppRouteChildren {
   AppVisitorLeadsIndexRoute: typeof AppVisitorLeadsIndexRoute
   AppDevicesDeviceIdRevokeRoute: typeof AppDevicesDeviceIdRevokeRoute
   AppExhibitorLeadsLeadIdBoothRoute: typeof AppExhibitorLeadsLeadIdBoothRoute
+  AppExhibitorLeadsLeadIdContractReopenRoute: typeof AppExhibitorLeadsLeadIdContractReopenRoute
   AppExhibitorLeadsLeadIdConvertRoute: typeof AppExhibitorLeadsLeadIdConvertRoute
   AppExhibitorLeadsLeadIdInvitationRoute: typeof AppExhibitorLeadsLeadIdInvitationRoute
   AppExhibitorLeadsLeadIdOwnerRoute: typeof AppExhibitorLeadsLeadIdOwnerRoute
@@ -1993,6 +2014,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppVisitorLeadsIndexRoute: AppVisitorLeadsIndexRoute,
   AppDevicesDeviceIdRevokeRoute: AppDevicesDeviceIdRevokeRoute,
   AppExhibitorLeadsLeadIdBoothRoute: AppExhibitorLeadsLeadIdBoothRoute,
+  AppExhibitorLeadsLeadIdContractReopenRoute:
+    AppExhibitorLeadsLeadIdContractReopenRoute,
   AppExhibitorLeadsLeadIdConvertRoute: AppExhibitorLeadsLeadIdConvertRoute,
   AppExhibitorLeadsLeadIdInvitationRoute:
     AppExhibitorLeadsLeadIdInvitationRoute,

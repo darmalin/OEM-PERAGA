@@ -31,7 +31,8 @@ migrate service does both) for the new `contracts` bucket.
 - **Lead Owner**: edition-wide users assign or reassign exhibitor leads (lead page, and on
   the new-lead form); the list filters by owner. Only active users who can edit exhibitor leads
   in that edition can own one.
-- Known gaps: reopening a signed contract (F8).
+- **Reopen Contract**: an Exhibition Admin can put a signed contract back to Draft with a reason,
+  for example after a wrong PDF. Not possible while it has pending or verified payments.
 
 ## v1.3.0 (2026-10-28)
 

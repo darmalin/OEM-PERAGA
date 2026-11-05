@@ -1272,6 +1272,23 @@ export interface paths {
         patch: operations["update_contract_api_v1_exhibitor_leads__lead_id__contract_patch"];
         trace?: never;
     };
+    "/api/v1/exhibitor-leads/{lead_id}/contract/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Contract */
+        post: operations["reopen_contract_api_v1_exhibitor_leads__lead_id__contract_reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exhibitor-leads/{lead_id}/contract/signed-copy": {
         parameters: {
             query?: never;
@@ -3125,6 +3142,13 @@ export interface components {
             company_name: string;
             /** Booth Code */
             booth_code?: string | null;
+        };
+        /** ContractReopenIn */
+        ContractReopenIn: {
+            /** Reason */
+            reason: string;
+            /** Version */
+            version: number;
         };
         /**
          * ContractUpdateIn
@@ -9939,6 +9963,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ContractUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_contract_api_v1_exhibitor_leads__lead_id__contract_reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractReopenIn"];
             };
         };
         responses: {

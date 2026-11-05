@@ -22,6 +22,7 @@ from app.modules.exhibitors.schemas import (
     BoothUpdateIn,
     ContractFieldsIn,
     ContractOut,
+    ContractReopenIn,
     ContractUpdateIn,
     ConvertIn,
     ConvertOut,
@@ -204,6 +205,16 @@ async def update_contract(
     ctx: AuthContext = Depends(require("exhibitor_lead.update")),
 ) -> ContractOut:
     return await service.update_contract(session, ctx, lead_id, data)
+
+
+@router.post("/exhibitor-leads/{lead_id}/contract/reopen", response_model=ContractOut)
+async def reopen_contract(
+    lead_id: uuid.UUID,
+    data: ContractReopenIn,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor.invite")),
+) -> ContractOut:
+    return await service.reopen_contract(session, ctx, lead_id, data)
 
 
 @router.post("/exhibitor-leads/{lead_id}/contract/signed-copy", response_model=ContractOut)

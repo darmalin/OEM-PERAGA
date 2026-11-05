@@ -46,6 +46,7 @@ from app.modules.exhibitors.schemas import (
     BoothOut,
     BoothUpdateIn,
     ContractOut,
+    ContractReopenIn,
     ContractUpdateIn,
     ConvertIn,
     ConvertOut,
@@ -940,6 +941,53 @@ async def upload_signed_contract(
         data=data,
         version=version,
     )
+
+
+async def reopen_contract(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, data: ContractReopenIn
+) -> ContractOut:
+    """Back to DRAFT after a wrong signed PDF (known-gaps F8). Not while payments are pending or
+    verified: they were recorded against the signed total. The old file stays in storage and its
+    key in the audit entry."""
+    lead = await _staff_lead(session, ctx, lead_id)
+    await exhibitions_service.ensure_writable(session, lead.edition_id)
+    contract = await _contract_of(session, lead, for_update=True)
+    check_version(contract.version, data.version)
+    if contract.status != ContractStatus.SIGNED:
+        raise Conflict("Only a signed contract can be reopened.", code="CONTRACT_NOT_SIGNED")
+    reason = clean_text(data.reason)
+    if reason is None:
+        raise ValidationFailed(fields={"reason": "Say why the contract is reopened."})
+    sums = await repo.payment_sums(session, contract.id)
+    if sums.get(PaymentStatus.VERIFIED):
+        raise Conflict(
+            "A contract with verified payments cannot be reopened.",
+            code="CONTRACT_HAS_PAYMENTS",
+        )
+    if sums.get(PaymentStatus.PENDING):
+        raise Conflict(
+            "Reject the pending payments first: they were recorded against the signed total.",
+            code="CONTRACT_HAS_PAYMENTS",
+        )
+    before = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
+    old_file = contract.signed_file_key
+    contract.status = ContractStatus.DRAFT
+    contract.signed_at = None
+    contract.signed_file_key = None
+    contract.signed_file_name = None
+    contract.updated_by = current_actor_id()
+    await session.flush()
+    await session.refresh(contract)
+    await audit.record(
+        session,
+        entity_type=CONTRACT_ENTITY,
+        entity_id=contract.id,
+        action="reopen",
+        before=before | {"signed_file_key": old_file},
+        after=audit.snapshot(contract, CONTRACT_AUDIT_FIELDS) | {"reason": reason},
+        edition_id=contract.edition_id,
+    )
+    return await _contract_out(session, lead, contract)
 
 
 async def contract_file(
