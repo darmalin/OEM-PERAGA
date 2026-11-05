@@ -7,6 +7,8 @@ import { Input, Textarea } from "@/ui/input";
 export interface ExhibitorLeadValues {
   /** Only the new-lead form edits it; a lead never changes edition. */
   edition_id: string;
+  /** Only the new-lead form sets it; afterwards the owner changes on its own page. */
+  lead_owner_id: string;
   company_name: string;
   contact_name: string;
   email: string;
@@ -22,7 +24,7 @@ export const LEAD_FIELDS = [
 ] as const;
 
 export const emptyLead: ExhibitorLeadValues = {
-  edition_id: "", company_name: "", contact_name: "", email: "", phone: "", product_categories: "", booth_preference: "", budget_estimate: "", notes: "",
+  edition_id: "", lead_owner_id: "", company_name: "", contact_name: "", email: "", phone: "", product_categories: "", booth_preference: "", budget_estimate: "", notes: "",
 };
 
 /** Empty text is sent as null so a cleared field is cleared on the server too. */
@@ -45,11 +47,13 @@ export function ExhibitorLeadFields({
   errors,
   readOnly,
   edition,
+  owner,
 }: {
   register: UseFormRegister<ExhibitorLeadValues>;
   errors: FieldErrors<ExhibitorLeadValues>;
   readOnly?: boolean;
   edition: ReactNode;
+  owner?: ReactNode;
 }) {
   return (
     <>
@@ -68,6 +72,7 @@ export function ExhibitorLeadFields({
           <Field label="Phone" error={errors.phone?.message}>
             {(p) => <Input {...p} type="tel" readOnly={readOnly} {...register("phone")} />}
           </Field>
+          {owner}
         </FieldGrid>
       </Section>
       <Section title="Sales">

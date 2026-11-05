@@ -39,6 +39,9 @@ stage of the lead, not another table or menu.
   Contract, Payments, and Activity tabs. Actions are pages: move stage, choose booth, Convert
   (shows the one-time invitation link), new invitation link, record payment, payment proof and
   Verify / Reject.
+- Lead Owner: users with edition-wide access assign or reassign a lead (or leave it unassigned)
+  to an active user who can edit exhibitor leads in that edition (`GET /exhibitor-leads/owners`);
+  the list filters by owner. Sales with Own Leads access own what they create.
 - Booths per edition: list (Available / Held / Not for Sale), add, edit.
 - Overview: "How are exhibitor sales going?" panel with leads per stage, booths held, and signed
   value, paid, waiting, and outstanding per currency (`GET /exhibitor-leads/pipeline`), counted
@@ -72,7 +75,6 @@ stage of the lead, not another table or menu.
 ## Known gaps
 
 - A signed contract cannot be reopened when the wrong PDF was uploaded (F8).
-- The desk cannot set the Lead Owner of an exhibitor lead; the board is read-only
-  (FRONTEND_RULES/known-gaps.md W16, W17).
+- The board is read-only (FRONTEND_RULES/known-gaps.md W17).
 - Edition remarks and exhibitor dates (price periods, Order Expired, Catalog Expired) are still
   display only (FEATURES/02, W13).

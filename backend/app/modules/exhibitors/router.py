@@ -32,6 +32,8 @@ from app.modules.exhibitors.schemas import (
     InvitationInfoOut,
     InvitationOut,
     InvitationTokenIn,
+    LeadOwnerParams,
+    LeadOwnersOut,
     PaymentCreateIn,
     PaymentOut,
     PaymentReviewIn,
@@ -50,6 +52,16 @@ router = APIRouter(tags=["exhibitors"])
 portal_router = APIRouter(prefix="/portal", tags=["exhibitor-portal"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 PDF = "application/pdf"
+
+
+# Before /exhibitor-leads/{lead_id}, which would take "owners" as an id.
+@router.get("/exhibitor-leads/owners", response_model=LeadOwnersOut)
+async def lead_owners(
+    session: Session,
+    params: Annotated[LeadOwnerParams, Query()],
+    ctx: AuthContext = Depends(require("exhibitor_lead.read")),
+) -> LeadOwnersOut:
+    return await service.lead_owners(session, ctx, params.edition_id)
 
 
 # Before /exhibitor-leads/{lead_id}, which would take "pipeline" as an id.

@@ -3,7 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { type ExhibitorLead, STAGES } from "@/features/exhibitors/queries";
+import { type ExhibitorLead, leadOwnersQuery, STAGES } from "@/features/exhibitors/queries";
 import { ExhibitorViewSwitch } from "@/features/exhibitors/view-switch";
 import { can, useMe } from "@/lib/auth";
 import { useEdition } from "@/lib/edition";
@@ -20,6 +20,7 @@ import { type Column, ListTable } from "@/ui/table";
 const search = z.object({
   q: z.string().optional(),
   stage: z.enum(STAGES).optional(),
+  owner: z.string().optional(),
   page: z.number().int().min(1).default(1),
   page_size: z.number().int().default(20),
 });
@@ -51,6 +52,7 @@ function ExhibitorLeadList() {
   const s = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const set = (patch: Partial<Search>) => void navigate({ search: (prev) => ({ ...prev, page: 1, ...patch }), replace: true });
+  const owners = useQuery({ ...leadOwnersQuery(edition?.id ?? ""), enabled: Boolean(edition) });
   const query = useQuery({
     queryKey: ["exhibitor-leads", edition?.id, s],
     enabled: Boolean(edition),
@@ -58,13 +60,13 @@ function ExhibitorLeadList() {
     queryFn: () =>
       call(
         api.GET("/api/v1/exhibitor-leads", {
-          params: { query: { edition_id: edition!.id, q: s.q, stage: s.stage ? [s.stage] : undefined, page: s.page, page_size: s.page_size, sort: "-updated_at" } },
+          params: { query: { edition_id: edition!.id, q: s.q, stage: s.stage ? [s.stage] : undefined, lead_owner_id: s.owner, page: s.page, page_size: s.page_size, sort: "-updated_at" } },
         }),
       ),
   });
 
   if (!edition) return <Page><NoEdition /></Page>;
-  const filtered = Boolean(s.q || s.stage);
+  const filtered = Boolean(s.q || s.stage || s.owner);
   const clear = () => void navigate({ search: { page: 1, page_size: s.page_size }, replace: true });
   const add = can(me, "exhibitor_lead.create") ? (
     <Button asChild variant="primary"><Link to="/app/exhibitor-leads/new">Add Exhibitor Lead</Link></Button>
@@ -82,6 +84,7 @@ function ExhibitorLeadList() {
         <FilterBar active={filtered} onClear={clear}>
           <SearchFilter value={s.q} onChange={(q) => set({ q })} placeholder="Search company, contact, email or phone" />
           <SelectFilter label="Stage" value={s.stage} onChange={(v) => set({ stage: v as Search["stage"] })} options={options("sales_stage")} />
+          <SelectFilter label="Lead Owner" value={s.owner} onChange={(owner) => set({ owner })} options={(owners.data?.owners ?? []).map((o) => ({ value: o.id, label: o.id === me.user.id ? `${o.full_name} (me)` : o.full_name }))} />
         </FilterBar>
         <ListBody
           query={query}

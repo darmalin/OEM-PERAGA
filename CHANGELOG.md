@@ -28,7 +28,10 @@ migrate service does both) for the new `contracts` bucket.
 - **Portal accounts**: staff make a password reset link for an exhibitor who forgot the password
   (24 hours, signs out other sessions), and can disable or enable the account. The lead page
   shows the account status and last sign-in.
-- Known gaps: reopening a signed contract (F8), setting the Lead Owner from the desk (W16).
+- **Lead Owner**: edition-wide users assign or reassign exhibitor leads (lead page, and on
+  the new-lead form); the list filters by owner. Only active users who can edit exhibitor leads
+  in that edition can own one.
+- Known gaps: reopening a signed contract (F8).
 
 ## v1.3.0 (2026-10-28)
 

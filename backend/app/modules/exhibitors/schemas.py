@@ -305,6 +305,24 @@ class PortalPaymentsOut(PaymentTotals):
     items: list[PortalPaymentOut]
 
 
+class LeadOwnerParams(BaseModel):
+    edition_id: uuid.UUID
+
+
+class LeadOwnerOut(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    email: str
+
+
+class LeadOwnersOut(BaseModel):
+    """Who can own exhibitor leads of the edition (exhibitor_lead.update there), and whether the
+    caller may assign them: only edition-wide access changes owners."""
+
+    owners: list[LeadOwnerOut]
+    can_assign: bool
+
+
 class PipelineParams(BaseModel):
     edition_id: uuid.UUID
 

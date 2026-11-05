@@ -54,6 +54,8 @@ from app.modules.exhibitors.schemas import (
     ExhibitorLeadOut,
     ExhibitorLeadUpdateIn,
     InvitationOut,
+    LeadOwnerOut,
+    LeadOwnersOut,
     PaymentCreateIn,
     PaymentOut,
     PaymentReviewIn,
@@ -68,6 +70,7 @@ from app.modules.exhibitors.schemas import (
     StageChangeIn,
     StageCount,
 )
+from app.modules.identity import service as identity_service
 from app.modules.visitors.rules import (
     NormalizationError,
     clean_text,
@@ -76,6 +79,8 @@ from app.modules.visitors.rules import (
 )
 
 ENTITY = "exhibitor_lead"
+# Who may own an exhibitor lead: someone who can work it in that edition.
+OWNER_PERMISSION = "exhibitor_lead.update"
 AUDIT_FIELDS = (
     "company_name", "contact_name", "email", "phone", "product_categories", "booth_preference",
     "budget_estimate", "notes", "stage", "lost_reason", "booth_id", "lead_owner_id",
@@ -208,6 +213,29 @@ async def _save(
     return lead
 
 
+async def _check_owner(
+    session: AsyncSession, edition_id: uuid.UUID, owner_id: uuid.UUID | None
+) -> None:
+    if owner_id is None:
+        return
+    eligible = await identity_service.eligible_users(session, edition_id, OWNER_PERMISSION)
+    if owner_id not in {u.id for u, _ in eligible}:
+        raise ValidationFailed(
+            fields={"lead_owner_id": "Not an active user who can work exhibitor leads here."}
+        )
+
+
+async def lead_owners(
+    session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID
+) -> LeadOwnersOut:
+    scope = ctx.scope_for(edition_id)
+    eligible = await identity_service.eligible_users(session, edition_id, OWNER_PERMISSION)
+    return LeadOwnersOut(
+        owners=[LeadOwnerOut(id=u.id, full_name=u.full_name, email=u.email) for u, _ in eligible],
+        can_assign=scope.full_access,
+    )
+
+
 async def create_lead(
     session: AsyncSession, ctx: AuthContext, data: ExhibitorLeadCreateIn
 ) -> ExhibitorLeadOut:
@@ -220,6 +248,8 @@ async def create_lead(
         if values["lead_owner_id"] not in (None, ctx.user.id):
             raise PermissionDenied("Only edition-wide access may assign another owner.")
         values["lead_owner_id"] = ctx.user.id
+    else:
+        await _check_owner(session, data.edition_id, values["lead_owner_id"])
     await _raise_if_duplicate(session, data.edition_id, values["email_normalized"], None)
     actor = current_actor_id()
     lead = ExhibitorLead(
@@ -277,6 +307,8 @@ async def update_lead(
         and not scope.full_access
     ):
         raise PermissionDenied("Only edition-wide access may change the owner.")
+    if "lead_owner_id" in changes and changes["lead_owner_id"] != lead.lead_owner_id:
+        await _check_owner(session, lead.edition_id, changes["lead_owner_id"])
     if "email_normalized" in changes:
         await _raise_if_duplicate(session, lead.edition_id, changes["email_normalized"], lead.id)
     return await _out(session, await _save(session, lead, changes, "update"))

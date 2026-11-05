@@ -1064,6 +1064,23 @@ export interface paths {
         patch: operations["update_lead_source_api_v1_lead_sources__source_id__patch"];
         trace?: never;
     };
+    "/api/v1/exhibitor-leads/owners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lead Owners */
+        get: operations["lead_owners_api_v1_exhibitor_leads_owners_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exhibitor-leads/pipeline": {
         parameters: {
             query?: never;
@@ -5191,6 +5208,29 @@ export interface components {
             updated_at: string;
             /** Version */
             version: number;
+        };
+        /** LeadOwnerOut */
+        LeadOwnerOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Full Name */
+            full_name: string;
+            /** Email */
+            email: string;
+        };
+        /**
+         * LeadOwnersOut
+         * @description Who can own exhibitor leads of the edition (exhibitor_lead.update there), and whether the
+         *     caller may assign them: only edition-wide access changes owners.
+         */
+        LeadOwnersOut: {
+            /** Owners */
+            owners: components["schemas"]["LeadOwnerOut"][];
+            /** Can Assign */
+            can_assign: boolean;
         };
         /**
          * LeadQuality
@@ -9374,6 +9414,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadSourceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lead_owners_api_v1_exhibitor_leads_owners_get: {
+        parameters: {
+            query: {
+                edition_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadOwnersOut"];
                 };
             };
             /** @description Validation Error */

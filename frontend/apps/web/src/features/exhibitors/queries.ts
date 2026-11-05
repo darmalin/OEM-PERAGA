@@ -49,3 +49,11 @@ export const portalAccountQuery = (leadId: string) =>
     queryKey: ["exhibitor-lead", leadId, "portal-account"],
     queryFn: () => call(api.GET("/api/v1/exhibitor-leads/{lead_id}/portal-account", { params: { path: { lead_id: leadId } } })),
   });
+
+/** Users who can own exhibitor leads of the edition, and whether the caller may assign them. */
+export const leadOwnersQuery = (editionId: string) =>
+  queryOptions({
+    queryKey: ["exhibitor-lead-owners", editionId],
+    queryFn: () => call(api.GET("/api/v1/exhibitor-leads/owners", { params: { query: { edition_id: editionId } } })),
+    staleTime: 60_000,
+  });

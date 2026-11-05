@@ -1,9 +1,10 @@
 import { api, call } from "@ems/api";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 
 import { emptyLead, ExhibitorLeadFields, LEAD_FIELDS, leadBody, type ExhibitorLeadValues } from "@/features/exhibitors/lead-form";
+import { leadOwnersQuery } from "@/features/exhibitors/queries";
 import { useEdition } from "@/lib/edition";
 import { handleFormError } from "@/lib/forms";
 import { notifySuccess } from "@/lib/notify";
@@ -20,14 +21,16 @@ function NewExhibitorLead() {
   const queryClient = useQueryClient();
   const { edition, editions } = useEdition();
   const form = useForm<ExhibitorLeadValues>({ defaultValues: { ...emptyLead, edition_id: edition?.id ?? "" } });
+  const editionId = form.watch("edition_id");
+  const owners = useQuery({ ...leadOwnersQuery(editionId), enabled: Boolean(editionId) });
   const onSubmit = form.handleSubmit(async (v) => {
     try {
-      const lead = await call(api.POST("/api/v1/exhibitor-leads", { body: { ...leadBody(v), edition_id: v.edition_id } }));
+      const lead = await call(api.POST("/api/v1/exhibitor-leads", { body: { ...leadBody(v), edition_id: v.edition_id, ...(v.lead_owner_id ? { lead_owner_id: v.lead_owner_id } : {}) } }));
       void queryClient.invalidateQueries({ queryKey: ["exhibitor-leads"] });
       notifySuccess("Exhibitor lead added", lead.company_name);
       await navigate({ to: "/app/exhibitor-leads/$leadId", params: { leadId: lead.id } });
     } catch (e) {
-      handleFormError(e, form.setError, [...LEAD_FIELDS, "edition_id"]);
+      handleFormError(e, form.setError, [...LEAD_FIELDS, "edition_id", "lead_owner_id"]);
     }
   });
   if (!edition) return <Page><NoEdition /></Page>;
@@ -48,6 +51,19 @@ function NewExhibitorLead() {
                   </Select>
                 )}
               </Field>
+            }
+            owner={
+              // Edition-wide users pick an owner; sales with Own Leads access own what they add.
+              owners.data?.can_assign ? (
+                <Field label="Lead Owner" error={errors.lead_owner_id?.message}>
+                  {(p) => (
+                    <Select {...p} {...form.register("lead_owner_id")}>
+                      <option value="">Unassigned</option>
+                      {owners.data.owners.map((o) => <option key={o.id} value={o.id}>{o.full_name}</option>)}
+                    </Select>
+                  )}
+                </Field>
+              ) : null
             }
           />
           <FormActions>

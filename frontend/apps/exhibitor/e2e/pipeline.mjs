@@ -56,6 +56,13 @@ try {
   await desk.getByRole("heading", { name: company }).waitFor();
   check(true, "exhibitor lead created");
 
+  await desk.getByRole("link", { name: "Assign", exact: true }).click();
+  await desk.getByLabel("Lead Owner").selectOption({ index: 1 });
+  await desk.getByRole("button", { name: "Save Owner" }).click();
+  await toast("Assigned to");
+  await desk.getByRole("link", { name: "Reassign" }).waitFor();
+  check(true, "lead owner assigned");
+
   await desk.getByRole("link", { name: "Mark Opportunity" }).click();
   await desk.getByRole("button", { name: "Move to Opportunity" }).click();
   await toast("Moved to Opportunity");

@@ -9,7 +9,7 @@ import { ContractTab } from "@/features/exhibitors/contract-tab";
 import { ExhibitorLeadFields, LEAD_FIELDS, leadBody, type ExhibitorLeadValues } from "@/features/exhibitors/lead-form";
 import { PaymentsTab } from "@/features/exhibitors/payments-tab";
 import { PortalAccountPanel } from "@/features/exhibitors/portal-account-panel";
-import { contractQuery, type ExhibitorLead, exhibitorLeadQuery, STAGE_MOVES } from "@/features/exhibitors/queries";
+import { contractQuery, type ExhibitorLead, exhibitorLeadQuery, leadOwnersQuery, STAGE_MOVES } from "@/features/exhibitors/queries";
 import { can, useMe } from "@/lib/auth";
 import { useEditionById } from "@/lib/edition";
 import { handleFormError } from "@/lib/forms";
@@ -109,12 +109,12 @@ function ExhibitorLeadDetail() {
             </div>
           </Panel>
           {exhibitor ? <PortalAccountPanel lead={l} timezone={tz} /> : null}
+          <OwnerPanel lead={l} />
           <Panel>
             <PanelHeader title="Record" />
             <div className="p-5">
               <Facts
                 items={[
-                  ["Lead Owner", l.lead_owner_name ?? null],
                   ...(l.converted_at ? ([["Converted", formatDateTime(l.converted_at, tz)]] as [string, string][]) : []),
                   ["Created", formatDateTime(l.created_at, tz)],
                   ["Modified", formatDateTime(l.updated_at, tz)],
@@ -125,6 +125,27 @@ function ExhibitorLeadDetail() {
         </aside>
       </div>
     </Page>
+  );
+}
+
+function OwnerPanel({ lead }: { lead: ExhibitorLead }) {
+  const me = useMe();
+  const owners = useQuery(leadOwnersQuery(lead.edition_id));
+  const assign = can(me, "exhibitor_lead.update") && owners.data?.can_assign;
+  return (
+    <Panel>
+      <PanelHeader
+        title="Lead Owner"
+        actions={
+          assign ? (
+            <Button asChild size="sm" variant="ghost">
+              <Link to="/app/exhibitor-leads/$leadId/owner" params={{ leadId: lead.id }}>{lead.lead_owner_id ? "Reassign" : "Assign"}</Link>
+            </Button>
+          ) : null
+        }
+      />
+      <div className="p-5 text-[14px]">{lead.lead_owner_name ?? <span className="text-label">Unassigned</span>}</div>
+    </Panel>
   );
 }
 
@@ -160,6 +181,7 @@ function StagePanel({ lead, timezone }: { lead: ExhibitorLead; timezone?: string
 
 const toValues = (l: ExhibitorLead): ExhibitorLeadValues => ({
   edition_id: l.edition_id,
+  lead_owner_id: l.lead_owner_id ?? "",
   company_name: l.company_name,
   contact_name: l.contact_name,
   email: l.email,
