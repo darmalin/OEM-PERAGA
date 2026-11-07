@@ -7,11 +7,7 @@ import { z } from "zod";
 
 import { ReferenceOverview } from "@/features/dashboard/overview";
 import { OverviewOperations } from "@/features/dashboard/overview-operations";
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
-
 import { ExhibitorPipelinePanel } from "@/features/exhibitors/pipeline-panel";
-import { useReport } from "@/features/reports";
 import { can, useMe } from "@/lib/auth";
 import { useEdition } from "@/lib/edition";
 import { formatDateTime } from "@/lib/format";
@@ -38,7 +34,22 @@ function Overview() {
   const navigate = useNavigate({ from: Route.fullPath });
   const client = useQueryClient();
   if (!edition) return <Page><NoEdition /></Page>;
-  if (!can(me, "report.view")) return <Page className="pt-4"><PageHead title="Overview" edition /><EditionBand edition={edition} /><div className="mt-6">{can(me, "telemarketing.call") ? <QueuePreview editionId={edition.id} timezone={edition.timezone} /> : <Panel><EmptyState title="Your role has no overview numbers. Use the menu to open your pages." /></Panel>}</div></Page>;
+  // Sales pipeline of the edition, for anyone who reads exhibitor leads (counted in their scope).
+  const exhibitors = can(me, "exhibitor_lead.read") ? <div className="mt-6"><ExhibitorPipelinePanel editionId={edition.id} /></div> : null;
+  if (!can(me, "report.view")) {
+    return (
+      <Page className="pt-4">
+        <PageHead title="Overview" edition />
+        <EditionBand edition={edition} />
+        {can(me, "telemarketing.call") ? (
+          <div className="mt-6"><QueuePreview editionId={edition.id} timezone={edition.timezone} /></div>
+        ) : exhibitors ? null : (
+          <div className="mt-6"><Panel><EmptyState title="Your role has no overview numbers. Use the menu to open your pages." /></Panel></div>
+        )}
+        {exhibitors}
+      </Page>
+    );
+  }
   const defaults = overviewRange(edition.timezone);
   const s = { from: search.from ?? defaults.from, to: search.to ?? defaults.to, edition: edition.id };
   const span = (Date.parse(`${s.to}T00:00:00Z`) - Date.parse(`${s.from}T00:00:00Z`)) / 864e5;
@@ -47,6 +58,7 @@ function Overview() {
     <PageHead title="Overview" edition meta={`${edition.code} · ${edition.name} · ${edition.timezone}`} actions={<Button onClick={() => { void client.invalidateQueries({ queryKey: ["dashboard"] }); void client.invalidateQueries({ queryKey: ["report", edition.id, "ATTENDANCE"] }); }}><RefreshCw aria-hidden />Refresh</Button>} />
     <div className="mb-4"><OverviewDates key={`${s.from}:${s.to}`} from={s.from} to={s.to} onApply={range => void navigate({ search: range, replace: true })} /></div>
     {valid ? <ReferenceOverview s={s}><OverviewOperations s={s} /></ReferenceOverview> : <p role="alert" className="rounded-[10px] border border-line bg-bg p-5 text-[13px] text-required">Choose a valid date range of up to 366 days.</p>}
+    {exhibitors}
   </Page>;
 }
 
