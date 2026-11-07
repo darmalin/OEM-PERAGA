@@ -188,6 +188,55 @@ Lalu login di browser:
 
 ## 6. Alur rilis
 
+### Satu perintah pada server yang sudah berjalan
+
+Untuk setup saat ini (`/root/ems-staging` dan `/root/ems-prod`), jalankan dari folder mana pun:
+
+```bash
+/root/ems-staging/deploy-production.sh
+```
+
+Script otomatis membuat commit dari perubahan aplikasi di staging, membuat tag rilis,
+dan push branch/tag ke GitHub. Folder `backups/` tidak ikut commit; file yang diabaikan
+Git seperti `.env` tetap diabaikan. Perubahan yang dirilis harus sudah diperiksa di staging.
+Script tidak menjalankan test aplikasi terhadap database production.
+
+Setelah itu script mengambil commit yang sama ke production, membangun semua image aplikasi
+saat layanan lama masih berjalan, menghentikan API/worker/beat, dan membuat backup database,
+storage, `.env`, serta riwayat Git. Backup diverifikasi sebelum migration. API dinyalakan dan
+ditunggu sampai ready, kemudian frontend, worker, dan beat diperbarui. URL production diperiksa
+melalui HTTPS. Nama project selalu `ems-prod`; `.env` dan volume production tetap digunakan.
+
+Backup, image rollback, dan log setiap rilis disimpan di
+`/root/backups/ems-prod/release-<waktu-UTC>/`. File `SUCCESS` hanya muncul setelah rilis berhasil.
+Image rollback diberi tag `ems-prod-<service>:rollback-<waktu-UTC>`.
+Salin backup ke luar server dan kelola retensinya, termasuk image rollback.
+
+Pemeriksaan awal tanpa commit/push/build/deploy:
+
+```bash
+/root/ems-staging/deploy-production.sh --check
+```
+
+Gunakan `--no-commit` bila hanya ingin merilis kode yang sudah di-commit. Jika commit yang sama
+sudah ada di production, script selesai tanpa restart. Script menolak perubahan lokal di
+production (kecuali folder backup), konflik merge di staging, atau deploy bersamaan.
+Folder dapat disesuaikan lewat `EMS_DEPLOY_PROD_DIR` dan `EMS_DEPLOY_BACKUP_DIR`.
+
+Jika gagal sebelum migration, script mengembalikan checkout production sebelumnya dan, bila
+layanan telah dihentikan, menyalakannya memakai image sebelumnya. Setelah migration mulai,
+script tidak mengasumsikan schema lama masih cocok: API/worker/beat dihentikan jika proses gagal.
+Periksa `deploy.log`, `migration.log`, dan backup untuk pemulihan; database tidak di-restore
+otomatis sehingga perubahan data berikutnya tidak terhapus tanpa sengaja.
+
+Pengujian alur script memakai Git sementara dan Docker/HTTP tiruan (tanpa akses production):
+
+```bash
+python3 -m unittest discover -s deployments/tests -v
+```
+
+### Alur rilis manual
+
 1. Merge ke `main`, lalu deploy ke **staging**:
    ```bash
    cd /srv/ems-staging && git pull && docker compose up -d --build

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { leadSourcesQuery } from "@/features/leads/queries";
-import { can, useMe } from "@/lib/auth";
+import { canGlobal, useMe } from "@/lib/auth";
 import { Button } from "@/ui/button";
 import { Indicator } from "@/ui/indicator";
 import { ArrayBody } from "@/ui/list";
@@ -22,7 +22,7 @@ const COLUMNS: Column<Schemas["LeadSourceOut"]>[] = [
 function Sources() {
   const me = useMe();
   const q = useQuery(leadSourcesQuery(true));
-  const manage = can(me, "exhibition.manage");
+  const manage = canGlobal(me, "exhibition.manage");
   const add = manage ? <Button asChild variant="primary"><Link to="/app/lead-sources/new">Add Source</Link></Button> : undefined;
   return (
     <Page>

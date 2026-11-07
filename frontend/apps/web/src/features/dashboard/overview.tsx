@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Check, Clock3, Phone, UserPlus, X } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { formatNumber } from "@/lib/format";
 import { ErrorState, Skeleton } from "@/ui/states";
@@ -74,7 +75,7 @@ function StatusBars({ row }: { row: Row }) {
   </svg>;
 }
 
-export function ReferenceOverview({ s }: { s: DashboardSearch }) {
+export function ReferenceOverview({ s, children }: { s: DashboardSearch; children?: ReactNode }) {
   const total = useQuery(dashboardQuery(s, "total"));
   const previous = useQuery(dashboardQuery(s, "total", previousPeriod(s.from, s.to)));
   const daily = useQuery(dashboardQuery(s, "day"));
@@ -100,6 +101,7 @@ export function ReferenceOverview({ s }: { s: DashboardSearch }) {
         </section>;
       })}
     </div>
+    {children}
     {!row.total && !row.added && !row.pending ? <p role="status" className="rounded-[8px] border border-line bg-bg px-4 py-3 text-[13px] text-label">No activity was recorded for the selected period and filters.</p> : null}
     <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[1.05fr_1.3fr_0.95fr]">
       <section className="dash-card min-w-0 p-5" aria-label="Lead Response Overview">

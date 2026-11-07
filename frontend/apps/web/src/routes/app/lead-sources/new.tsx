@@ -3,6 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 
+import { canGlobal, useMe } from "@/lib/auth";
+import { NoAccess } from "@/ui/states";
 import { handleFormError } from "@/lib/forms";
 import { notifySuccess } from "@/lib/notify";
 import { Button } from "@/ui/button";
@@ -13,6 +15,7 @@ import { sourceBody, SourceFields, type SourceValues } from "./-form";
 export const Route = createFileRoute("/app/lead-sources/new")({ component: NewSource });
 
 function NewSource() {
+  const allowed = canGlobal(useMe(), "exhibition.manage");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const form = useForm<SourceValues>({ defaultValues: { name: "", sort_order: "0", is_active: true } });
@@ -26,6 +29,7 @@ function NewSource() {
       handleFormError(e, form.setError, ["name", "sort_order"]);
     }
   });
+  if (!allowed) return <Page><PageHead title="Sources" back={{ to: "/app/lead-sources", label: "Sources" }} /><NoAccess message="Sources are shared across all exhibitions. A global administrator is required to manage them." /></Page>;
   return (
     <Page className="max-w-[1000px]">
       <PageHead title="New Source" back={{ to: "/app/lead-sources", label: "Sources" }} />

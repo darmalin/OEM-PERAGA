@@ -1,4 +1,12 @@
 import { api, call } from "@ems/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { RefreshCw } from "lucide-react";
+import { useId, useState } from "react";
+import { z } from "zod";
+
+import { ReferenceOverview } from "@/features/dashboard/overview";
+import { OverviewOperations } from "@/features/dashboard/overview-operations";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -6,196 +14,51 @@ import { ExhibitorPipelinePanel } from "@/features/exhibitors/pipeline-panel";
 import { useReport } from "@/features/reports";
 import { can, useMe } from "@/lib/auth";
 import { useEdition } from "@/lib/edition";
-import { formatDateTime, formatPercent } from "@/lib/format";
-import { label } from "@/lib/labels";
+import { formatDateTime } from "@/lib/format";
 import { EditionBand } from "@/ui/band";
 import { Button } from "@/ui/button";
-import { EditionPicker } from "@/ui/edition-picker";
 import { Indicator } from "@/ui/indicator";
-import { BarList, Metric } from "@/ui/metric";
-import { Page, Panel, PanelHeader } from "@/ui/page";
+import { Input } from "@/ui/input";
+import { Page, PageHead, Panel, PanelHeader } from "@/ui/page";
 import { EmptyState, ErrorState, NoEdition, Skeleton } from "@/ui/states";
 
-export const Route = createFileRoute("/app/")({ component: Overview });
+const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+export const Route = createFileRoute("/app/")({ validateSearch: z.object({ from: date.optional(), to: date.optional() }), component: Overview });
+
+export function overviewRange(timezone: string, now = new Date()) {
+  const to = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  const from = new Date(Date.parse(`${to}T00:00:00Z`) - 29 * 864e5).toISOString().slice(0, 10);
+  return { from, to };
+}
 
 function Overview() {
   const me = useMe();
   const { edition } = useEdition();
-  if (!edition) {
-    return (
-      <Page>
-        <NoEdition />
-      </Page>
-    );
-  }
-  const reports = can(me, "report.view");
-  return (
-    <Page className="pt-4">
-      <div className="mb-4 flex justify-end">
-        <EditionPicker />
-      </div>
-      <EditionBand edition={edition}>{reports ? <BandNumbers editionId={edition.id} /> : null}</EditionBand>
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        {reports ? (
-          <>
-            <TelemarketingPanel editionId={edition.id} />
-            <div className="flex flex-col gap-6">
-              <RegistrationPanel editionId={edition.id} />
-              <GatePanel editionId={edition.id} timezone={edition.timezone} />
-            </div>
-          </>
-        ) : can(me, "telemarketing.call") ? (
-          <QueuePreview editionId={edition.id} timezone={edition.timezone} />
-        ) : can(me, "exhibitor_lead.read") ? null : (
-          <Panel>
-            <EmptyState title="Your role has no overview numbers. Use the menu to open your pages." />
-          </Panel>
-        )}
-      </div>
-      {can(me, "exhibitor_lead.read") ? (
-        <div className="mt-6">
-          <ExhibitorPipelinePanel editionId={edition.id} />
-        </div>
-      ) : null}
-    </Page>
-  );
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const client = useQueryClient();
+  if (!edition) return <Page><NoEdition /></Page>;
+  if (!can(me, "report.view")) return <Page className="pt-4"><PageHead title="Overview" edition /><EditionBand edition={edition} /><div className="mt-6">{can(me, "telemarketing.call") ? <QueuePreview editionId={edition.id} timezone={edition.timezone} /> : <Panel><EmptyState title="Your role has no overview numbers. Use the menu to open your pages." /></Panel>}</div></Page>;
+  const defaults = overviewRange(edition.timezone);
+  const s = { from: search.from ?? defaults.from, to: search.to ?? defaults.to, edition: edition.id };
+  const span = (Date.parse(`${s.to}T00:00:00Z`) - Date.parse(`${s.from}T00:00:00Z`)) / 864e5;
+  const valid = Number.isFinite(span) && span >= 0 && span < 366;
+  return <Page className="max-w-none">
+    <PageHead title="Overview" edition meta={`${edition.code} · ${edition.name} · ${edition.timezone}`} actions={<Button onClick={() => { void client.invalidateQueries({ queryKey: ["dashboard"] }); void client.invalidateQueries({ queryKey: ["report", edition.id, "ATTENDANCE"] }); }}><RefreshCw aria-hidden />Refresh</Button>} />
+    <div className="mb-4"><OverviewDates key={`${s.from}:${s.to}`} from={s.from} to={s.to} onApply={range => void navigate({ search: range, replace: true })} /></div>
+    {valid ? <ReferenceOverview s={s}><OverviewOperations s={s} /></ReferenceOverview> : <p role="alert" className="rounded-[10px] border border-line bg-bg p-5 text-[13px] text-required">Choose a valid date range of up to 366 days.</p>}
+  </Page>;
 }
 
-function BandNumbers({ editionId }: { editionId: string }) {
-  const leads = useReport("LEADS", editionId, {}, { poll: true });
-  const reg = useReport("REGISTRATION", editionId, {}, { poll: true });
-  const att = useReport("ATTENDANCE", editionId, {}, { poll: true });
-  if (leads.isPending || reg.isPending || att.isPending) {
-    return (
-      <div className="grid grid-cols-2 gap-6 md:grid-cols-4" role="status" aria-label="Loading numbers">
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-12 w-full opacity-30" />
-        ))}
-      </div>
-    );
-  }
-  if (leads.isError || reg.isError) return <p className="text-[13px] text-on-band-muted">Numbers could not be loaded.</p>;
-  return (
-    <div className="grid grid-cols-2 gap-6 border-t border-white/15 pt-5 md:grid-cols-4">
-      <Metric tone="band" label="Visitor leads" value={leads.data.total} hint={`${leads.data.unassigned} unassigned`} />
-      <Metric tone="band" label="Registered" value={reg.data.registered} hint={`${reg.data.qr_active} with an active QR`} />
-      <Metric tone="band" label="Unique visitors at the gate" value={att.data?.unique_event_visitors ?? 0} hint={`${att.data?.valid_entries ?? 0} valid entries`} />
-      <Metric tone="band" label="Not registered yet" value={reg.data.not_registered} />
-    </div>
-  );
-}
-
-function TelemarketingPanel({ editionId }: { editionId: string }) {
-  const tm = useReport("TELEMARKETING", editionId, {}, { poll: true });
-  const agents = useReport("AGENTS", editionId, {}, { poll: true });
-  return (
-    <Panel>
-      <PanelHeader title="Who is behind on calls?" actions={<Button asChild size="sm" variant="ghost"><Link to="/app/reports">Open Reports</Link></Button>} />
-      {tm.isPending ? (
-        <div className="p-5"><Skeleton className="h-32 w-full" /></div>
-      ) : tm.isError ? (
-        <ErrorState error={tm.error} onRetry={() => void tm.refetch()} />
-      ) : (
-        <div className="p-5">
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-            <Metric label="Call attempts" value={tm.data.attempts} />
-            <Metric label="Answer rate" value={formatPercent(tm.data.answer_rate)} />
-            <Metric label="Follow-ups due today" value={tm.data.followups_due_today} />
-            <Metric label="Follow-ups overdue" value={tm.data.followups_overdue} />
-          </div>
-          <div className="mt-6">
-            <p className="mb-2 text-[12px] text-label">Agents, by open follow-ups and answered calls</p>
-            {agents.data && agents.data.agents.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px]">
-                  <caption className="sr-only">Agent performance</caption>
-                  <thead>
-                    <tr className="border-b border-line text-left text-[12px] text-label">
-                      <th scope="col" className="py-2 pr-4 font-normal">Agent</th>
-                      <th scope="col" className="py-2 pr-4 text-right font-normal">Leads</th>
-                      <th scope="col" className="py-2 pr-4 text-right font-normal">Attempts</th>
-                      <th scope="col" className="py-2 pr-4 text-right font-normal">Answered</th>
-                      <th scope="col" className="py-2 text-right font-normal">Follow-ups done</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {agents.data.agents.map((a) => (
-                      <tr key={a.agent_id} className="border-b border-line last:border-b-0">
-                        <td className="py-2 pr-4">{a.full_name}</td>
-                        <td className="py-2 pr-4 text-right tabular">{a.leads_owned}</td>
-                        <td className="py-2 pr-4 text-right tabular">{a.attempts}</td>
-                        <td className="py-2 pr-4 text-right tabular">{a.answered}</td>
-                        <td className="py-2 text-right tabular">
-                          {a.followups_done} / {a.followups_total}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-[13px] text-muted">No calls logged yet. Assign leads to agents to start.</p>
-            )}
-          </div>
-        </div>
-      )}
-    </Panel>
-  );
-}
-
-function RegistrationPanel({ editionId }: { editionId: string }) {
-  const reg = useReport("REGISTRATION", editionId, {}, { poll: true });
-  return (
-    <Panel>
-      <PanelHeader title="Did the QR emails go out?" actions={<Button asChild size="sm" variant="ghost"><Link to="/app/visitor-leads" search={{ edition: editionId, f: [{ field: "registration_status", op: "is", value: "REGISTERED" }] }}>Open Registered Leads</Link></Button>} />
-      <div className="p-5">
-        {reg.isPending ? (
-          <Skeleton className="h-24 w-full" />
-        ) : reg.isError ? (
-          <ErrorState error={reg.error} />
-        ) : reg.data.emails_by_status.length === 0 ? (
-          <p className="text-[13px] text-muted">No QR emails yet. They are sent when a visitor is registered.</p>
-        ) : (
-          <>
-            <BarList rows={reg.data.emails_by_status} labelFor={(k) => label("email_status", k)} />
-            <p className="mt-4 text-[12px] text-label">Sent means the mail server accepted the email; bounces are not tracked yet.</p>
-          </>
-        )}
-      </div>
-    </Panel>
-  );
-}
-
-function GatePanel({ editionId, timezone }: { editionId: string; timezone: string }) {
-  const gates = useReport("GATES", editionId, {}, { poll: true });
-  return (
-    <Panel>
-      <PanelHeader title="Gate activity" actions={<Button asChild size="sm" variant="ghost"><Link to="/app/scans">Scan History</Link></Button>} />
-      <div className="p-5">
-        {gates.isPending ? (
-          <Skeleton className="h-20 w-full" />
-        ) : gates.isError ? (
-          <ErrorState error={gates.error} />
-        ) : gates.data.by_gate.length === 0 ? (
-          <p className="text-[13px] text-muted">No gates set up for this edition yet.</p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-line">
-            {gates.data.by_gate.map((g) => (
-              <li key={g.gate_id} className="flex items-center justify-between gap-3 py-2 text-[13px]">
-                <span className="truncate">
-                  <span className="font-medium">{g.gate_code}</span> <span className="text-label">{g.gate_name}</span>
-                </span>
-                <span className="tabular text-muted">
-                  {g.valid_entries} valid · {g.rejected} rejected
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="mt-3 text-[12px] text-label">Times in {timezone}. Refreshes every 30 seconds.</p>
-      </div>
-    </Panel>
-  );
+function OverviewDates({ from, to, onApply }: { from: string; to: string; onApply: (range: { from: string; to: string }) => void }) {
+  const [draft, setDraft] = useState({ from, to });
+  const id = useId();
+  return <form aria-label="Overview date range" className="dashboard-reference dash-card flex flex-wrap items-center gap-3 px-5 py-3" onSubmit={e => { e.preventDefault(); onApply(draft); }}>
+    <label htmlFor={`${id}-from`} className="flex items-center gap-2 text-[12px] text-muted">From<Input id={`${id}-from`} className="w-[148px]" type="date" required value={draft.from} max={draft.to} onChange={e => setDraft({ ...draft, from: e.target.value })} /></label>
+    <label htmlFor={`${id}-to`} className="flex items-center gap-2 text-[12px] text-muted">To<Input id={`${id}-to`} className="w-[148px]" type="date" required value={draft.to} min={draft.from} onChange={e => setDraft({ ...draft, to: e.target.value })} /></label>
+    <Button type="submit" className="dash-apply">Apply</Button>
+    <p className="text-[12px] text-label">All numbers use this exhibition type and date range.</p>
+  </form>;
 }
 
 function QueuePreview({ editionId, timezone }: { editionId: string; timezone: string }) {
