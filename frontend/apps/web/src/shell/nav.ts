@@ -4,6 +4,7 @@ import {
   BarChart3,
   Building2,
   ClipboardList,
+  ClipboardPen,
   DoorOpen,
   FileDown,
   FileUp,
@@ -80,6 +81,7 @@ export const PANELS: PanelDef[] = [
         items: [
           { label: "Exhibitor Leads", to: "/app/exhibitor-leads", icon: Handshake, perms: ["exhibitor_lead.read"] },
           { label: "Booths", to: "/app/booths", icon: LayoutGrid, perms: ["booth.manage", "exhibitor_lead.read"] },
+          { label: "Order Forms", to: "/app/order-forms", icon: ClipboardPen, perms: ["order_form.manage"] },
         ],
       },
       {

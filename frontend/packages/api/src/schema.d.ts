@@ -1516,6 +1516,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/order-forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Forms */
+        get: operations["list_forms_api_v1_order_forms_get"];
+        put?: never;
+        /** Create Form */
+        post: operations["create_form_api_v1_order_forms_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/order-forms/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy Forms */
+        post: operations["copy_forms_api_v1_order_forms_copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/order-forms/item-import-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Item Import Template */
+        get: operations["item_import_template_api_v1_order_forms_item_import_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/order-forms/{form_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Form */
+        get: operations["get_form_api_v1_order_forms__form_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Form */
+        patch: operations["update_form_api_v1_order_forms__form_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/order-forms/{form_id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Items */
+        get: operations["list_items_api_v1_order_forms__form_id__items_get"];
+        put?: never;
+        /** Create Item */
+        post: operations["create_item_api_v1_order_forms__form_id__items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/order-forms/{form_id}/items/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Items */
+        post: operations["import_items_api_v1_order_forms__form_id__items_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/order-forms/{form_id}/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Item */
+        patch: operations["update_item_api_v1_order_forms__form_id__items__item_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/order-forms/{form_id}/items/{item_id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Item Image */
+        get: operations["item_image_api_v1_order_forms__form_id__items__item_id__image_get"];
+        put?: never;
+        /** Set Item Image */
+        post: operations["set_item_image_api_v1_order_forms__form_id__items__item_id__image_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/visitor-registrations": {
         parameters: {
             query?: never;
@@ -2478,6 +2618,11 @@ export interface components {
             };
         };
         /**
+         * AttachmentPurpose
+         * @enum {string}
+         */
+        AttachmentPurpose: "LOGO" | "PRODUCT_IMAGE" | "FITTING_LOCATION" | "VISA_LIST" | "OTHER";
+        /**
          * Attend
          * @description spec 4.2: fixed options. Labels: Attend, Attend Sourcing, Under Consideration,
          *     Not Attend, Hang Up Immediately.
@@ -2578,6 +2723,11 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** Body_import_items_api_v1_order_forms__form_id__items_import_post */
+        Body_import_items_api_v1_order_forms__form_id__items_import_post: {
+            /** File */
+            file: string;
+        };
         /** Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post */
         Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post: {
             /** File */
@@ -2594,6 +2744,13 @@ export interface components {
             edition_id: string;
             /** File */
             file: string;
+        };
+        /** Body_set_item_image_api_v1_order_forms__form_id__items__item_id__image_post */
+        Body_set_item_image_api_v1_order_forms__form_id__items__item_id__image_post: {
+            /** File */
+            file: string;
+            /** Version */
+            version: number;
         };
         /** Body_start_import_api_v1_visitor_leads_imports_post */
         Body_start_import_api_v1_visitor_leads_imports_post: {
@@ -3178,6 +3335,28 @@ export interface components {
             contract_number: string;
             invitation: components["schemas"]["InvitationOut"] | null;
         };
+        /** CopyFormsIn */
+        CopyFormsIn: {
+            /**
+             * From Edition Id
+             * Format: uuid
+             */
+            from_edition_id: string;
+            /**
+             * To Edition Id
+             * Format: uuid
+             */
+            to_edition_id: string;
+        };
+        /** CopyFormsOut */
+        CopyFormsOut: {
+            /** Forms Copied */
+            forms_copied: number;
+            /** Items Copied */
+            items_copied: number;
+            /** Skipped Codes */
+            skipped_codes: string[];
+        };
         /** Count */
         Count: {
             /** Key */
@@ -3486,6 +3665,12 @@ export interface components {
              */
             c_side: number;
         };
+        /**
+         * DetailsType
+         * @description Code-defined answer schema of a form (decision O10); the schemas come in Phase 5.
+         * @enum {string}
+         */
+        DetailsType: "directory_listing" | "advertising" | "social_media" | "stand_service" | "exhibit_details" | "freight" | "badges_visa" | "seminar" | "parking";
         /** DeviceContext */
         DeviceContext: {
             /**
@@ -4895,6 +5080,24 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** ItemImportOut */
+        ItemImportOut: {
+            /** Created */
+            created: number;
+            /** Updated */
+            updated: number;
+            /** Errors */
+            errors: components["schemas"]["ItemImportRowError"][];
+        };
+        /** ItemImportRowError */
+        ItemImportRowError: {
+            /** Row */
+            row: number;
+            /** Errors */
+            errors: {
+                [key: string]: string;
+            };
+        };
         /** JobAccepted */
         JobAccepted: {
             /**
@@ -5431,6 +5634,241 @@ export interface components {
          * @enum {string}
          */
         OptionField: "BUSINESS_TYPE" | "BRANCH" | "EXHIBITION_TYPE" | "PRODUCT_CATEGORY";
+        /** OrderFormCreateIn */
+        OrderFormCreateIn: {
+            /** Title */
+            title: string;
+            details_type?: components["schemas"]["DetailsType"] | null;
+            /** Has Catalog */
+            has_catalog?: boolean | null;
+            /** Allow Custom Items */
+            allow_custom_items?: boolean | null;
+            /** Attachment Purposes */
+            attachment_purposes?: components["schemas"]["AttachmentPurpose"][] | null;
+            /** Deadline On */
+            deadline_on?: string | null;
+            /** Closes On */
+            closes_on?: string | null;
+            /** Secondary Deadline Label */
+            secondary_deadline_label?: string | null;
+            /** Secondary Deadline On */
+            secondary_deadline_on?: string | null;
+            /** Instructions */
+            instructions?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Is Published */
+            is_published?: boolean | null;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /** Code */
+            code: string;
+        };
+        /** OrderFormItemCreateIn */
+        OrderFormItemCreateIn: {
+            /** Section */
+            section?: string | null;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Size */
+            size?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Price Regular */
+            price_regular: number | string;
+            /** Price Surcharge */
+            price_surcharge?: number | string | null;
+            /** Price Onsite */
+            price_onsite?: number | string | null;
+            /** Max Quantity */
+            max_quantity?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Sort Order */
+            sort_order?: number | null;
+        };
+        /** OrderFormItemOut */
+        OrderFormItemOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Form Id
+             * Format: uuid
+             */
+            form_id: string;
+            /** Section */
+            section: string | null;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            /** Size */
+            size: string | null;
+            /** Unit */
+            unit: string | null;
+            /** Price Regular */
+            price_regular: string;
+            /** Price Surcharge */
+            price_surcharge: string | null;
+            /** Price Onsite */
+            price_onsite: string | null;
+            /** Max Quantity */
+            max_quantity: number | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Sort Order */
+            sort_order: number;
+            /**
+             * Has Image
+             * @default false
+             */
+            has_image: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** OrderFormItemUpdateIn */
+        OrderFormItemUpdateIn: {
+            /** Section */
+            section?: string | null;
+            /** Code */
+            code?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Size */
+            size?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Price Regular */
+            price_regular?: number | string | null;
+            /** Price Surcharge */
+            price_surcharge?: number | string | null;
+            /** Price Onsite */
+            price_onsite?: number | string | null;
+            /** Max Quantity */
+            max_quantity?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Version */
+            version: number;
+        };
+        /** OrderFormOut */
+        OrderFormOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            details_type: components["schemas"]["DetailsType"] | null;
+            /** Has Catalog */
+            has_catalog: boolean;
+            /** Allow Custom Items */
+            allow_custom_items: boolean;
+            /** Attachment Purposes */
+            attachment_purposes: components["schemas"]["AttachmentPurpose"][];
+            /** Deadline On */
+            deadline_on: string | null;
+            /** Closes On */
+            closes_on: string | null;
+            /** Secondary Deadline Label */
+            secondary_deadline_label: string | null;
+            /** Secondary Deadline On */
+            secondary_deadline_on: string | null;
+            /** Instructions */
+            instructions: string | null;
+            /** Currency */
+            currency: string;
+            /** Sort Order */
+            sort_order: number;
+            /** Is Published */
+            is_published: boolean;
+            /**
+             * Active Item Count
+             * @default 0
+             */
+            active_item_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * OrderFormUpdateIn
+         * @description The code is fixed once created: exhibitors and staff know a form by its number.
+         */
+        OrderFormUpdateIn: {
+            /** Title */
+            title?: string | null;
+            details_type?: components["schemas"]["DetailsType"] | null;
+            /** Has Catalog */
+            has_catalog?: boolean | null;
+            /** Allow Custom Items */
+            allow_custom_items?: boolean | null;
+            /** Attachment Purposes */
+            attachment_purposes?: components["schemas"]["AttachmentPurpose"][] | null;
+            /** Deadline On */
+            deadline_on?: string | null;
+            /** Closes On */
+            closes_on?: string | null;
+            /** Secondary Deadline Label */
+            secondary_deadline_label?: string | null;
+            /** Secondary Deadline On */
+            secondary_deadline_on?: string | null;
+            /** Instructions */
+            instructions?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Is Published */
+            is_published?: boolean | null;
+            /** Version */
+            version: number;
+        };
         /**
          * OverrideIn
          * @description gate.override: admit a registered visitor whose QR cannot be read.
@@ -5579,6 +6017,28 @@ export interface components {
         Page_LeadListItem_: {
             /** Items */
             items: components["schemas"]["LeadListItem"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[OrderFormItemOut] */
+        Page_OrderFormItemOut_: {
+            /** Items */
+            items: components["schemas"]["OrderFormItemOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[OrderFormOut] */
+        Page_OrderFormOut_: {
+            /** Items */
+            items: components["schemas"]["OrderFormOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -10612,6 +11072,401 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortalPaymentsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_forms_api_v1_order_forms_get: {
+        parameters: {
+            query: {
+                page?: number;
+                page_size?: number;
+                edition_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_OrderFormOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_form_api_v1_order_forms_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderFormCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderFormOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    copy_forms_api_v1_order_forms_copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyFormsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CopyFormsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    item_import_template_api_v1_order_forms_item_import_template_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                };
+            };
+        };
+    };
+    get_form_api_v1_order_forms__form_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderFormOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_form_api_v1_order_forms__form_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderFormUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderFormOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_items_api_v1_order_forms__form_id__items_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_OrderFormItemOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_item_api_v1_order_forms__form_id__items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderFormItemCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderFormItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_items_api_v1_order_forms__form_id__items_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_items_api_v1_order_forms__form_id__items_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemImportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_item_api_v1_order_forms__form_id__items__item_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderFormItemUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderFormItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    item_image_api_v1_order_forms__form_id__items__item_id__image_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_item_image_api_v1_order_forms__form_id__items__item_id__image_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_set_item_image_api_v1_order_forms__form_id__items__item_id__image_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderFormItemOut"];
                 };
             };
             /** @description Validation Error */

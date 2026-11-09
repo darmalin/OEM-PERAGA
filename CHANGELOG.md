@@ -5,8 +5,17 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
-Exhibitor order forms, Phase 1 of docs/EXHIBITOR_ORDER_FORMS.md (database only, nothing visible
-yet). Migrations 0030 and 0031: new tables `order_forms`, `order_form_items`, `exhibitor_orders`,
+Exhibitor order forms, Phases 1 and 2 of docs/EXHIBITOR_ORDER_FORMS.md. Staff can set up the forms
+(menu Exhibitors → Order Forms, permission `order_form.manage`); exhibitors see nothing yet (Phase 3).
+
+- **Order Forms**: forms per edition with number, title, deadlines, instructions, and what the exhibitor
+  fills in (catalog, extra items, questions, attachments). Published only when there is something to fill.
+- **Catalog**: items with code, section, size, Regular / Surcharge / Onsite prices, and a picture.
+  Import from Excel (template on the page; all rows or none, updates by code).
+- **Copy from Edition**: copies every form and its catalog from an earlier edition, unpublished and
+  without dates.
+
+Migrations 0030 and 0031: new tables `order_forms`, `order_form_items`, `exhibitor_orders`,
 `exhibitor_order_lines`, `exhibitor_order_files`, `exhibitor_form_waivers`,
 `exhibitor_order_counters`; unique `(id, edition_id)` on `exhibitor_leads`; permissions
 `order_form.manage` and `exhibitor_order.review` for Super Admin and Exhibition Admin. New

@@ -13,6 +13,7 @@ from app.modules.exhibitors import router as exhibitors
 from app.modules.identity import router as identity
 from app.modules.importexport import router as importexport
 from app.modules.mail import router as mail
+from app.modules.orders import router as orders
 from app.modules.registrations import router as registrations
 from app.modules.reporting import router as reporting
 from app.modules.telemarketing import router as telemarketing
@@ -33,6 +34,7 @@ def build_api_router() -> APIRouter:
     router.include_router(visitors.router)
     router.include_router(exhibitors.router)
     router.include_router(exhibitors.portal_router)
+    router.include_router(orders.router)
     router.include_router(registrations.router)
     router.include_router(mail.router)
     router.include_router(campaigns.router)

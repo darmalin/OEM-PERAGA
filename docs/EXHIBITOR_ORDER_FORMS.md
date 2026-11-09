@@ -235,8 +235,9 @@ URL mengikuti pola project: flat, `edition_id` di query/body.
 - `GET/POST /api/v1/order-forms/{id}/items`, `PATCH .../items/{item_id}`, `POST .../items/{item_id}/image`
 - `POST /api/v1/order-forms/copy` `{from_edition_id, to_edition_id}`: salin form dan katalog dari edition
   sebelumnya (tanggal dikosongkan), supaya staff tidak mengetik ulang ratusan item
-- Import katalog dari Excel lewat modul `importexport` (template per form), dipakai juga untuk memindahkan
-  harga dari sistem lama satu kali
+- `POST /api/v1/order-forms/{id}/items/import` (xlsx) dan `GET /api/v1/order-forms/item-import-template`:
+  import katalog dari Excel, dipakai juga untuk memindahkan harga dari sistem lama satu kali
+- `GET /api/v1/order-forms/{id}/items/{item_id}/image`: gambar item (portal mendapat endpoint sendiri di Phase 3)
 
 **Staff: review**
 - `GET /api/v1/exhibitor-orders?edition_id=&form_id=&status=&q=` (antrian review)
@@ -298,11 +299,16 @@ Catatan Phase 1 untuk Phase 3: periode yang berimpit di satu hari memakai period
 (lebih murah). `ORDERING_NOT_OPEN` = `price_period()` mengembalikan `None`.
 
 ### Phase 2: Pengaturan form & katalog
-- [ ] API pengaturan form dan item (termasuk gambar item)
-- [ ] Copy dari edition lain
-- [ ] Import katalog Excel; isi katalog awal dari harga sistem lama
-- [ ] Desk: Order Forms, katalog, Copy from Edition
-- [ ] Tes permission dan scope
+- [x] API pengaturan form dan item (`app/modules/orders/router.py`, `service.py`): form dibuat belum publish, mata uang default dari edition; publish ditolak kalau tidak ada yang bisa diisi (422 `FORM_EMPTY`, juga saat item aktif terakhir dinonaktifkan); nomor form tidak bisa diubah; ganti mata uang ditolak kalau sudah ada order terkirim (409 `FORM_HAS_ORDERS`); kode duplikat 409 `DUPLICATE_FORM_CODE` / `DUPLICATE_ITEM_CODE`; edition ARCHIVED read-only
+- [x] Gambar item: `POST/GET .../items/{item_id}/image` (JPG/PNG, cek ekstensi, MIME, magic bytes, maks 5 MB, bucket `orders`, tampil inline dengan `nosniff`)
+- [x] Copy dari edition lain: `POST /order-forms/copy` (butuh `order_form.manage` edition-wide di kedua edition; nomor yang sudah ada dilewati; salinan tanpa tanggal dan belum publish; gambar dipakai bersama)
+- [x] Import katalog Excel: `POST .../items/import` sinkron (maks 1.000 baris, 2 MB), semua atau tidak sama sekali, upsert per kode (tanpa membedakan huruf besar), sel harga kosong menghapus harga itu; template `GET /order-forms/item-import-template`. Tidak lewat `importexport`: katalog kecil, hasil langsung terlihat
+- [ ] Isi katalog awal dari harga sistem lama: menunggu katalog dari owner (Phase 0); kalau owner setuju memakai harga lama, siapkan file Excel per form dari HTML sistem lama lalu import
+- [x] Desk: menu Exhibitors → Order Forms (`order_form.manage`): daftar, tambah form, detail dengan tab Catalog / Settings, tambah dan edit item (dengan gambar), Import from Excel (daftar baris yang salah), Copy from Edition
+- [x] Tes: `tests/test_order_forms.py` (aturan, permission dan scope, gambar, copy, import); E2E `apps/web/e2e/order-forms.mjs` (`make e2e-order-forms`); halaman baru masuk `smoke.mjs`
+
+Catatan Phase 2: daftar form dan item juga bisa dibaca dengan `exhibitor_lead.read` (untuk tab Orders di
+lead dan halaman review nanti); pengaturan tetap hanya `order_form.manage`.
 
 ### Phase 3: Portal, form katalog (03, 04, 05, 06, 07, 11, 12)
 - [ ] API portal: daftar, detail, draft, quote, submit, hapus draft, not-required
