@@ -135,3 +135,22 @@ export function timeLeft(value: string | null | undefined, now: Date = new Date(
   if (days === 1) return "Tomorrow";
   return `In ${days} days`;
 }
+
+/** Where the show stands from today: "Starts in 40 days", "On now", "Ended". Calendar days. */
+export function showCountdown(start: string, end: string, now: Date = new Date()): { text: string; live: boolean } {
+  const day = (v: string) => new Date(`${v}T00:00:00`).getTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const toStart = Math.round((day(start) - today) / 86_400_000);
+  if (toStart > 1) return { text: `Starts in ${toStart} days`, live: false };
+  if (toStart === 1) return { text: "Starts tomorrow", live: false };
+  if (today <= day(end)) return { text: "On now", live: true };
+  return { text: "Ended", live: false };
+}
+
+/** Whole days from today to a calendar date (negative once past); null without a date. */
+export function daysUntil(value: string | null | undefined, now: Date = new Date()): number | null {
+  if (!value) return null;
+  const target = new Date(`${value}T00:00:00`).getTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.round((target - today) / 86_400_000);
+}

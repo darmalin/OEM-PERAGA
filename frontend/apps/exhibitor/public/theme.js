@@ -1,5 +1,5 @@
-// Follow the device's light or dark setting before first paint. A file, not an inline
-// script: the portal's Content-Security-Policy allows no inline scripts of our own.
+// The exhibitor portal is light only (owner request 2026-11-09): drop any dark class early.
+// A file, not an inline script: the portal's Content-Security-Policy allows no inline scripts.
 try {
-  document.documentElement.classList.toggle("dark", matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.remove("dark");
 } catch (e) {}

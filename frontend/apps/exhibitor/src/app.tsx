@@ -44,7 +44,7 @@ export function App() {
     // Replacing the history entry drops the used token from the address bar.
     body = <AcceptInvite token={search.get("token") ?? ""} onDone={(me) => { signedIn(me); navigate("/", true); }} />;
   } else if (session.kind === "loading") {
-    body = <p role="status" className="py-16 text-center text-label">Loading</p>;
+    body = <p role="status" className="py-16 text-center text-label">Loading your portal</p>;
   } else if (session.kind === "error") {
     body = <div className="flex flex-col items-center gap-3 py-16"><Notice>{session.message}</Notice><Button onClick={load}>Retry</Button></div>;
   } else if (session.kind === "out") {
@@ -63,19 +63,27 @@ export function App() {
   }
 
   return (
-    <div className="min-h-dvh">
-      <header className="border-b border-line bg-bg">
-        <div className="mx-auto flex h-14 max-w-[960px] items-center justify-between gap-3 px-4">
-          <a href={href("/")} onClick={(e) => { e.preventDefault(); navigate("/"); }} className="rounded-[6px] text-[15px] font-semibold">Exhibitor Portal</a>
+    <div className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-20 border-b border-line bg-bg/95 backdrop-blur-sm">
+        <div className="mx-auto flex h-16 max-w-[1080px] items-center justify-between gap-3 px-5 max-sm:px-4">
+          <a href={href("/")} onClick={(e) => { e.preventDefault(); navigate("/"); }} className="flex min-w-0 items-center gap-3 rounded-[8px]">
+            <img src={`${import.meta.env.BASE_URL}peraga-expo-logo.png`} alt="PERAGA Expo" width={165} height={29} className="h-7 w-auto" />
+            <span className="border-l border-line pl-3 text-[13px] font-semibold text-label max-sm:hidden">Exhibitor Portal</span>
+          </a>
           {session.kind === "in" ? (
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-[13px] text-label max-sm:hidden">{session.me.email}</span>
-              <Button variant="ghost" className="h-9 px-3" onClick={() => void signOut()}><LogOut aria-hidden />Sign Out</Button>
+            <div className="flex min-w-0 items-center gap-1">
+              <span className="truncate text-[14px] text-muted max-md:hidden">{session.me.email}</span>
+              <Button variant="ghost" className="h-10 px-3" onClick={() => void signOut()}><LogOut aria-hidden />Sign Out</Button>
             </div>
           ) : null}
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[960px] px-4 py-6 sm:py-10">{body}</main>
+      <main className="mx-auto w-full max-w-[1080px] flex-1 px-5 py-8 max-sm:px-4 max-sm:py-6">{body}</main>
+      <footer className="border-t border-line bg-bg">
+        <p className="mx-auto max-w-[1080px] px-5 py-5 text-[13px] text-label max-sm:px-4">
+          PERAGA Expo Exhibitor Portal. Questions about your booth, contract, or orders? Contact your sales person at PERAGA Expo.
+        </p>
+      </footer>
     </div>
   );
 }

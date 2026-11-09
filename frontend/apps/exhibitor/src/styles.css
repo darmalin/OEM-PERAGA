@@ -1,4 +1,80 @@
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/plus-jakarta-sans";
 @import "tailwindcss";
 
 @import "@ems/ui/tokens.css";
+
+/*
+ * Exhibitor portal: its own light-only theme, apart from the desk's (owner request 2026-11-09).
+ * Palette from the PERAGA Expo logo: indigo #2f318b (PERAGA) carries the brand and every action;
+ * red #e62129 (EXPO) is the one accent, kept for what needs the exhibitor now (deadlines close,
+ * something to fix). Every text pair below was checked for WCAG AA (4.5:1 or more).
+ */
+:root,
+:root.dark {
+  color-scheme: light;
+  --page: #f4f5fb; /* a pale indigo wash, so white cards read as cards without heavy shadows */
+  --bg: #ffffff;
+  --bg-subtle: #f4f5fb;
+  --surface-input: #ffffff;
+  --surface-hover: #eef0fa;
+  --border: #e1e3f0;
+  --border-strong: #c9cce4;
+  --ink: #1b1c3d; /* 16.4:1 on white */
+  --ink-muted: #4a4d70; /* 8.1:1 */
+  --ink-label: #5b5e80; /* 6.2:1 on white, 5.7:1 on the page wash */
+  --primary: #2f318b; /* 10.9:1 with white text */
+  --primary-hover: #25276f;
+  --primary-soft: #eceefb; /* indigo text on it: 9.4:1 */
+  --on-primary: #ffffff;
+  --accent: #e62129; /* EXPO red: 4.55:1 on white, used at text size 14px bold or larger */
+  --accent-ink: #c4161f; /* red for smaller text: 6.0:1 */
+  --accent-soft: #fdecec;
+  --link: #2f318b;
+  --focus: #2f318b;
+  --required: #c4161f;
+  --hero-muted: #c7c9ee; /* secondary text on the indigo hero: 6.7:1 */
+
+  --gray-fg: #4a4d70;
+  --gray-bg: #eef0f6;
+  --blue-fg: #2f318b;
+  --blue-bg: #eceefb;
+  --green-fg: #17663b;
+  --green-bg: #e3f4e9;
+  --amber-fg: #7a4f00;
+  --amber-bg: #fff2d6;
+  --red-fg: #b4141c;
+  --red-bg: #fdecec;
+}
+
+@theme inline {
+  /* Plus Jakarta Sans for headings: designed in Jakarta for the city's own brand, round and warm,
+     it gives the exhibitor side its own voice. Inter stays for body text and numbers. */
+  --font-display: "Plus Jakarta Sans Variable", "Inter Variable", ui-sans-serif, sans-serif;
+  --color-page: var(--page);
+  --color-line-strong: var(--border-strong);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-hero-muted: var(--hero-muted);
+}
+
+@layer base {
+  html {
+    font-size: 15px;
+  }
+  body {
+    background: var(--page);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}

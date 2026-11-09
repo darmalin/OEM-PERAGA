@@ -2,7 +2,7 @@ import { api, ApiError, call } from "@ems/api";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { type Me, messageOf, navigate } from "../lib";
-import { Button, Field, Input, Notice, Panel } from "../ui";
+import { AuthLayout, Button, Field, Input, Notice } from "../ui";
 
 type State = { kind: "checking" } | { kind: "invalid" } | { kind: "error"; message: string } | { kind: "ready"; email: string; reset: boolean };
 
@@ -49,40 +49,40 @@ export function AcceptInvite({ token, onDone }: { token: string; onDone: (me: Me
     }
   };
 
+  const title = state.kind === "ready" && state.reset ? "Reset Your Password" : "Set Your Password";
   return (
-    <div className="mx-auto max-w-[420px]">
-      <h1 className="mb-1 text-[24px] leading-8 font-semibold tracking-[-0.01em]">{state.kind === "ready" && state.reset ? "Reset Your Password" : "Set Your Password"}</h1>
+    <AuthLayout
+      title={title}
+      intro={state.kind === "ready" ? (
+        <>
+          For <span className="font-semibold text-ink">{state.email}</span>.{" "}
+          {state.reset ? "The new password replaces the old one, and you are signed out on other devices." : "You sign in with this email and password from now on."}
+        </>
+      ) : undefined}
+    >
       {state.kind === "checking" ? (
-        <p role="status" className="py-8 text-label">Checking the link</p>
+        <p role="status" className="py-6 text-label">Checking the link</p>
       ) : state.kind === "invalid" ? (
-        <div className="mt-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <Notice>This link is invalid, already used, or expired. Ask your sales contact for a new one.</Notice>
           <Button className="self-start" onClick={() => navigate("/login", true)}>Go to Sign In</Button>
         </div>
       ) : state.kind === "error" ? (
-        <div className="mt-4"><Notice>{state.message}</Notice></div>
+        <Notice>{state.message}</Notice>
       ) : (
-        <>
-          <p className="mb-6 text-[14px] text-muted">
-            For <span className="font-medium text-ink">{state.email}</span>.{" "}
-            {state.reset ? "The new password replaces the old one, and you are signed out on other devices." : "You sign in with this email and password from now on."}
-          </p>
-          <Panel>
-            <form onSubmit={(e) => void submit(e)} noValidate className="flex flex-col gap-4">
-              {errors.form ? <Notice>{errors.form}</Notice> : null}
-              {/* Lets password managers save the email with the new password. */}
-              <input type="email" autoComplete="username" value={state.email} readOnly hidden />
-              <Field label="New Password" required help="At least 8 characters, not a common password." error={errors.password}>
-                {(p) => <Input {...p} type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
-              </Field>
-              <Field label="Confirm Password" required error={errors.confirm}>
-                {(p) => <Input {...p} type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />}
-              </Field>
-              <Button type="submit" variant="primary" loading={busy} disabled={!password}>{state.reset ? "Save Password and Sign In" : "Set Password and Sign In"}</Button>
-            </form>
-          </Panel>
-        </>
+        <form onSubmit={(e) => void submit(e)} noValidate className="flex flex-col gap-4">
+          {errors.form ? <Notice>{errors.form}</Notice> : null}
+          {/* Lets password managers save the email with the new password. */}
+          <input type="email" autoComplete="username" value={state.email} readOnly hidden />
+          <Field label="New Password" required help="At least 8 characters, not a common password." error={errors.password}>
+            {(p) => <Input {...p} type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
+          </Field>
+          <Field label="Confirm Password" required error={errors.confirm}>
+            {(p) => <Input {...p} type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />}
+          </Field>
+          <Button type="submit" variant="primary" loading={busy} disabled={!password} className="mt-1">{state.reset ? "Save Password and Sign In" : "Set Password and Sign In"}</Button>
+        </form>
       )}
-    </div>
+    </AuthLayout>
   );
 }

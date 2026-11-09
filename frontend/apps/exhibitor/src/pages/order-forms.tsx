@@ -1,9 +1,9 @@
 import { api, ApiError, call, downloadFile, type Schemas, upload } from "@ems/api";
-import { ChevronLeft, ChevronRight, Download, ImageUp, Plus, Send, Trash2 } from "lucide-react";
+import { Armchair, BookOpen, CalendarClock, Car, ChevronLeft, ChevronRight, ClipboardList, Download, Droplets, Factory, Hammer, IdCard, ImageUp, type LucideIcon, Megaphone, Plug, Plus, Presentation, Send, Share2, Trash2, Truck, Wifi, Wind } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { date, type ExhibitorRecord, href, label, messageOf, money, navigate, timeLeft } from "../lib";
-import { Button, Facts, Field, Input, Notice, Panel, Status, Textarea } from "../ui";
+import { date, daysUntil, type ExhibitorRecord, href, label, messageOf, money, navigate, timeLeft } from "../lib";
+import { Button, Facts, Field, Input, Notice, Panel, Progress, Status, Textarea } from "../ui";
 import { type Answers, answerRows, cleanAnswers, DETAILS_TITLES, type DetailsType, Questions } from "./questions";
 
 type FormsList = Schemas["PortalOrderFormsOut"];
@@ -52,9 +52,38 @@ function useLoad<T>(fetcher: () => Promise<T>, onSignedOut: () => void): [Load<T
 
 function Back({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <a href={href(to)} onClick={(e) => { e.preventDefault(); navigate(to); }} className="mb-2 inline-flex items-center gap-1 rounded-[6px] text-[13px] text-label hover:text-ink">
+    <a href={href(to)} onClick={(e) => { e.preventDefault(); navigate(to); }} className="mb-3 inline-flex items-center gap-1 rounded-[6px] text-[14px] font-semibold text-primary hover:underline">
       <ChevronLeft className="size-4" aria-hidden />{children}
     </a>
+  );
+}
+
+/**
+ * One glyph per service, by the form numbers PERAGA Expo uses (the old portal's 01 to 12): the
+ * exhibitor finds "power" or "parking" by shape before reading. Unknown numbers get a list icon.
+ */
+const FORM_ICONS: Record<string, LucideIcon> = {
+  "01": BookOpen, "02": Megaphone, "02a": Share2, "03": Hammer, "04": Plug, "05": Wind, "06": Droplets,
+  "07": Armchair, "08": Factory, "08a": Truck, "09": IdCard, "10": Presentation, "11": Wifi, "12": Car,
+};
+
+function FormIcon({ code, size = "md" }: { code: string; size?: "md" | "lg" }) {
+  const Icon = FORM_ICONS[code] ?? ClipboardList;
+  return (
+    <span className={size === "lg" ? "flex size-14 shrink-0 items-center justify-center rounded-[14px] bg-primary-soft text-primary" : "flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-primary-soft text-primary"}>
+      <Icon className={size === "lg" ? "size-7" : "size-[22px]"} aria-hidden />
+    </span>
+  );
+}
+
+/** Deadline line; red when it is a week or less away and the form still needs the exhibitor. */
+function Deadline({ f, open }: { f: { deadline_on?: string | null; is_closed: boolean; closes_on?: string | null }; open: boolean }) {
+  const days = daysUntil(f.deadline_on);
+  const urgent = open && !f.is_closed && days !== null && days <= 7;
+  return (
+    <span className={urgent ? "flex items-center gap-1.5 text-[13px] font-semibold text-accent-ink" : "flex items-center gap-1.5 text-[13px] text-label"}>
+      <CalendarClock className="size-4 shrink-0" aria-hidden />{deadlineText(f)}
+    </span>
   );
 }
 
@@ -104,8 +133,8 @@ export function OrderFormsPage({ record, onSignedOut }: { record: ExhibitorRecor
     <div className="flex flex-col gap-6">
       <div>
         <Back to={`/e/${id}`}>{record.edition_name}</Back>
-        <h1 className="text-[24px] leading-8 font-semibold tracking-[-0.01em]">Order Forms</h1>
-        <p className="text-[14px] text-muted">Services for booth {record.booth_code ?? ""}: electricity, furniture, internet, badges, and more.</p>
+        <h1 className="text-[30px] leading-tight font-extrabold text-ink max-sm:text-[26px]">Order Forms</h1>
+        <p className="mt-1 text-[15px] text-muted">Services for booth {record.booth_code ?? ""}: electricity, furniture, internet, badges, and more. Open a form, fill it in, and send it before its deadline.</p>
       </div>
       {state.kind === "loading" ? <Loading /> : state.kind === "error" ? <Failed message={state.message} onRetry={() => void reload()} /> : (
         <>
@@ -117,42 +146,52 @@ export function OrderFormsPage({ record, onSignedOut }: { record: ExhibitorRecor
   );
 }
 
+const PROGRESS_DONE = new Set(["SUBMITTED", "APPROVED", "NOT_REQUIRED"]);
+
 function FormsPanel({ forms, leadId, filter, onFilter }: { forms: FormRow[]; leadId: string; filter: Filter; onFilter: (f: Filter) => void }) {
-  const done = forms.filter((f) => f.progress === "SUBMITTED" || f.progress === "APPROVED" || f.progress === "NOT_REQUIRED").length;
+  const done = forms.filter((f) => PROGRESS_DONE.has(f.progress)).length;
   const shown = forms.filter((f) => matches(f, filter));
   if (forms.length === 0) {
-    return <Panel><p className="text-[14px] text-muted">The organizer has not published any order forms yet.</p></Panel>;
+    return <Panel><p className="text-[15px] text-muted">The organizer has not published any order forms yet. They appear here once they are ready.</p></Panel>;
   }
   return (
-    <Panel title={`${done} of ${forms.length} done`} aside={
-      <div role="group" aria-label="Show" className="flex flex-wrap gap-1">
-        {FILTERS.map(([value, text]) => (
-          <button key={value} type="button" aria-pressed={filter === value} onClick={() => onFilter(value)}
-            className={`h-8 rounded-[8px] px-3 text-[13px] ${filter === value ? "bg-primary text-on-primary" : "bg-input hover:bg-hover"}`}>
-            {text}
-          </button>
-        ))}
-      </div>
-    }>
-      {shown.length === 0 ? <p className="text-[14px] text-muted">No forms match.</p> : (
-        <ul className="-my-2 divide-y divide-line">
-          {shown.map((f) => (
-            <li key={f.code}>
-              <a href={href(`/e/${leadId}/forms/${f.code}`)} onClick={(e) => { e.preventDefault(); navigate(`/e/${leadId}/forms/${f.code}`); }}
-                className="flex items-center gap-3 rounded-[8px] py-3 hover:bg-hover">
-                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-input text-[12px] font-medium tabular-nums">{f.code}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] font-medium">{f.title}</span>
-                  <span className={`block text-[12px] ${f.is_closed ? "text-label" : timeLeft(f.deadline_on) === "Past" ? "text-required" : "text-label"}`}>{deadlineText(f)}</span>
-                </span>
-                <Status value={f.progress} />
-                <ChevronRight className="size-4 shrink-0 text-label" aria-hidden />
-              </a>
-            </li>
+    <div className="flex flex-col gap-5">
+      <div className="rounded-[16px] border border-line bg-bg px-6 py-5 max-sm:px-4">
+        <Progress done={done} total={forms.length} label="Your forms" />
+        <div role="group" aria-label="Show" className="mt-4 flex flex-wrap gap-2">
+          {FILTERS.map(([value, text]) => (
+            <button key={value} type="button" aria-pressed={filter === value} onClick={() => onFilter(value)}
+              className={filter === value ? "h-9 rounded-full bg-primary px-4 text-[14px] font-semibold text-on-primary" : "h-9 rounded-full border border-line-strong bg-bg px-4 text-[14px] font-semibold text-primary hover:bg-primary-soft"}>
+              {text}
+            </button>
           ))}
+        </div>
+      </div>
+      {shown.length === 0 ? <p className="rounded-[16px] border border-line bg-bg px-6 py-8 text-center text-[15px] text-muted">No forms here. Choose another filter above.</p> : (
+        <ul className="grid gap-3 md:grid-cols-2">
+          {shown.map((f) => {
+            const open = !PROGRESS_DONE.has(f.progress);
+            return (
+              <li key={f.code}>
+                <a href={href(`/e/${leadId}/forms/${f.code}`)} onClick={(e) => { e.preventDefault(); navigate(`/e/${leadId}/forms/${f.code}`); }}
+                  className="flex h-full items-start gap-4 rounded-[16px] border border-line bg-bg px-5 py-4 transition-colors hover:border-primary/40 hover:bg-primary-soft/40">
+                  <FormIcon code={f.code} />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <span className="text-[13px] font-semibold text-label">Form {f.code}</span>
+                    <span className="font-display text-[16px] leading-snug font-bold text-ink">{f.title}</span>
+                    <Deadline f={f} open={open} />
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end gap-2">
+                    <Status value={f.progress} />
+                    <ChevronRight className="size-5 text-label" aria-hidden />
+                  </span>
+                </a>
+              </li>
+            );
+          })}
         </ul>
       )}
-    </Panel>
+    </div>
   );
 }
 
@@ -307,14 +346,20 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
     <>
       <div>
         <Back to={`/e/${leadId}/forms`}>Order Forms</Back>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-[24px] leading-8 font-semibold tracking-[-0.01em]">{d.code} · {d.title}</h1>
-          <Status value={d.progress} />
+        <div className="flex items-start gap-4">
+          <FormIcon code={d.code} size="lg" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold text-label">Form {d.code}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-[28px] leading-tight font-extrabold text-ink max-sm:text-[22px]">{d.title}</h1>
+              <Status value={d.progress} />
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+              <Deadline f={d} open={editable} />
+              {d.secondary_deadline_label && d.secondary_deadline_on ? <span className="text-[13px] text-label">{d.secondary_deadline_label} {date(d.secondary_deadline_on)}</span> : null}
+            </div>
+          </div>
         </div>
-        <p className="text-[14px] text-muted">
-          {deadlineText(d)}
-          {d.secondary_deadline_label && d.secondary_deadline_on ? ` · ${d.secondary_deadline_label} ${date(d.secondary_deadline_on)}` : ""}
-        </p>
       </div>
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
       {d.is_closed ? <Notice tone="amber">This form closed on {date(d.closes_on)}. Contact the organizer if you still need something.</Notice> : periodNotice(d.price_period)}
@@ -339,52 +384,44 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
             {d.items.length === 0 ? <p className="text-[14px] text-muted">No items yet.</p> : sections.map(([section, items]) => (
               <div key={section} className="mb-6 last:mb-0">
                 {section ? <h3 className="mb-2 text-[14px] font-semibold">{section}</h3> : null}
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[520px] text-[14px]">
-                    <caption className="sr-only">{section || "Items"}</caption>
-                    <thead>
-                      <tr className="border-b border-line text-left text-[12px] text-label">
-                        <th scope="col" className="py-2 pr-3 font-normal">Item</th>
-                        <th scope="col" className="py-2 pr-3 text-right font-normal">Price</th>
-                        <th scope="col" className="w-24 py-2 pr-3 text-right font-normal">Quantity</th>
-                        <th scope="col" className="py-2 text-right font-normal">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((i) => {
-                        const qty = Number(draft.quantities[i.id] ?? 0);
-                        const error = errors[`lines.${i.id}`];
-                        return (
-                          <tr key={i.id} className="border-b border-line align-top last:border-0">
-                            <td className="py-2.5 pr-3">
-                              <div className="flex items-start gap-3">
-                                {i.has_image ? <img src={`${base}/order-forms/${d.code}/items/${i.id}/image`} alt="" className="size-12 shrink-0 rounded-[6px] border border-line object-contain" /> : null}
-                                <div className="min-w-0">
-                                  <div className="font-medium">{i.name}</div>
-                                  <div className="text-[12px] text-label">{[i.code, i.size, i.unit].filter(Boolean).join(" · ")}</div>
-                                  {i.description ? <div className="text-[12px] text-muted">{i.description}</div> : null}
-                                {i.free_quantity ? <div className="text-[12px] font-medium" style={{ color: "var(--green-fg)" }}>{i.free_quantity} free with your booth</div> : null}
-                                  {error ? <div className="text-[12px] text-required">{error}</div> : null}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-2.5 pr-3 text-right tabular-nums">{money(i.unit_price, d.currency)}</td>
-                            <td className="py-2.5 pr-3 text-right">
-                              <Input aria-label={`Quantity of ${i.name}`} aria-invalid={Boolean(error)} inputMode="numeric" disabled={!editable} className="h-9 w-20 text-right tabular-nums"
-                                value={draft.quantities[i.id] ?? ""} placeholder="0"
-                                onChange={(e) => {
-                                  const v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                                  setDraft((s) => ({ ...s, quantities: { ...s.quantities, [i.id]: v } }));
-                                }} />
-                              {i.max_quantity ? <div className="mt-1 text-[11px] text-label">Up to {i.max_quantity}</div> : null}
-                            </td>
-                            <td className="py-2.5 text-right tabular-nums">{qty > 0 ? money(String(charged(i) * Number(i.unit_price)), d.currency) : ""}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                {/* A list, not a table: on a phone each item stacks (name, then price, quantity, amount in
+                    one row) so the quantity box is always on screen without sideways scrolling. */}
+                <div className="hidden grid-cols-[minmax(0,1fr)_120px_96px_130px] gap-3 border-b border-line pb-2 text-[13px] font-semibold text-label sm:grid" aria-hidden>
+                  <span>Item</span><span className="text-right">Price</span><span className="text-right">Quantity</span><span className="text-right">Amount</span>
                 </div>
+                <ul aria-label={section || "Items"}>
+                  {items.map((i) => {
+                    const qty = Number(draft.quantities[i.id] ?? 0);
+                    const error = errors[`lines.${i.id}`];
+                    return (
+                      <li key={i.id} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-2 border-b border-line py-3 text-[14px] last:border-0 sm:grid-cols-[minmax(0,1fr)_120px_96px_130px]">
+                        <div className="col-span-3 flex items-start gap-3 sm:col-span-1">
+                          {i.has_image ? <img src={`${base}/order-forms/${d.code}/items/${i.id}/image`} alt="" className="size-12 shrink-0 rounded-[10px] border border-line object-contain" /> : null}
+                          <div className="min-w-0">
+                            <div className="font-medium">{i.name}</div>
+                            <div className="text-[12px] text-label">{[i.code, i.size, i.unit].filter(Boolean).join(" · ")}</div>
+                            {i.description ? <div className="text-[12px] text-muted">{i.description}</div> : null}
+                            {i.free_quantity ? <div className="text-[12px] font-medium" style={{ color: "var(--green-fg)" }}>{i.free_quantity} free with your booth</div> : null}
+                            {error ? <div className="text-[12px] text-required">{error}</div> : null}
+                          </div>
+                        </div>
+                        <div className="self-center tabular-nums sm:pt-2 sm:text-right sm:self-start">
+                          {money(i.unit_price, d.currency)}<span className="text-label sm:hidden"> each</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <Input aria-label={`Quantity of ${i.name}`} aria-invalid={Boolean(error)} inputMode="numeric" disabled={!editable} className="h-10 w-20 text-right tabular-nums"
+                            value={draft.quantities[i.id] ?? ""} placeholder="0"
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                              setDraft((s) => ({ ...s, quantities: { ...s.quantities, [i.id]: v } }));
+                            }} />
+                          {i.max_quantity ? <div className="mt-1 text-[11px] text-label">Up to {i.max_quantity}</div> : null}
+                        </div>
+                        <div className="min-w-[96px] self-center text-right font-semibold tabular-nums sm:self-start sm:pt-2 sm:font-normal">{qty > 0 ? money(String(charged(i) * Number(i.unit_price)), d.currency) : ""}</div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             ))}
           </Panel>
@@ -403,7 +440,7 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
                 {draft.custom.map((c, n) => {
                   const set = (patch: Partial<Draft["custom"][number]>) => setDraft((s) => ({ ...s, custom: s.custom.map((x) => (x.key === c.key ? { ...x, ...patch } : x)) }));
                   return (
-                    <div key={c.key} className="grid grid-cols-1 gap-3 rounded-[8px] border border-line p-3 sm:grid-cols-[2fr_1fr_90px_auto]">
+                    <div key={c.key} className="grid grid-cols-1 gap-3 rounded-[12px] border border-line bg-page/60 p-4 sm:grid-cols-[2fr_1fr_90px_auto]">
                       <Field label={`Extra item ${n + 1}`}>{(p) => <Input {...p} disabled={!editable} value={c.name} maxLength={300} onChange={(e) => set({ name: e.target.value })} />}</Field>
                       <Field label="Size">{(p) => <Input {...p} disabled={!editable} value={c.size} maxLength={100} onChange={(e) => set({ size: e.target.value })} />}</Field>
                       <Field label="Quantity">{(p) => <Input {...p} disabled={!editable} inputMode="numeric" value={c.quantity} onChange={(e) => set({ quantity: e.target.value.replace(/\D/g, "").slice(0, 4) })} />}</Field>
@@ -441,26 +478,39 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
         ) : null}
 
         {editable ? (
-          <Panel>
-            <div className="flex flex-col gap-5">
-              <Field label="Remarks" help="Anything the organizer should know about this order.">
-                {(p) => <Textarea {...p} value={draft.remarks} maxLength={2000} onChange={(e) => setDraft((s) => ({ ...s, remarks: e.target.value }))} />}
-              </Field>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {d.sent_orders.some((o) => o.status === "SUBMITTED" || o.status === "APPROVED") ? <span /> : (
-                  <label className="flex items-center gap-2 text-[14px]">
-                    <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={d.not_required} disabled={busy !== null} onChange={(e) => void notRequired(e.target.checked)} />
+          <>
+            <Panel>
+              <div className="flex flex-col gap-4">
+                <Field label="Remarks" help="Anything the organizer should know about this order.">
+                  {(p) => <Textarea {...p} value={draft.remarks} maxLength={2000} onChange={(e) => setDraft((s) => ({ ...s, remarks: e.target.value }))} />}
+                </Field>
+                {d.sent_orders.some((o) => o.status === "SUBMITTED" || o.status === "APPROVED") ? null : (
+                  <label className="flex items-center gap-2.5 text-[15px]">
+                    <input type="checkbox" className="size-[18px] accent-[var(--primary)]" checked={d.not_required} disabled={busy !== null} onChange={(e) => void notRequired(e.target.checked)} />
                     I don't require this form
                   </label>
                 )}
-                <div className="flex flex-wrap gap-2">
-                  {open?.status === "DRAFT" ? <Button type="button" variant="ghost" loading={busy === "delete"} onClick={() => void discard()}>Delete Draft</Button> : null}
-                  <Button type="button" disabled={!dirty} loading={busy === "save"} onClick={() => void saveDraft()}>Save Draft</Button>
-                  <Button type="button" variant="primary" loading={busy === "review"} onClick={() => void review()}>Review and Send<ChevronRight aria-hidden /></Button>
-                </div>
+              </div>
+            </Panel>
+            {/* Sticky action bar: on a long catalog the total and the next step stay in reach. */}
+            <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-line-strong bg-bg px-5 py-3 shadow-[0_6px_24px_rgb(47_49_139/0.14)] max-sm:px-4">
+              <div className="min-w-0">
+                {d.has_catalog ? (
+                  <>
+                    <p className="text-[13px] text-label">Estimated total</p>
+                    <p className="font-display text-[20px] leading-tight font-extrabold text-ink tabular-nums">{money(String(total), d.currency)}</p>
+                  </>
+                ) : (
+                  <p className="text-[14px] text-muted">{dirty ? "You have unsaved changes." : "Saved. Review it, then send it to the organizer."}</p>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {open?.status === "DRAFT" ? <Button type="button" variant="ghost" loading={busy === "delete"} onClick={() => void discard()}>Delete Draft</Button> : null}
+                <Button type="button" disabled={!dirty} loading={busy === "save"} onClick={() => void saveDraft()}>Save Draft</Button>
+                <Button type="button" variant="primary" loading={busy === "review"} onClick={() => void review()}>Review and Send<ChevronRight aria-hidden /></Button>
               </div>
             </div>
-          </Panel>
+          </>
         ) : null}
 
         </>
@@ -481,11 +531,15 @@ function LinePicture({ hasImage, src, busy, onUpload }: { hasImage: boolean; src
   const [file, setFile] = useState<File | null>(null);
   return (
     <div className="flex flex-wrap items-end gap-3 sm:col-span-4">
-      {hasImage && src ? <img src={src} alt="" className="size-14 rounded-[6px] border border-line object-contain" /> : null}
-      <Field label={hasImage ? "Replace Picture" : "Picture"} help="JPG or PNG, up to 5 MB.">
-        {(p) => <Input {...p} type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" className="py-2" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />}
+      {hasImage && src ? <img src={src} alt="" className="size-14 rounded-[10px] border border-line object-contain" /> : null}
+      <Field label={hasImage ? "Replace Picture" : "Picture"} help="JPG or PNG, up to 5 MB." className="min-w-[240px] flex-1">
+        {(p) => (
+          <div className="flex gap-3">
+            <Input {...p} type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" className="min-w-0 py-2" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <Button type="button" disabled={!file} loading={busy} onClick={() => file && onUpload(file)}><ImageUp aria-hidden />Upload</Button>
+          </div>
+        )}
       </Field>
-      <Button type="button" disabled={!file} loading={busy} onClick={() => file && onUpload(file)}><ImageUp aria-hidden />Upload</Button>
     </div>
   );
 }
@@ -516,12 +570,14 @@ function Attachment({ purpose, files, editable, busy, error, onUpload, onRemove,
         </ul>
       ) : null}
       {editable ? (
-        <div className="flex flex-wrap items-end gap-3">
-          <Field label={`Add ${info.label}`} help={info.help} error={error}>
-            {(p) => <Input {...p} type="file" accept={info.accept} className="py-2" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />}
-          </Field>
-          <Button type="button" disabled={!file} loading={busy} onClick={() => file && onUpload(file)}>Upload</Button>
-        </div>
+        <Field label={`Add ${info.label}`} help={info.help} error={error} className="max-w-[560px]">
+          {(p) => (
+            <div className="flex gap-3">
+              <Input {...p} type="file" accept={info.accept} className="min-w-0 py-2" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <Button type="button" disabled={!file} loading={busy} onClick={() => file && onUpload(file)}>Upload</Button>
+            </div>
+          )}
+        </Field>
       ) : files.length === 0 ? <p className="text-[14px] text-label">None.</p> : null}
     </div>
   );
@@ -533,7 +589,7 @@ function LinesTable({ order }: { order: Order }) {
       <table className="w-full min-w-[480px] text-[14px]">
         <caption className="sr-only">Items in order {order.order_number ?? ""}</caption>
         <thead>
-          <tr className="border-b border-line text-left text-[12px] text-label">
+          <tr className="border-b border-line text-left text-[13px] font-semibold text-label">
             <th scope="col" className="py-2 pr-3 font-normal">Item</th>
             <th scope="col" className="py-2 pr-3 text-right font-normal">Price</th>
             <th scope="col" className="py-2 pr-3 text-right font-normal">Quantity</th>
@@ -617,7 +673,13 @@ export function OrderReviewPage({ record, code, onSignedOut }: { record: Exhibit
     <div className="flex flex-col gap-6">
       <div>
         <Back to={formPath}>Back to the form</Back>
-        <h1 className="text-[24px] leading-8 font-semibold tracking-[-0.01em]">Review Order · {d.code} {d.title}</h1>
+        <div className="flex items-start gap-4">
+          <FormIcon code={d.code} size="lg" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-label">Last step before sending</p>
+            <h1 className="text-[28px] leading-tight font-extrabold text-ink max-sm:text-[22px]">Review Order · {d.code} {d.title}</h1>
+          </div>
+        </div>
         <p className="text-[14px] text-muted">{d.company_name} · Booth {d.booth_code ?? ""}</p>
       </div>
       {error ? <Notice>{error}</Notice> : null}
@@ -678,7 +740,7 @@ function OrderPaymentStatus({ leadId, order: o }: { leadId: string; order: Order
   }, [leadId, o.id]);
   if (!state) return null;
   return (
-    <div className="mt-3 rounded-[8px] border border-line p-3 text-[14px]">
+    <div className="mt-3 rounded-[12px] border border-line bg-page/60 p-4 text-[14px]">
       <div className="flex flex-wrap gap-x-6 gap-y-1">
         <span>Paid <span className="font-medium tabular-nums">{money(state.verified_amount, state.currency)}</span></span>
         {Number(state.pending_amount) > 0 ? <span>Being checked <span className="font-medium tabular-nums">{money(state.pending_amount, state.currency)}</span></span> : null}

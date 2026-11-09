@@ -132,7 +132,7 @@ function Choice({ ctx, path, label, choices, required }: { ctx: Ctx; path: strin
   const err = error(ctx, path);
   return (
     <fieldset className="flex flex-col gap-2 sm:col-span-2" aria-invalid={Boolean(err)}>
-      <legend className="mb-1 text-[13px] text-label">{label}{required ? <span className="ml-0.5 text-required" aria-hidden> *</span> : null}</legend>
+      <legend className="mb-1.5 text-[14px] font-medium text-ink">{label}{required ? <span className="ml-0.5 text-required" aria-hidden> *</span> : null}</legend>
       <div className="flex flex-wrap gap-x-5 gap-y-2">
         {choices.map(([value, text]) => (
           <label key={value} className="flex items-center gap-2 text-[14px]">
@@ -167,7 +167,7 @@ function Multi({ ctx, path, label, kind, required }: { ctx: Ctx; path: string; l
   const err = error(ctx, path) ?? Object.entries(ctx.errors).find(([k]) => k.startsWith(`details.${path}.`))?.[1];
   return (
     <fieldset className="flex flex-col gap-2 sm:col-span-2">
-      <legend className="mb-1 text-[13px] text-label">{label}{required ? <span className="ml-0.5 text-required" aria-hidden> *</span> : null}</legend>
+      <legend className="mb-1.5 text-[14px] font-medium text-ink">{label}{required ? <span className="ml-0.5 text-required" aria-hidden> *</span> : null}</legend>
       {choices.length === 0 ? <p className="text-[13px] text-label">The organizer has not listed the categories yet.</p> : (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {choices.map((c) => (
@@ -197,9 +197,9 @@ function Rows({ ctx, path, label, columns, max, add, required }: { ctx: Ctx; pat
   const err = error(ctx, path);
   return (
     <div className="flex flex-col gap-2 sm:col-span-2">
-      <div className="text-[13px] text-label">{label}{required ? <span className="ml-0.5 text-required" aria-hidden> *</span> : null}</div>
+      <div className="mb-1.5 text-[14px] font-medium text-ink">{label}{required ? <span className="ml-0.5 text-required" aria-hidden> *</span> : null}</div>
       {rows.map((row, n) => (
-        <div key={n} className="grid grid-cols-1 gap-2 rounded-[8px] border border-line p-3 sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))_auto]" style={{ "--cols": columns.length } as CSSProperties}>
+        <div key={n} className="grid grid-cols-1 gap-2 rounded-[12px] border border-line bg-page/60 p-4 sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))_auto]" style={{ "--cols": columns.length } as CSSProperties}>
           {columns.map((c) => {
             const cellPath = `${path}.${n}.${c.key}`;
             const v = row[c.key];
@@ -207,7 +207,7 @@ function Rows({ ctx, path, label, columns, max, add, required }: { ctx: Ctx; pat
             return (
               <Field key={c.key} label={`${c.label} ${n + 1}`} error={error(ctx, cellPath)}>
                 {(p) => c.kind === "gender" ? (
-                  <select {...p} className="h-10 rounded-[8px] bg-input px-3 text-[14px]" value={(v as string | undefined) ?? ""} disabled={ctx.disabled} onChange={(e) => set(e.target.value || undefined)}>
+                  <select {...p} className="h-11 rounded-[10px] border border-line-strong bg-bg px-3 text-[15px]" value={(v as string | undefined) ?? ""} disabled={ctx.disabled} onChange={(e) => set(e.target.value || undefined)}>
                     <option value="">Not set</option><option value="MALE">Male</option><option value="FEMALE">Female</option>
                   </select>
                 ) : (

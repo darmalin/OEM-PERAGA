@@ -111,7 +111,7 @@ try {
   check(true, "Order Forms list opens from the exhibition page");
 
   await portal.getByRole("link", { name: /Electrical Fittings/ }).click();
-  await portal.getByRole("heading", { name: /04 · Electrical Fittings/ }).waitFor();
+  await portal.getByRole("heading", { name: /^Electrical Fittings/ }).waitFor();
   await portal.getByLabel("Quantity of Fluorescent lamp").fill("3");
   await portal.getByLabel("Quantity of Spotlight").fill("6");
   await portal.getByText("Total IDR 8,500,800").waitFor();
@@ -148,7 +148,7 @@ try {
 
   // --- a questions form ---------------------------------------------------------------------
   await portal.goto(`${PORTAL}/e/${lead.id}/forms/09`);
-  await portal.getByRole("heading", { name: /09 · Exhibitor Badges/ }).waitFor();
+  await portal.getByRole("heading", { name: /^Exhibitor Badges/ }).waitFor();
   await portal.getByRole("button", { name: "Review and Send" }).click();
   await portal.getByRole("button", { name: "Send Order" }).click();
   await portal.getByText("Some answers are missing.", { exact: false }).waitFor();

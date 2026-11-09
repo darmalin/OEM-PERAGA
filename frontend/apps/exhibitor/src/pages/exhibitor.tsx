@@ -1,13 +1,14 @@
 import { api, ApiError, call, downloadFile, type Schemas, upload } from "@ems/api";
-import { ChevronLeft, Download, FileUp } from "lucide-react";
+import { Check, ChevronLeft, Download, FileUp } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 
-import { date, type ExhibitorRecord, href, label, messageOf, money, navigate } from "../lib";
-import { Button, Facts, Field, Input, Notice, Panel, Status, Textarea } from "../ui";
+import { date, type ExhibitorRecord, href, label, messageOf, money, navigate, showCountdown } from "../lib";
+import { BoothTag, Button, Facts, Field, Input, Notice, Panel, Progress, Status, Textarea } from "../ui";
 
 type Contract = Schemas["ContractOut"];
 type Payments = Schemas["PortalPaymentsOut"];
-type Loaded = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; contract: Contract; payments: Payments };
+type Forms = Schemas["PortalOrderFormsOut"];
+type Loaded = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; contract: Contract; payments: Payments; forms: Forms | null };
 
 export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord; onSignedOut: () => void }) {
   const id = record.exhibitor_lead_id;
@@ -31,9 +32,11 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
       Promise.all([
         call(api.GET("/api/v1/portal/exhibitors/{lead_id}/contract", path)),
         call(api.GET("/api/v1/portal/exhibitors/{lead_id}/payments", path)),
+        // The checklist still shows without the order forms if they fail to load.
+        call(api.GET("/api/v1/portal/exhibitors/{lead_id}/order-forms", path)).catch(() => null),
       ])
-        .then(([contract, payments]) => {
-          setState({ kind: "ready", contract, payments });
+        .then(([contract, payments, forms]) => {
+          setState({ kind: "ready", contract, payments, forms });
           setFlash(message);
         })
         .catch(failed);
@@ -46,13 +49,10 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <a href={href("/")} onClick={(e) => { e.preventDefault(); navigate("/"); }} className="mb-2 inline-flex items-center gap-1 rounded-[6px] text-[13px] text-label hover:text-ink">
+        <a href={href("/")} onClick={(e) => { e.preventDefault(); navigate("/"); }} className="mb-3 inline-flex items-center gap-1 rounded-[6px] text-[14px] font-semibold text-primary hover:underline">
           <ChevronLeft className="size-4" aria-hidden />My Exhibitions
         </a>
-        <h1 className="text-[24px] leading-8 font-semibold tracking-[-0.01em]">{record.edition_name}</h1>
-        <p className="text-[14px] text-muted">
-          {date(record.edition_start_date)} to {date(record.edition_end_date)} · {record.company_name}
-        </p>
+        <Hero record={record} />
       </div>
       {state.kind === "loading" ? (
         <p role="status" className="py-10 text-center text-label">Loading</p>
@@ -60,6 +60,7 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
         <div className="flex flex-col items-start gap-3"><Notice>{state.message}</Notice><Button onClick={() => load()}>Retry</Button></div>
       ) : (
         <>
+          <Checklist leadId={id} contract={state.contract} payments={state.payments} forms={state.forms} />
           <ContractPanel
             key={state.contract.version}
             leadId={id}
@@ -69,10 +70,15 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
             onError={failed}
           />
           <PaymentsPanel payments={state.payments} signed={state.contract.status === "SIGNED"} />
-          <Panel title="Order Forms">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-[14px] text-muted">Order electricity, furniture, internet, badges, and other services for your booth.</p>
-              <Button variant="primary" onClick={() => navigate(`/e/${id}/forms`)}>Open Order Forms</Button>
+          <Panel title="Order Forms" id="order-forms">
+            <div className="flex flex-col gap-4">
+              {state.forms && state.forms.forms.length ? (
+                <Progress done={doneForms(state.forms)} total={state.forms.forms.length} label="Forms done" />
+              ) : null}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[15px] text-muted">Order electricity, furniture, internet, badges, and other services for your booth.</p>
+                <Button variant="primary" onClick={() => navigate(`/e/${id}/forms`)}>Open Order Forms</Button>
+              </div>
             </div>
           </Panel>
         </>
@@ -96,7 +102,7 @@ function ContractPanel({
 }) {
   const signed = c.status === "SIGNED";
   return (
-    <Panel title={`Contract ${c.contract_number ?? ""}`} aside={<Status value={c.status} />}>
+    <Panel id="contract" title={`Contract ${c.contract_number ?? ""}`} aside={<Status value={c.status} />}>
       {flash ? <div className="mb-5"><Notice tone="green">{flash}</Notice></div> : null}
       <Facts
         items={[
@@ -223,7 +229,7 @@ function SignedCopy({ leadId }: { leadId: string }) {
 
 function PaymentsPanel({ payments: p, signed }: { payments: Payments; signed: boolean }) {
   return (
-    <Panel title="Payments" aside={signed ? <Status value={p.payment_state} /> : null}>
+    <Panel id="payments" title="Booth Payments" aside={signed ? <Status value={p.payment_state} /> : null}>
       {!signed ? (
         <p className="text-[14px] text-muted">Payments are shown here after the contract is signed.</p>
       ) : (
@@ -259,5 +265,99 @@ function PaymentsPanel({ payments: p, signed }: { payments: Payments; signed: bo
         </>
       )}
     </Panel>
+  );
+}
+
+function doneForms(forms: Forms): number {
+  return forms.forms.filter((f) => f.progress === "SUBMITTED" || f.progress === "APPROVED" || f.progress === "NOT_REQUIRED").length;
+}
+
+/** The exhibition at a glance: which show, when, and the booth (the identity motif). */
+function Hero({ record }: { record: ExhibitorRecord }) {
+  const when = showCountdown(record.edition_start_date, record.edition_end_date);
+  return (
+    <div className="flex items-start justify-between gap-5 rounded-[20px] bg-primary px-7 py-7 text-on-primary max-sm:px-5 max-sm:py-5">
+      <div className="min-w-0">
+        <p className="text-[14px] font-semibold text-hero-muted">{record.company_name}</p>
+        <h1 className="mt-1 text-[30px] leading-tight font-extrabold max-sm:text-[24px]">{record.edition_name}</h1>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[14px]">
+          <span className="font-semibold">{date(record.edition_start_date)} to {date(record.edition_end_date)}</span>
+          <span className={when.live ? "rounded-full bg-accent px-3 py-1 text-[13px] font-bold" : "rounded-full bg-bg/15 px-3 py-1 text-[13px] font-semibold"}>{when.text}</span>
+        </div>
+      </div>
+      <BoothTag code={record.booth_code} inverse />
+    </div>
+  );
+}
+
+type Step = { n: number; title: string; status: string; done: boolean; note: string; to: () => void };
+
+/**
+ * What the exhibitor has to do, in the real order: sign the contract, pay the booth, then order
+ * services. Each step reads its own status; the next open step is the one highlighted.
+ */
+function Checklist({ leadId, contract, payments, forms }: { leadId: string; contract: Contract; payments: Payments; forms: Forms | null }) {
+  const signed = contract.status === "SIGNED";
+  const paid = signed && payments.payment_state === "PAID";
+  const total = forms?.forms.length ?? 0;
+  const done = forms ? doneForms(forms) : 0;
+  const jump = (id: string) => () => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const steps: Step[] = [
+    { n: 1, title: "Sign the contract", status: signed ? "Signed" : "To do", done: signed, note: signed ? `Signed ${date(contract.signed_at)}` : "Fill in the details and upload the signed PDF", to: jump("contract") },
+    {
+      n: 2,
+      title: "Pay the booth",
+      status: paid ? "Paid" : signed ? label(payments.payment_state) : "After signing",
+      done: paid,
+      note: signed ? `${money(payments.outstanding_amount, payments.currency)} still due` : "Opens once the contract is signed",
+      to: jump("payments"),
+    },
+    {
+      n: 3,
+      title: "Order booth services",
+      status: total ? `${done} of ${total}` : "None yet",
+      done: total > 0 && done === total,
+      note: total ? "Power, furniture, internet, badges and more" : "The organizer has not published forms yet",
+      to: () => navigate(`/e/${leadId}/forms`),
+    },
+  ];
+  const next = steps.find((s) => !s.done)?.n;
+  return (
+    <section aria-label="Your checklist" className="grid gap-3 md:grid-cols-3">
+      {steps.map((s) => {
+        const current = s.n === next;
+        return (
+          <button
+            key={s.n}
+            type="button"
+            onClick={s.to}
+            className={
+              current
+                ? "flex flex-col gap-2 rounded-[16px] border-2 border-primary bg-bg px-5 py-4 text-left transition-colors hover:bg-primary-soft"
+                : "flex flex-col gap-2 rounded-[16px] border border-line bg-bg px-5 py-4 text-left transition-colors hover:border-primary/40"
+            }
+          >
+            <span className="flex items-center justify-between gap-3">
+              <span
+                className={
+                  s.done
+                    ? "flex size-8 items-center justify-center rounded-full bg-[var(--green-bg)] text-[var(--green-fg)]"
+                    : current
+                      ? "flex size-8 items-center justify-center rounded-full bg-primary font-display text-[15px] font-bold text-on-primary"
+                      : "flex size-8 items-center justify-center rounded-full bg-primary-soft font-display text-[15px] font-bold text-primary"
+                }
+              >
+                {s.done ? <Check className="size-[18px]" aria-label="Done" /> : s.n}
+              </span>
+              <span className={s.done ? "text-[13px] font-semibold text-[var(--green-fg)]" : current ? "text-[13px] font-bold text-accent-ink" : "text-[13px] font-semibold text-label"}>
+                {current ? "Next step" : s.status}
+              </span>
+            </span>
+            <span className="font-display text-[17px] font-bold text-ink">{s.title}</span>
+            <span className="text-[14px] text-muted">{s.note}</span>
+          </button>
+        );
+      })}
+    </section>
   );
 }
