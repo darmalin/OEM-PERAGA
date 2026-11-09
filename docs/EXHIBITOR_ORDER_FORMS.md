@@ -1,6 +1,6 @@
 # Exhibitor Order Forms
 
-**Status:** Rancangan disetujui; semua keputusan (O1–O12) dijawab owner 2026-11-09 · **Ditulis:** 2026-11-09 · **Author:** Fikri Darmawan
+**Status:** Dibangun (Phase 1–8, 2026-11-09); semua keputusan (O1–O12) dijawab owner 2026-11-09. Ringkasan: `FEATURES/13-exhibitor-order-forms.md` · **Ditulis:** 2026-11-09 · **Author:** Fikri Darmawan
 
 Dokumen kerja untuk fitur ini. AI/developer yang melanjutkan: baca dokumen ini, lalu
 `docs/EXHIBITOR_LEADS_SALES_PIPELINE.md` (fitur exhibitor yang sudah ada), lalu `BACKEND_RULES/`
@@ -369,10 +369,10 @@ verifikasi, permission, dan audit tetap satu cara.
 - [x] Tes `tests/test_order_payments.py` (termin sampai PAID, hanya order Approved berbayar, tolak dan review ulang, bukti, cancel diblok, tidak tercampur dengan payment kontrak, akses, satu target per payment, ringkasan); E2E: catat dan verifikasi payment order sampai Paid di desk, portal, dan Overview
 
 ### Phase 8: Dokumentasi & laporan
-- [ ] `FEATURES/13-exhibitor-order-forms.md`, CHANGELOG, known-gaps
-- [ ] Panel ringkasan di Overview (order per status, nilai Approved per form)
-- [ ] E2E Playwright: setup katalog → exhibitor isi dan submit → staff return → submit ulang → approve
-- [ ] `make gen-api`
+- [x] `FEATURES/13-exhibitor-order-forms.md` (ringkasan), `FEATURES/README.md` dan `FEATURES/11` (scope), CHANGELOG (Unreleased), known-gaps (backend B3, B4, F9 sampai F11, O5; frontend W18 sampai W20)
+- [x] Panel ringkasan di Overview: dibangun di Phase 7 (baris Service orders, per currency; per status, bukan per form)
+- [x] E2E: `make e2e-order-forms` (setup katalog di desk) dan `make e2e-portal-orders` (isi, kirim, form pertanyaan, return, kirim ulang, kontrak, approve, bayar, Paid), halaman desk baru di `smoke.mjs`
+- [x] `make gen-api` setiap phase
 
 ---
 

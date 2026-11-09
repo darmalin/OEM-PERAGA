@@ -12,6 +12,8 @@ Priority: **P1** must be closed before production, **P2** before the first event
 | # | Pri | Gap | Where | Fix |
 |---|---|---|---|---|
 | B2 | P2 | The status table changed on 2026-10-28 (Answer + missed call → Retry No Answer) without recomputing stored statuses. Leads that already had Answer then a missed call still show Answer, and boards, filters, and reports count them as Answer until their next call recomputes them. | `telemarketing.rules.TRANSITIONS`, `visitor_leads.telemarketing_status` | Owner decides: accept, or a data migration that replays every lead's history (as migrations 0012 and 0014 did). |
+| B3 | P1 | The API commits after the response is sent: `get_session` is a request-scoped `yield` dependency, so a client can get 201 and not see the row on its next call, and a failed commit still looks like a success. Found 2026-11-09 (order forms E2E). | every `Depends(get_session)` | Fixed on branch `claude/funny-snyder-51d1f3` (`Depends(get_session, scope="function")` everywhere, a test walks every route); merge it, then drop the 404 retry in `apps/exhibitor/e2e/order-forms.mjs`. |
+| B4 | P3 | `alembic check` reports drift that predates the order forms: the unique constraint on `campaign_links (edition_id, name)` and the trigram indexes on `visitor_leads` differ between models and migrations. | `campaign_links`, `visitor_leads` | Align the models with the migrations (or add a migration) so `alembic check` is clean. |
 | B1 | P2 | `create-superuser` for an existing email does not change the password, and adds a second SUPER_ADMIN assignment on every run. | `app/modules/identity/service.py` `create_superuser` | Skip the assignment when it exists; decide whether re-running should reset the password (explicit flag), and test both. |
 
 ## Security
@@ -47,6 +49,9 @@ Defaults are in code; changing them later may need a migration. Full list in `FE
 | F3 | P2 | Gate scans are attributed to the device, not to the gate staff member using it. | Optional staff session on device calls, stored as `recorded_by`. |
 | F4 | P3 | QR email delivery is at-least-once: a worker crash after the SMTP call and before `SENT` is committed sends the email again. | Accept, or use a provider idempotency key if the provider supports one. |
 | F5 | P3 | Retention purge job (depends on D9). | Celery Beat task per retention rule. |
+| F9 | P2 | Order forms send no email (decision O11): exhibitors see Returned / Approved / payments only when they open the portal. | `mail.service.queue_email` on return, approve, and verified payment, with templates. |
+| F10 | P2 | The catalog of the next edition is not loaded: prices of the old portal are in its HTML, and the owner has not sent the new price list (docs/EXHIBITOR_ORDER_FORMS.md Phase 0, Phase 2). | Import the owner's list per form with Import from Excel, or build the sheets from the old HTML once the owner agrees. |
+| F11 | P3 | Order export runs in the request (one form, up to 20,000 rows), not in the worker like visitor exports. | Move to `importexport` export jobs if forms grow past a few hundred orders. |
 
 ## Performance and scale
 
@@ -70,3 +75,4 @@ Measured baselines are in `FEATURES/10-reporting-export.md`. Targets are not set
 | O2 | P2 | The drill restores the database only; restoring the storage tarball has not been tested. Storage is copied while running (not a consistent snapshot). | Add a file restore step to `drill.sh`; snapshot or `aws s3 sync` for production storage. |
 | O3 | P3 | The dev database holds test data: edition `E2EQR2027`, `LOADTEST2027`/`2028`/`2029` (~100k leads), user `e2e-admin@example.test`. Append-only triggers block deleting their scans. | Reset the dev database (`docker compose down -v`, then migrate) when it gets in the way. |
 | O4 | P3 | `scripts/loadtest.py` needs `httpx`, which is a dev dependency only. | Run it from the dev image, or install `httpx` where it runs. |
+| O5 | P3 | `make test` in two checkouts (worktrees) at once shares the `ems` compose project: one Postgres container and the `ems_test` database. Runs clash, and a `docker compose up` from another checkout can recreate Postgres because the init bind-mount path differs. | Give parallel runs their own database (`EMS_DATABASE_URL=.../ems_test_<name>`, `EMS_REDIS_URL=.../<db>`) or their own compose project name. |

@@ -7,7 +7,7 @@ decisions, the data model, and the task list. This file is the short version.
 Spec §1.2 and §18 put the exhibitor CRM, booths, contracts, the exhibitor portal, and payments
 outside phase 1. The owner moved a narrow slice of them in scope (below). Everything else in §1.2
 stays out: proposals, invoices, refunds, credit notes, payment gateway. The exhibitor order forms
-were moved in on 2026-11-09 as their own feature (design: `docs/EXHIBITOR_ORDER_FORMS.md`).
+were moved in on 2026-11-09 as their own feature (FEATURES/13; the portal gets Order Forms).
 
 ## Flow
 

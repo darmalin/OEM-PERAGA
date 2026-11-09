@@ -10,7 +10,7 @@ Out (do not build, §1.2 and §18): proposals, invoices, refunds, credit notes, 
 
 Moved in by the owner (2026-11-03, FEATURES/11): exhibitor leads and sales stages, booth inventory, contracts with a signed PDF, payment tagging (installments, verified by hand), and the exhibitor portal for those.
 
-Moved in by the owner (2026-11-09, design in `docs/EXHIBITOR_ORDER_FORMS.md`, not built yet): the exhibitor order forms (the twelve forms of §1.2, fourteen in the old portal), filled in the portal right after Convert, reviewed by staff, and paid with the same payment tagging.
+Moved in by the owner (2026-11-09, FEATURES/13): the exhibitor order forms (the twelve forms of §1.2, fourteen in the old portal), filled in the portal right after Convert, reviewed by staff, and paid with the same payment tagging.
 
 ## Feature files
 
@@ -29,7 +29,7 @@ Moved in by the owner (2026-11-09, design in `docs/EXHIBITOR_ORDER_FORMS.md`, no
 | 10 | [10-reporting-export.md](10-reporting-export.md) | §11 | M6 |
 | 11 | [11-exhibitor-portal.md](11-exhibitor-portal.md) | owner request 2026-11-03 (outside §1.2) | done (backend, desk pages, exhibitor portal) |
 | 12 | [12-campaign-links.md](12-campaign-links.md) | owner request 2026-10-26 | done (backend, admin UI, public form) |
-| 13 | exhibitor order forms ([design](../docs/EXHIBITOR_ORDER_FORMS.md)) | owner request 2026-11-09 | design approved (all owner decisions answered 2026-11-09); not built yet |
+| 13 | [13-exhibitor-order-forms.md](13-exhibitor-order-forms.md) | owner request 2026-11-09 (outside §1.2) | done (setup, portal, review, questions, free quantities, payments) |
 
 ## Milestones (§15)
 
