@@ -114,6 +114,8 @@ class ExhibitorLead(UUIDPk, Timestamps, Versioned, Base):
 
     __tablename__ = "exhibitor_leads"
     __table_args__ = (
+        # Target of the (exhibitor_lead_id, edition_id) FKs of the order forms (migration 0030).
+        UniqueConstraint("id", "edition_id", name="uq_exhibitor_leads_id_edition"),
         Index(
             "uq_exhibitor_leads_edition_email",
             "edition_id",

@@ -49,6 +49,8 @@ PERMISSIONS: dict[str, str] = {
     "exhibitor.invite": "Convert exhibitor leads and issue portal invitation links",
     "exhibitor_payment.record": "Record exhibitor payments and attach proof",
     "exhibitor_payment.verify": "Verify or reject recorded exhibitor payments",
+    "order_form.manage": "Set up the exhibitor order forms and their catalog",
+    "exhibitor_order.review": "Approve, return, or cancel exhibitor orders and price extra items",
 }
 
 _TM_MANAGER = [

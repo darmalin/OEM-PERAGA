@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     s3_bucket_imports: str = "imports"
     s3_bucket_exports: str = "exports"
     s3_bucket_contracts: str = "contracts"
+    s3_bucket_orders: str = "orders"  # order form attachments and catalog images
 
     email_backend: Literal["smtp", "memory"] = "smtp"
     smtp_host: str = "localhost"

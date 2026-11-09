@@ -32,6 +32,15 @@ from app.modules.importexport.models import (
     ImportRowError,
 )
 from app.modules.mail.models import EmailAccount, EmailJob, EmailLog
+from app.modules.orders.models import (
+    ExhibitorFormWaiver,
+    ExhibitorOrder,
+    ExhibitorOrderCounter,
+    ExhibitorOrderFile,
+    ExhibitorOrderLine,
+    OrderForm,
+    OrderFormItem,
+)
 from app.modules.registrations.models import (
     EmailTemplate,
     QrCredential,
@@ -73,7 +82,12 @@ __all__ = [
     "ExhibitorAccount",
     "ExhibitorContract",
     "ExhibitorContractCounter",
+    "ExhibitorFormWaiver",
     "ExhibitorLead",
+    "ExhibitorOrder",
+    "ExhibitorOrderCounter",
+    "ExhibitorOrderFile",
+    "ExhibitorOrderLine",
     "ExhibitorPayment",
     "ExportJob",
     "FollowupReminder",
@@ -84,6 +98,8 @@ __all__ = [
     "ImportRowError",
     "LeadAssignmentHistory",
     "LeadSourceOption",
+    "OrderForm",
+    "OrderFormItem",
     "OutboxEvent",
     "PasswordResetToken",
     "Permission",

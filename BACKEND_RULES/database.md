@@ -36,7 +36,7 @@ Append-only tables (`audit_logs`, `visitor_call_activities`, `lead_assignment_hi
 - Default isolation `READ COMMITTED`. Do not raise it globally.
 
 ## JSONB
-- Only for `custom_fields`, audit `before`/`after`, and job payloads. Never store core fields in JSONB.
+- Only for `custom_fields`, audit `before`/`after`, job payloads, and the answers of an exhibitor order (`exhibitor_orders.details`, validated against the form's code-defined schema; docs/EXHIBITOR_ORDER_FORMS.md O10). Never store core fields in JSONB.
 - Custom field values validated against active definitions before write. GIN index only when a filter on a custom field is actually needed.
 
 ## Migrations (Alembic)

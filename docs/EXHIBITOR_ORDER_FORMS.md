@@ -170,16 +170,25 @@ hanya dinonaktifkan, karena baris order lama menunjuk ke sana.
 `free_quantity`. Contoh form 12: booth < 9 m² → 1 pass gratis. Luas diambil dari `booths.area_sqm`.
 
 ### `exhibitor_orders`
-`exhibitor_lead_id`, `form_id`, `order_number` (`<kode edition>-O-0001`, counter per edition
-seperti `exhibitor_contract_counters`), `status`, `price_period`, `details` (JSONB, divalidasi
-skema `details_type`), `remarks`, `subtotal`, `total`, `currency`, `submitted_at`,
-`submitted_by_account_id`, `booth_id_at_submit`, `area_sqm_at_submit` (O2), `reviewed_by`,
-`reviewed_at`, `review_notes`, `cancel_reason`.
+`exhibitor_lead_id`, `form_id`, `order_number` (`<kode edition>-O-0001`, counter
+`exhibitor_order_counters` per edition, diberikan saat submit pertama supaya draft yang dihapus
+tidak meninggalkan lubang), `status`, `price_period`, `details` (JSONB, divalidasi skema
+`details_type`; pengecualian JSONB dicatat di `BACKEND_RULES/database.md`), `remarks`, `total`
+(jumlah baris yang sudah berharga, dijaga oleh service; tidak ada `subtotal` karena tidak ada pajak
+atau diskon, O5), `currency`, `submitted_at`, `submitted_by_account_id`, `booth_id_at_submit`,
+`area_sqm_at_submit` (O2), `reviewed_by`, `reviewed_at`, `review_notes`, `cancel_reason`.
 
-Constraint:
+Constraint di database:
 - satu order terbuka (`DRAFT`/`RETURNED`) per (lead, form): partial unique index;
-- lead harus stage `EXHIBITOR` dan dari edition yang sama (FK `(exhibitor_lead_id, edition_id)`);
-- `submitted_at` wajib kecuali `DRAFT`; `reviewed_*` wajib untuk `APPROVED`/`RETURNED`.
+- lead dan form dari edition yang sama (FK `(exhibitor_lead_id, edition_id)` dan
+  `(form_id, edition_id)`; migration 0030 menambah `uq_exhibitor_leads_id_edition`);
+- nomor, `submitted_at`, `price_period`, dan booth saat submit terisi tepat ketika status bukan `DRAFT`;
+  `reviewed_*` wajib untuk `APPROVED`/`RETURNED`; `RETURNED` wajib alasan; `CANCELLED` wajib alasan.
+
+Lead harus stage `EXHIBITOR` dicek di service (stage ada di tabel lain, jadi tidak bisa jadi CHECK).
+
+Baris (`exhibitor_order_lines`) dan file tidak punya `created_by`/`updated_by`: keduanya ditulis
+bersama order di bawah `version` order, jadi siapa dan kapan ada di order dan audit log.
 
 ### `exhibitor_order_lines`
 `order_id`, `item_id` (NULL = item tambahan), salinan `code`, `name`, `size`, `section`,
@@ -279,11 +288,14 @@ URL mengikuti pola project: flat, `edition_id` di query/body.
 - [x] Update `FEATURES/README.md` dan `FEATURES/11-exhibitor-portal.md` (scope baru)
 
 ### Phase 1: Database & rules
-- [ ] Modul `app/modules/orders/` dengan `rules.py` (transisi, pemilihan periode harga, hitung baris)
-- [ ] Model + migration `0030` (tabel di atas kecuali allowances), cocok dengan model (`alembic check`)
-- [ ] Permission `order_form.manage`, `exhibitor_order.review` (migration `0031`)
-- [ ] Bucket `orders` di config dan `ensure-buckets`
-- [ ] Unit test rules; integration test constraint (satu draft per form, lead harus EXHIBITOR)
+- [x] Modul `app/modules/orders/` dengan `rules.py` (transisi, pemilihan periode harga, harga per periode, hitung baris dan total, progres per form, syarat contract SIGNED)
+- [x] Model + migration `0030` (tabel di atas kecuali allowances); `alembic check` tidak menemukan selisih di tabel order
+- [x] Permission `order_form.manage`, `exhibitor_order.review` (migration `0031` + katalog `identity/rules.py`)
+- [x] Bucket `orders` (`EMS_S3_BUCKET_ORDERS`) di config dan `ensure-buckets`
+- [x] Unit test rules (`tests/test_order_rules.py`); integration test constraint (`tests/test_order_schema.py`). Syarat lead stage EXHIBITOR diuji di Phase 3 (service)
+
+Catatan Phase 1 untuk Phase 3: periode yang berimpit di satu hari memakai periode yang lebih awal
+(lebih murah). `ORDERING_NOT_OPEN` = `price_period()` mengembalikan `None`.
 
 ### Phase 2: Pengaturan form & katalog
 - [ ] API pengaturan form dan item (termasuk gambar item)

@@ -5,6 +5,13 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+Exhibitor order forms, Phase 1 of docs/EXHIBITOR_ORDER_FORMS.md (database only, nothing visible
+yet). Migrations 0030 and 0031: new tables `order_forms`, `order_form_items`, `exhibitor_orders`,
+`exhibitor_order_lines`, `exhibitor_order_files`, `exhibitor_form_waivers`,
+`exhibitor_order_counters`; unique `(id, edition_id)` on `exhibitor_leads`; permissions
+`order_form.manage` and `exhibitor_order.review` for Super Admin and Exhibition Admin. New
+`orders` bucket (`EMS_S3_BUCKET_ORDERS`), made by `ensure-buckets` in the migrate service.
+
 Exhibitor sales and the exhibitor portal (FEATURES/11, docs/EXHIBITOR_LEADS_SALES_PIPELINE.md).
 Migrations 0025 to 0029 (new tables `booths`, `exhibitor_leads`, `exhibitor_contracts`,
 `exhibitor_payments`, `exhibitor_accounts`, `exhibitor_contract_counters`; new permissions for
