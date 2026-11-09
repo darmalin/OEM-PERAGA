@@ -2,11 +2,12 @@ import { api, ApiError, call, setCsrfToken } from "@ems/api";
 import { LogOut } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import { exhibitorIdOf, href, type Me, messageOf, navigate, useRoute } from "./lib";
+import { exhibitorRouteOf, href, type Me, messageOf, navigate, useRoute } from "./lib";
 import { AcceptInvite } from "./pages/accept-invite";
 import { ExhibitorPage } from "./pages/exhibitor";
 import { Home } from "./pages/home";
 import { Login } from "./pages/login";
+import { OrderFormPage, OrderFormsPage, OrderReviewPage } from "./pages/order-forms";
 import { Button, Notice } from "./ui";
 
 type Session = { kind: "loading" } | { kind: "out" } | { kind: "error"; message: string } | { kind: "in"; me: Me };
@@ -51,9 +52,14 @@ export function App() {
   } else if (route === "/" || route === "/login") {
     body = <Home me={session.me} />;
   } else {
-    const id = exhibitorIdOf(route);
-    const record = session.me.exhibitors.find((e) => e.exhibitor_lead_id === id);
-    body = record ? <ExhibitorPage record={record} onSignedOut={() => setSession({ kind: "out" })} /> : <NotFound />;
+    const target = exhibitorRouteOf(route);
+    const record = session.me.exhibitors.find((e) => e.exhibitor_lead_id === target?.id);
+    const out = () => setSession({ kind: "out" });
+    if (!target || !record) body = <NotFound />;
+    else if (target.page === "forms") body = <OrderFormsPage record={record} onSignedOut={out} />;
+    else if (target.page === "form") body = <OrderFormPage key={target.code} record={record} code={target.code} onSignedOut={out} />;
+    else if (target.page === "review") body = <OrderReviewPage key={target.code} record={record} code={target.code} onSignedOut={out} />;
+    else body = <ExhibitorPage record={record} onSignedOut={out} />;
   }
 
   return (

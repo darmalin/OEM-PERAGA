@@ -35,6 +35,7 @@ def build_api_router() -> APIRouter:
     router.include_router(exhibitors.router)
     router.include_router(exhibitors.portal_router)
     router.include_router(orders.router)
+    router.include_router(orders.portal_router)
     router.include_router(registrations.router)
     router.include_router(mail.router)
     router.include_router(campaigns.router)

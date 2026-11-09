@@ -254,7 +254,8 @@ URL mengikuti pola project: flat, `edition_id` di query/body.
 - `POST .../order-forms/{code}/orders` (buat draft), `PATCH .../orders/{order_id}` `{lines: [{item_id, quantity}], custom_lines, details, remarks, version}`
 - `POST .../orders/{order_id}/quote`: ringkasan total dari server (dipakai halaman Review)
 - `POST .../orders/{order_id}/submit` `{version}`, `DELETE .../orders/{order_id}` (hanya draft)
-- `POST .../orders/{order_id}/files` (multipart `file` + `purpose`), `DELETE .../files/{file_id}` (hanya draft/returned)
+- `POST .../orders/{order_id}/files` (multipart `file` + `purpose` + `version`), `DELETE .../files/{file_id}?version=`, `GET .../files/{file_id}` (hanya draft/returned untuk menambah dan menghapus)
+- `POST/GET .../orders/{order_id}/lines/{line_id}/image` (gambar item tambahan), `GET .../order-forms/{code}/items/{item_id}/image` (gambar katalog)
 - `PUT/DELETE .../order-forms/{code}/not-required`
 
 ---
@@ -268,8 +269,7 @@ URL mengikuti pola project: flat, `edition_id` di query/body.
   item tambahan, isian, lampiran, remarks, "I don't require this form", Save Draft.
 - Halaman Review & Submit (halaman, bukan modal, sesuai DESIGN.md): ringkasan dari endpoint `quote`.
 - Order yang Returned menampilkan alasan dari staff di atas form.
-- Portal sekarang tanpa router library. Dengan sekitar 4 halaman baru, pasang TanStack Router seperti
-  `apps/web` (keputusan developer, dicatat di FRONTEND_RULES).
+- Portal memakai router kecilnya sendiri (`exhibitorRouteOf` di `lib.ts`); lihat catatan Phase 3.
 
 **Desk (`apps/web`, menu Exhibitors)**
 - **Order Forms** (`order_form.manage`): daftar form per edition, edit form (judul, tanggal, instruksi,
@@ -311,10 +311,18 @@ Catatan Phase 2: daftar form dan item juga bisa dibaca dengan `exhibitor_lead.re
 lead dan halaman review nanti); pengaturan tetap hanya `order_form.manage`.
 
 ### Phase 3: Portal, form katalog (03, 04, 05, 06, 07, 11, 12)
-- [ ] API portal: daftar, detail, draft, quote, submit, hapus draft, not-required
-- [ ] Item tambahan tanpa harga + upload gambar; lampiran denah (`FITTING_LOCATION`)
-- [ ] Portal: daftar form, halaman form, Review & Submit, tampilan Returned
-- [ ] Tes: harga dari server (body berisi harga ditolak), periode Regular/Surcharge/Onsite, `closes_on`, akses exhibitor lain = 404, CSRF, submit dengan contract DRAFT (O2)
+- [x] API portal (`app/modules/orders/portal.py`, `portal_router`): daftar form (progres, deadline, `closes_on` efektif, periode harga hari ini), detail (katalog dengan harga periode hari ini, draft terbuka, order terkirim, perusahaan dan booth), buat draft (409 `ORDER_OPEN`, 422 `FORM_CLOSED`), simpan draft (ganti semua baris; batas `max_quantity`; item nonaktif ditolak), quote, submit (nomor `<edition>-O-0001` saat submit pertama, harga dan periode dikunci, booth dan luas dicatat; 422 `ORDERING_NOT_OPEN` / `FORM_CLOSED` / `ORDER_EMPTY`), hapus draft (hanya DRAFT), not-required (409 `FORM_HAS_ORDERS`; submit menghapusnya)
+- [x] Item tambahan tanpa harga + gambar (`.../lines/{line_id}/image`, JPG/PNG 5 MB; disimpan ulang dengan `id` tetap memakai gambarnya); lampiran sesuai `attachment_purposes` (jenis file per tujuan, maks 10 MB, maks 20 file per order); gambar katalog lewat route portal sendiri
+- [x] Portal (`apps/exhibitor/src/pages/order-forms.tsx`): panel Order Forms di halaman exhibition, daftar form dengan filter, halaman form (katalog per section, item tambahan, lampiran, remarks, "I don't require this form", Save Draft, Delete Draft, order terkirim), halaman Review and Send, pesan Returned, "Waiting for your signed contract", tombol Order More setelah ada order terkirim
+- [x] Tes: `tests/test_order_portal.py` (harga dari server dan body berisi harga ditolak, periode Regular/Surcharge/Onsite dan tutup, `closes_on`, akses exhibitor lain = 404, sesi staff = 401, CSRF, submit dengan contract DRAFT, lampiran dan gambar, not-required, edition ARCHIVED); E2E `apps/exhibitor/e2e/order-forms.mjs` (`make e2e-portal-orders`), unit test route dan hitung mundur
+
+Catatan Phase 3:
+- Portal tetap memakai router kecil sendiri (`lib.ts` `exhibitorRouteOf`), tidak memasang TanStack Router:
+  empat halaman baru masih sederhana dan tidak perlu dependency baru.
+- Ditemukan saat E2E: API melakukan commit **setelah** response terkirim (`get_session` berjalan sebagai
+  dependency ber-scope request), jadi data yang baru dibuat bisa belum terlihat oleh request berikutnya, dan
+  klien bisa menerima sukses walau commit gagal. Bukan bagian fitur ini; perbaikannya
+  `Depends(get_session, scope="function")` di semua router. E2E mencoba ulang sekali pada 404 sampai itu diperbaiki.
 
 ### Phase 4: Review di desk
 - [ ] API antrian, detail, harga item tambahan, review, cancel; audit

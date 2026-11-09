@@ -1656,6 +1656,197 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/portal/exhibitors/{lead_id}/order-forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Forms */
+        get: operations["portal_forms_api_v1_portal_exhibitors__lead_id__order_forms_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/order-forms/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Form */
+        get: operations["portal_form_api_v1_portal_exhibitors__lead_id__order_forms__code__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/order-forms/{code}/not-required": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Portal Not Required */
+        put: operations["portal_not_required_api_v1_portal_exhibitors__lead_id__order_forms__code__not_required_put"];
+        post?: never;
+        /** Portal Required */
+        delete: operations["portal_required_api_v1_portal_exhibitors__lead_id__order_forms__code__not_required_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/order-forms/{code}/items/{item_id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Item Image */
+        get: operations["portal_item_image_api_v1_portal_exhibitors__lead_id__order_forms__code__items__item_id__image_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/order-forms/{code}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Create Order */
+        post: operations["portal_create_order_api_v1_portal_exhibitors__lead_id__order_forms__code__orders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Portal Delete Order */
+        delete: operations["portal_delete_order_api_v1_portal_exhibitors__lead_id__orders__order_id__delete"];
+        options?: never;
+        head?: never;
+        /** Portal Update Order */
+        patch: operations["portal_update_order_api_v1_portal_exhibitors__lead_id__orders__order_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Quote Order */
+        post: operations["portal_quote_order_api_v1_portal_exhibitors__lead_id__orders__order_id__quote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Submit Order */
+        post: operations["portal_submit_order_api_v1_portal_exhibitors__lead_id__orders__order_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}/lines/{line_id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Line Image */
+        get: operations["portal_line_image_api_v1_portal_exhibitors__lead_id__orders__order_id__lines__line_id__image_get"];
+        put?: never;
+        /** Portal Line Image Upload */
+        post: operations["portal_line_image_upload_api_v1_portal_exhibitors__lead_id__orders__order_id__lines__line_id__image_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Add File */
+        post: operations["portal_add_file_api_v1_portal_exhibitors__lead_id__orders__order_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal File */
+        get: operations["portal_file_api_v1_portal_exhibitors__lead_id__orders__order_id__files__file_id__get"];
+        put?: never;
+        post?: never;
+        /** Portal Remove File */
+        delete: operations["portal_remove_file_api_v1_portal_exhibitors__lead_id__orders__order_id__files__file_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/visitor-registrations": {
         parameters: {
             query?: never;
@@ -2728,6 +2919,21 @@ export interface components {
             /** File */
             file: string;
         };
+        /** Body_portal_add_file_api_v1_portal_exhibitors__lead_id__orders__order_id__files_post */
+        Body_portal_add_file_api_v1_portal_exhibitors__lead_id__orders__order_id__files_post: {
+            /** File */
+            file: string;
+            purpose: components["schemas"]["AttachmentPurpose"];
+            /** Version */
+            version: number;
+        };
+        /** Body_portal_line_image_upload_api_v1_portal_exhibitors__lead_id__orders__order_id__lines__line_id__image_post */
+        Body_portal_line_image_upload_api_v1_portal_exhibitors__lead_id__orders__order_id__lines__line_id__image_post: {
+            /** File */
+            file: string;
+            /** Version */
+            version: number;
+        };
         /** Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post */
         Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post: {
             /** File */
@@ -3503,6 +3709,19 @@ export interface components {
             in_import?: boolean | null;
             /** In Export */
             in_export?: boolean | null;
+        };
+        /** CustomLineIn */
+        CustomLineIn: {
+            /** Id */
+            id?: string | null;
+            /** Name */
+            name: string;
+            /** Size */
+            size?: string | null;
+            /** Quantity */
+            quantity: number;
+            /** Notes */
+            notes?: string | null;
         };
         /** DashboardKey */
         DashboardKey: {
@@ -4781,6 +5000,12 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /**
+         * FormProgress
+         * @description Derived per exhibitor and form, never stored.
+         * @enum {string}
+         */
+        FormProgress: "NOT_STARTED" | "IN_PROGRESS" | "SUBMITTED" | "APPROVED" | "NOT_REQUIRED";
         /** GateIn */
         GateIn: {
             /**
@@ -5634,6 +5859,20 @@ export interface components {
          * @enum {string}
          */
         OptionField: "BUSINESS_TYPE" | "BRANCH" | "EXHIBITION_TYPE" | "PRODUCT_CATEGORY";
+        /**
+         * OrderDraftIn
+         * @description Replaces the order's lines; lines left out are removed.
+         */
+        OrderDraftIn: {
+            /** Lines */
+            lines?: components["schemas"]["OrderLineIn"][];
+            /** Custom Lines */
+            custom_lines?: components["schemas"]["CustomLineIn"][];
+            /** Remarks */
+            remarks?: string | null;
+            /** Version */
+            version: number;
+        };
         /** OrderFormCreateIn */
         OrderFormCreateIn: {
             /** Title */
@@ -5866,6 +6105,26 @@ export interface components {
             sort_order?: number | null;
             /** Is Published */
             is_published?: boolean | null;
+            /** Version */
+            version: number;
+        };
+        /** OrderLineIn */
+        OrderLineIn: {
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /**
+         * OrderStatus
+         * @enum {string}
+         */
+        OrderStatus: "DRAFT" | "SUBMITTED" | "RETURNED" | "APPROVED" | "CANCELLED";
+        /** OrderVersionIn */
+        OrderVersionIn: {
             /** Version */
             version: number;
         };
@@ -6262,6 +6521,32 @@ export interface components {
             /** Is Active */
             is_active: boolean;
         };
+        /** PortalCatalogItemOut */
+        PortalCatalogItemOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Section */
+            section: string | null;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            /** Size */
+            size: string | null;
+            /** Unit */
+            unit: string | null;
+            /** Unit Price */
+            unit_price: string;
+            /** Max Quantity */
+            max_quantity: number | null;
+            /** Has Image */
+            has_image: boolean;
+        };
         /** PortalExhibitorOut */
         PortalExhibitorOut: {
             /**
@@ -6316,6 +6601,165 @@ export interface components {
             csrf_token: string;
             /** Exhibitors */
             exhibitors: components["schemas"]["PortalExhibitorOut"][];
+        };
+        /** PortalOrderFileOut */
+        PortalOrderFileOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            purpose: components["schemas"]["AttachmentPurpose"];
+            /** File Name */
+            file_name: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** PortalOrderFormDetailOut */
+        PortalOrderFormDetailOut: {
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            /** Instructions */
+            instructions: string | null;
+            /** Currency */
+            currency: string;
+            /** Has Catalog */
+            has_catalog: boolean;
+            /** Allow Custom Items */
+            allow_custom_items: boolean;
+            details_type: components["schemas"]["DetailsType"] | null;
+            /** Attachment Purposes */
+            attachment_purposes: components["schemas"]["AttachmentPurpose"][];
+            /** Deadline On */
+            deadline_on: string | null;
+            /** Closes On */
+            closes_on: string | null;
+            /** Secondary Deadline Label */
+            secondary_deadline_label: string | null;
+            /** Secondary Deadline On */
+            secondary_deadline_on: string | null;
+            /** Is Closed */
+            is_closed: boolean;
+            price_period: components["schemas"]["PricePeriod"] | null;
+            progress: components["schemas"]["FormProgress"];
+            /** Not Required */
+            not_required: boolean;
+            /** Company Name */
+            company_name: string;
+            /** Booth Code */
+            booth_code: string | null;
+            /** Items */
+            items: components["schemas"]["PortalCatalogItemOut"][];
+            open_order: components["schemas"]["PortalOrderOut"] | null;
+            /** Sent Orders */
+            sent_orders: components["schemas"]["PortalOrderOut"][];
+        };
+        /**
+         * PortalOrderFormOut
+         * @description One row of the portal's form list.
+         */
+        PortalOrderFormOut: {
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            /** Has Catalog */
+            has_catalog: boolean;
+            details_type: components["schemas"]["DetailsType"] | null;
+            /** Deadline On */
+            deadline_on: string | null;
+            /** Closes On */
+            closes_on: string | null;
+            /** Secondary Deadline Label */
+            secondary_deadline_label: string | null;
+            /** Secondary Deadline On */
+            secondary_deadline_on: string | null;
+            /** Is Closed */
+            is_closed: boolean;
+            progress: components["schemas"]["FormProgress"];
+            /** Open Order Id */
+            open_order_id: string | null;
+            /** Sent Orders */
+            sent_orders: number;
+        };
+        /** PortalOrderFormsOut */
+        PortalOrderFormsOut: {
+            /** Forms */
+            forms: components["schemas"]["PortalOrderFormOut"][];
+            price_period: components["schemas"]["PricePeriod"] | null;
+        };
+        /** PortalOrderLineOut */
+        PortalOrderLineOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Id */
+            item_id: string | null;
+            /** Section */
+            section: string | null;
+            /** Code */
+            code: string | null;
+            /** Name */
+            name: string;
+            /** Size */
+            size: string | null;
+            /** Quantity */
+            quantity: number;
+            /** Free Quantity */
+            free_quantity: number;
+            /** Unit Price */
+            unit_price: string | null;
+            /** Amount */
+            amount: string | null;
+            /** Has Image */
+            has_image: boolean;
+            /** Notes */
+            notes: string | null;
+        };
+        /** PortalOrderOut */
+        PortalOrderOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Form Code */
+            form_code: string;
+            /** Order Number */
+            order_number: string | null;
+            status: components["schemas"]["OrderStatus"];
+            price_period: components["schemas"]["PricePeriod"] | null;
+            /** Remarks */
+            remarks: string | null;
+            /** Total */
+            total: string;
+            /** Currency */
+            currency: string;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Review Notes */
+            review_notes: string | null;
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Unpriced Lines */
+            unpriced_lines: number;
+            /** Waiting For Contract */
+            waiting_for_contract: boolean;
+            /** Lines */
+            lines: components["schemas"]["PortalOrderLineOut"][];
+            /** Files */
+            files: components["schemas"]["PortalOrderFileOut"][];
+            /** Version */
+            version: number;
         };
         /**
          * PortalPaymentOut
@@ -6375,6 +6819,12 @@ export interface components {
              */
             sample_rows: number;
         };
+        /**
+         * PricePeriod
+         * @description Which catalog price applies; chosen from the submit date (edition `price_*` dates).
+         * @enum {string}
+         */
+        PricePeriod: "REGULAR" | "SURCHARGE" | "ONSITE";
         /**
          * PublicCampaignOut
          * @description What the form needs. No campaign name, counts, or other internal settings.
@@ -11467,6 +11917,510 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderFormItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_forms_api_v1_portal_exhibitors__lead_id__order_forms_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderFormsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_form_api_v1_portal_exhibitors__lead_id__order_forms__code__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderFormDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_not_required_api_v1_portal_exhibitors__lead_id__order_forms__code__not_required_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderFormDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_required_api_v1_portal_exhibitors__lead_id__order_forms__code__not_required_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderFormDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_item_image_api_v1_portal_exhibitors__lead_id__order_forms__code__items__item_id__image_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                code: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_create_order_api_v1_portal_exhibitors__lead_id__order_forms__code__orders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_delete_order_api_v1_portal_exhibitors__lead_id__orders__order_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_update_order_api_v1_portal_exhibitors__lead_id__orders__order_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_quote_order_api_v1_portal_exhibitors__lead_id__orders__order_id__quote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_submit_order_api_v1_portal_exhibitors__lead_id__orders__order_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderVersionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_line_image_api_v1_portal_exhibitors__lead_id__orders__order_id__lines__line_id__image_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_line_image_upload_api_v1_portal_exhibitors__lead_id__orders__order_id__lines__line_id__image_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_portal_line_image_upload_api_v1_portal_exhibitors__lead_id__orders__order_id__lines__line_id__image_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_add_file_api_v1_portal_exhibitors__lead_id__orders__order_id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_portal_add_file_api_v1_portal_exhibitors__lead_id__orders__order_id__files_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_file_api_v1_portal_exhibitors__lead_id__orders__order_id__files__file_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_remove_file_api_v1_portal_exhibitors__lead_id__orders__order_id__files__file_id__delete: {
+        parameters: {
+            query: {
+                version: number;
+            };
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOrderOut"];
                 };
             };
             /** @description Validation Error */

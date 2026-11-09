@@ -9,11 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authorization import AuthContext, require
 from app.core.db import get_session
 from app.core.pagination import Page
-from app.modules.orders import service
+from app.modules.exhibitors import portal as exhibitors_portal
+from app.modules.exhibitors.models import ExhibitorLead
+from app.modules.exhibitors.portal import PortalContext, portal_account
+from app.modules.orders import portal, service
+from app.modules.orders.rules import AttachmentPurpose
 from app.modules.orders.schemas import (
     CopyFormsIn,
     CopyFormsOut,
     ItemImportOut,
+    OrderDraftIn,
     OrderFormCreateIn,
     OrderFormItemCreateIn,
     OrderFormItemListParams,
@@ -22,6 +27,10 @@ from app.modules.orders.schemas import (
     OrderFormListParams,
     OrderFormOut,
     OrderFormUpdateIn,
+    OrderVersionIn,
+    PortalOrderFormDetailOut,
+    PortalOrderFormsOut,
+    PortalOrderOut,
 )
 
 router = APIRouter(prefix="/order-forms", tags=["order-forms"])
@@ -166,5 +175,214 @@ def _inline(chunks: Iterator[bytes], filename: str, media_type: str) -> Streamin
             "Content-Disposition": f'inline; filename="{filename}"',
             "Cache-Control": "private, no-store",
             "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+# --- exhibitor portal --------------------------------------------------------------------
+
+portal_router = APIRouter(prefix="/portal/exhibitors/{lead_id}", tags=["exhibitor-portal"])
+PortalAccount = Depends(portal_account)
+ORDER = "/orders/{order_id}"
+
+
+async def _lead(session: AsyncSession, ctx: PortalContext, lead_id: uuid.UUID) -> ExhibitorLead:
+    return await exhibitors_portal.own_exhibitor(session, ctx, lead_id)
+
+
+@portal_router.get("/order-forms", response_model=PortalOrderFormsOut)
+async def portal_forms(
+    lead_id: uuid.UUID, session: Session, ctx: PortalContext = PortalAccount
+) -> PortalOrderFormsOut:
+    return await portal.list_forms(session, await _lead(session, ctx, lead_id))
+
+
+@portal_router.get("/order-forms/{code}", response_model=PortalOrderFormDetailOut)
+async def portal_form(
+    lead_id: uuid.UUID, code: str, session: Session, ctx: PortalContext = PortalAccount
+) -> PortalOrderFormDetailOut:
+    return await portal.form_detail(session, await _lead(session, ctx, lead_id), code)
+
+
+@portal_router.put("/order-forms/{code}/not-required", response_model=PortalOrderFormDetailOut)
+async def portal_not_required(
+    lead_id: uuid.UUID, code: str, session: Session, ctx: PortalContext = PortalAccount
+) -> PortalOrderFormDetailOut:
+    lead = await _lead(session, ctx, lead_id)
+    return await portal.set_not_required(session, ctx.account_id, lead, code, True)
+
+
+@portal_router.delete("/order-forms/{code}/not-required", response_model=PortalOrderFormDetailOut)
+async def portal_required(
+    lead_id: uuid.UUID, code: str, session: Session, ctx: PortalContext = PortalAccount
+) -> PortalOrderFormDetailOut:
+    lead = await _lead(session, ctx, lead_id)
+    return await portal.set_not_required(session, ctx.account_id, lead, code, False)
+
+
+@portal_router.get(
+    "/order-forms/{code}/items/{item_id}/image",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"image/jpeg": {}, "image/png": {}}}},
+)
+async def portal_item_image(
+    lead_id: uuid.UUID,
+    code: str,
+    item_id: uuid.UUID,
+    session: Session,
+    ctx: PortalContext = PortalAccount,
+) -> StreamingResponse:
+    lead = await _lead(session, ctx, lead_id)
+    return _inline(*await portal.item_image(session, lead, code, item_id))
+
+
+@portal_router.post(
+    "/order-forms/{code}/orders",
+    response_model=PortalOrderOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def portal_create_order(
+    lead_id: uuid.UUID, code: str, session: Session, ctx: PortalContext = PortalAccount
+) -> PortalOrderOut:
+    lead = await _lead(session, ctx, lead_id)
+    return await portal.create_order(session, ctx.account_id, lead, code)
+
+
+@portal_router.patch(ORDER, response_model=PortalOrderOut)
+async def portal_update_order(
+    lead_id: uuid.UUID,
+    order_id: uuid.UUID,
+    data: OrderDraftIn,
+    session: Session,
+    ctx: PortalContext = PortalAccount,
+) -> PortalOrderOut:
+    lead = await _lead(session, ctx, lead_id)
+    return await portal.update_order(session, ctx.account_id, lead, order_id, data)
+
+
+@portal_router.delete(ORDER, status_code=status.HTTP_204_NO_CONTENT)
+async def portal_delete_order(
+    lead_id: uuid.UUID, order_id: uuid.UUID, session: Session, ctx: PortalContext = PortalAccount
+) -> None:
+    lead = await _lead(session, ctx, lead_id)
+    await portal.delete_order(session, ctx.account_id, lead, order_id)
+
+
+@portal_router.post(f"{ORDER}/quote", response_model=PortalOrderOut)
+async def portal_quote_order(
+    lead_id: uuid.UUID, order_id: uuid.UUID, session: Session, ctx: PortalContext = PortalAccount
+) -> PortalOrderOut:
+    return await portal.quote_order(session, await _lead(session, ctx, lead_id), order_id)
+
+
+@portal_router.post(f"{ORDER}/submit", response_model=PortalOrderOut)
+async def portal_submit_order(
+    lead_id: uuid.UUID,
+    order_id: uuid.UUID,
+    data: OrderVersionIn,
+    session: Session,
+    ctx: PortalContext = PortalAccount,
+) -> PortalOrderOut:
+    lead = await _lead(session, ctx, lead_id)
+    return await portal.submit_order(session, ctx.account_id, lead, order_id, data.version)
+
+
+@portal_router.post(f"{ORDER}/lines/{{line_id}}/image", response_model=PortalOrderOut)
+async def portal_line_image_upload(
+    lead_id: uuid.UUID,
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    session: Session,
+    file: Annotated[UploadFile, File()],
+    version: Annotated[int, Form()],
+    ctx: PortalContext = PortalAccount,
+) -> PortalOrderOut:
+    lead = await _lead(session, ctx, lead_id)
+    return await portal.set_line_image(
+        session,
+        ctx.account_id,
+        lead,
+        order_id,
+        line_id,
+        file_name=file.filename or "image",
+        content_type=file.content_type,
+        data=await file.read(portal.IMAGE_MAX_BYTES + 1),
+        version=version,
+    )
+
+
+@portal_router.get(
+    f"{ORDER}/lines/{{line_id}}/image",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"image/jpeg": {}, "image/png": {}}}},
+)
+async def portal_line_image(
+    lead_id: uuid.UUID,
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    session: Session,
+    ctx: PortalContext = PortalAccount,
+) -> StreamingResponse:
+    lead = await _lead(session, ctx, lead_id)
+    return _inline(*await portal.line_image(session, lead, order_id, line_id))
+
+
+@portal_router.post(f"{ORDER}/files", response_model=PortalOrderOut)
+async def portal_add_file(
+    lead_id: uuid.UUID,
+    order_id: uuid.UUID,
+    session: Session,
+    file: Annotated[UploadFile, File()],
+    purpose: Annotated[AttachmentPurpose, Form()],
+    version: Annotated[int, Form()],
+    ctx: PortalContext = PortalAccount,
+) -> PortalOrderOut:
+    lead = await _lead(session, ctx, lead_id)
+    return await portal.add_file(
+        session,
+        ctx.account_id,
+        lead,
+        order_id,
+        purpose=purpose,
+        file_name=file.filename or "attachment",
+        content_type=file.content_type,
+        data=await file.read(portal.FILE_MAX_BYTES + 1),
+        version=version,
+    )
+
+
+@portal_router.delete(f"{ORDER}/files/{{file_id}}", response_model=PortalOrderOut)
+async def portal_remove_file(
+    lead_id: uuid.UUID,
+    order_id: uuid.UUID,
+    file_id: uuid.UUID,
+    session: Session,
+    version: Annotated[int, Query()],
+    ctx: PortalContext = PortalAccount,
+) -> PortalOrderOut:
+    lead = await _lead(session, ctx, lead_id)
+    return await portal.remove_file(session, ctx.account_id, lead, order_id, file_id, version)
+
+
+@portal_router.get(
+    f"{ORDER}/files/{{file_id}}",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"application/pdf": {}, "image/jpeg": {}, "image/png": {}}}},
+)
+async def portal_file(
+    lead_id: uuid.UUID,
+    order_id: uuid.UUID,
+    file_id: uuid.UUID,
+    session: Session,
+    ctx: PortalContext = PortalAccount,
+) -> StreamingResponse:
+    lead = await _lead(session, ctx, lead_id)
+    chunks, name, media_type = await portal.file_download(session, lead, order_id, file_id)
+    return StreamingResponse(
+        chunks,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            "Cache-Control": "no-store",
         },
     )

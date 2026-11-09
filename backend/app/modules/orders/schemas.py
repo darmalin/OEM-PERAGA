@@ -6,7 +6,13 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from app.core.pagination import PageParams
-from app.modules.orders.rules import AttachmentPurpose, DetailsType
+from app.modules.orders.rules import (
+    AttachmentPurpose,
+    DetailsType,
+    FormProgress,
+    OrderStatus,
+    PricePeriod,
+)
 
 Currency = Annotated[str, StringConstraints(pattern=r"^[A-Za-z]{3}$", to_upper=True)]
 FormCode = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^[0-9]{2}[a-z]?$")]
@@ -162,3 +168,145 @@ class ItemImportOut(BaseModel):
     created: int
     updated: int
     errors: list[ItemImportRowError]  # nothing is saved when this is not empty
+
+
+# --- portal ------------------------------------------------------------------------------
+# Never carries prices, totals, or statuses from the exhibitor: the server computes them.
+
+
+class PortalOrderFormOut(BaseModel):
+    """One row of the portal's form list."""
+
+    code: str
+    title: str
+    has_catalog: bool
+    details_type: DetailsType | None
+    deadline_on: date | None
+    closes_on: date | None  # the form's own date, else the edition's Order Expired date
+    secondary_deadline_label: str | None
+    secondary_deadline_on: date | None
+    is_closed: bool
+    progress: FormProgress
+    open_order_id: uuid.UUID | None
+    sent_orders: int  # submitted, returned, or approved
+
+
+class PortalOrderFormsOut(BaseModel):
+    forms: list[PortalOrderFormOut]
+    # Today's catalog price period; None when ordering is not open (no period covers today).
+    price_period: PricePeriod | None
+
+
+class PortalCatalogItemOut(BaseModel):
+    id: uuid.UUID
+    section: str | None
+    code: str
+    name: str
+    description: str | None
+    size: str | None
+    unit: str | None
+    unit_price: Decimal  # in today's price period (Regular while ordering is not open)
+    max_quantity: int | None
+    has_image: bool
+
+
+class PortalOrderLineOut(BaseModel):
+    id: uuid.UUID
+    item_id: uuid.UUID | None  # None: an extra item the exhibitor described
+    section: str | None
+    code: str | None
+    name: str
+    size: str | None
+    quantity: int
+    free_quantity: int
+    unit_price: Decimal | None  # None until staff price an extra item
+    amount: Decimal | None
+    has_image: bool
+    notes: str | None
+
+
+class PortalOrderFileOut(BaseModel):
+    id: uuid.UUID
+    purpose: AttachmentPurpose
+    file_name: str
+    size_bytes: int
+    created_at: datetime
+
+
+class PortalOrderOut(BaseModel):
+    id: uuid.UUID
+    form_code: str
+    order_number: str | None
+    status: OrderStatus
+    price_period: PricePeriod | None
+    remarks: str | None
+    total: Decimal
+    currency: str
+    submitted_at: datetime | None
+    # Staff's reason when the order came back (RETURNED) or was cancelled.
+    review_notes: str | None
+    cancel_reason: str | None
+    unpriced_lines: int  # extra items still waiting for a price from staff
+    # Submitted and costs money, but the booth contract is not signed yet (decision O2).
+    waiting_for_contract: bool
+    lines: list[PortalOrderLineOut]
+    files: list[PortalOrderFileOut]
+    version: int
+
+
+class PortalOrderFormDetailOut(BaseModel):
+    code: str
+    title: str
+    instructions: str | None
+    currency: str
+    has_catalog: bool
+    allow_custom_items: bool
+    details_type: DetailsType | None
+    attachment_purposes: list[AttachmentPurpose]
+    deadline_on: date | None
+    closes_on: date | None
+    secondary_deadline_label: str | None
+    secondary_deadline_on: date | None
+    is_closed: bool
+    price_period: PricePeriod | None
+    progress: FormProgress
+    not_required: bool
+    company_name: str
+    booth_code: str | None
+    items: list[PortalCatalogItemOut]
+    open_order: PortalOrderOut | None
+    sent_orders: list[PortalOrderOut]  # newest first
+
+
+class OrderLineIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    item_id: uuid.UUID
+    quantity: int = Field(gt=0, le=9999)
+
+
+class CustomLineIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: uuid.UUID | None = None  # an existing extra line keeps its picture
+    name: str = Field(max_length=300)
+    size: str | None = Field(default=None, max_length=100)
+    quantity: int = Field(gt=0, le=9999)
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class OrderDraftIn(BaseModel):
+    """Replaces the order's lines; lines left out are removed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    lines: list[OrderLineIn] = Field(default_factory=list, max_length=500)
+    custom_lines: list[CustomLineIn] = Field(default_factory=list, max_length=20)
+    remarks: str | None = Field(default=None, max_length=2000)
+    version: int
+
+
+class OrderVersionIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int

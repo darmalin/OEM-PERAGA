@@ -3,7 +3,7 @@ TEST_DB_URL = postgresql+asyncpg://ems:ems@postgres:5432/ems_test
 RUN_BACKEND = $(COMPOSE) run --rm --no-deps -T
 TEST_ENV = -e EMS_ENVIRONMENT=test -e EMS_DATABASE_URL=$(TEST_DB_URL) -e EMS_REDIS_URL=redis://redis:6379/15 -e EMS_EMAIL_BACKEND=memory
 
-.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell web scanner campaign portal web-check e2e e2e-scanner e2e-campaign e2e-portal e2e-order-forms
+.PHONY: up down logs migrate superuser test lint fmt typecheck gen-api shell web scanner campaign portal web-check e2e e2e-scanner e2e-campaign e2e-portal e2e-order-forms e2e-portal-orders
 
 up:
 	$(COMPOSE) up -d --build
@@ -76,6 +76,12 @@ e2e-campaign:
 e2e-portal:
 	cd frontend/apps/exhibitor && set -a && . ../../../.env && set +a && \
 	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/pipeline.mjs
+
+# Order forms in the portal: a fresh test edition, a converted exhibitor, fill, review, send.
+# Needs `make portal` (or PORTAL_URL) as well as the desk.
+e2e-portal-orders:
+	cd frontend/apps/exhibitor && set -a && . ../../../.env && set +a && \
+	EMS_EMAIL=$$EMS_DEV_ADMIN_EMAIL EMS_PASSWORD=$$EMS_DEV_ADMIN_PASSWORD node e2e/order-forms.mjs
 
 # Order form setup (add form, item, Excel import, picture, publish) in the edition the desk opens on.
 e2e-order-forms:

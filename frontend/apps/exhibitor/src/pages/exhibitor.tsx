@@ -69,6 +69,12 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
             onError={failed}
           />
           <PaymentsPanel payments={state.payments} signed={state.contract.status === "SIGNED"} />
+          <Panel title="Order Forms">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[14px] text-muted">Order electricity, furniture, internet, badges, and other services for your booth.</p>
+              <Button variant="primary" onClick={() => navigate(`/e/${id}/forms`)}>Open Order Forms</Button>
+            </div>
+          </Panel>
         </>
       )}
     </div>

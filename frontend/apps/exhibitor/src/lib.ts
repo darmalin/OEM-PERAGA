@@ -42,6 +42,21 @@ export function exhibitorIdOf(route: string): string | null {
   return /^\/e\/([0-9a-f-]{36})\/?$/.exec(route)?.[1] ?? null;
 }
 
+export type ExhibitorRoute =
+  | { page: "exhibitor"; id: string }
+  | { page: "forms"; id: string }
+  | { page: "form"; id: string; code: string }
+  | { page: "review"; id: string; code: string };
+
+/** "/e/{id}", "/e/{id}/forms", "/e/{id}/forms/{code}", "/e/{id}/forms/{code}/review". */
+export function exhibitorRouteOf(route: string): ExhibitorRoute | null {
+  const m = /^\/e\/([0-9a-f-]{36})(?:\/forms(?:\/([0-9]{2}[a-z]?)(\/review)?)?)?\/?$/.exec(route);
+  if (!m?.[1]) return null;
+  const [, id, code, review] = m;
+  if (code) return review ? { page: "review", id, code } : { page: "form", id, code };
+  return route.replace(/\/$/, "").endsWith("/forms") ? { page: "forms", id } : { page: "exhibitor", id };
+}
+
 const LABELS: Record<string, string> = {
   DRAFT: "Draft",
   SIGNED: "Signed",
@@ -51,6 +66,16 @@ const LABELS: Record<string, string> = {
   UNPAID: "Unpaid",
   PARTIAL: "Partially Paid",
   PAID: "Paid",
+  SUBMITTED: "Sent",
+  RETURNED: "Returned",
+  APPROVED: "Approved",
+  CANCELLED: "Cancelled",
+  NOT_STARTED: "Not Filled",
+  IN_PROGRESS: "In Progress",
+  NOT_REQUIRED: "Not Required",
+  REGULAR: "Regular price",
+  SURCHARGE: "Surcharge price",
+  ONSITE: "Onsite price",
   BANK_TRANSFER: "Bank Transfer",
   CASH: "Cash",
   OTHER: "Other",
@@ -67,6 +92,10 @@ const TONES: Record<string, string> = {
   PARTIAL: "amber",
   PENDING: "amber",
   REJECTED: "red",
+  SUBMITTED: "blue",
+  APPROVED: "green",
+  RETURNED: "amber",
+  IN_PROGRESS: "amber",
 };
 
 export function toneOf(value: string): string {
@@ -93,4 +122,16 @@ export function date(value: string | null | undefined): string {
 export function messageOf(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   return "The server could not be reached. Check your connection and try again.";
+}
+
+/** Days from today to a calendar date: "In 5 days", "Today", "Tomorrow", "Past". */
+export function timeLeft(value: string | null | undefined, now: Date = new Date()): string {
+  if (!value) return "";
+  const target = new Date(`${value}T00:00:00`);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((target.getTime() - today.getTime()) / 86_400_000);
+  if (days < 0) return "Past";
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
 }

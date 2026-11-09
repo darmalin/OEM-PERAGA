@@ -5,9 +5,18 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import ColumnElement, func, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.orders.models import ExhibitorOrder, OrderForm, OrderFormItem
+from app.modules.orders.models import (
+    ExhibitorFormWaiver,
+    ExhibitorOrder,
+    ExhibitorOrderCounter,
+    ExhibitorOrderFile,
+    ExhibitorOrderLine,
+    OrderForm,
+    OrderFormItem,
+)
 from app.modules.orders.rules import OrderStatus
 from app.modules.orders.schemas import OrderFormItemListParams, OrderFormListParams
 
@@ -100,3 +109,120 @@ async def get_item(
     if for_update:
         stmt = stmt.with_for_update()
     return await session.scalar(stmt)
+
+
+# --- portal and orders -------------------------------------------------------------------
+
+
+async def published_forms(session: AsyncSession, edition_id: uuid.UUID) -> Sequence[OrderForm]:
+    stmt = (
+        select(OrderForm)
+        .where(OrderForm.edition_id == edition_id, OrderForm.is_published.is_(True))
+        .order_by(OrderForm.sort_order, OrderForm.code)
+    )
+    return (await session.scalars(stmt)).all()
+
+
+async def published_form(
+    session: AsyncSession, edition_id: uuid.UUID, code: str
+) -> OrderForm | None:
+    stmt = select(OrderForm).where(
+        OrderForm.edition_id == edition_id,
+        OrderForm.code == code,
+        OrderForm.is_published.is_(True),
+    )
+    return await session.scalar(stmt)
+
+
+async def active_items(session: AsyncSession, form_id: uuid.UUID) -> Sequence[OrderFormItem]:
+    """The catalog the portal shows; a form has hundreds of items at most."""
+    stmt = (
+        select(OrderFormItem)
+        .where(OrderFormItem.form_id == form_id, OrderFormItem.is_active.is_(True))
+        .order_by(OrderFormItem.sort_order, OrderFormItem.code, OrderFormItem.id)
+    )
+    return (await session.scalars(stmt)).all()
+
+
+async def lead_orders(
+    session: AsyncSession, lead_id: uuid.UUID, form_id: uuid.UUID | None = None
+) -> Sequence[ExhibitorOrder]:
+    """Orders of one exhibitor (optionally on one form), newest first."""
+    stmt = select(ExhibitorOrder).where(ExhibitorOrder.exhibitor_lead_id == lead_id)
+    if form_id is not None:
+        stmt = stmt.where(ExhibitorOrder.form_id == form_id)
+    stmt = stmt.order_by(ExhibitorOrder.created_at.desc(), ExhibitorOrder.id.desc())
+    return (await session.scalars(stmt)).all()
+
+
+async def get_order(
+    session: AsyncSession, order_id: uuid.UUID, *, for_update: bool = False
+) -> ExhibitorOrder | None:
+    stmt = select(ExhibitorOrder).where(ExhibitorOrder.id == order_id)
+    if for_update:
+        stmt = stmt.with_for_update()
+    return await session.scalar(stmt)
+
+
+async def order_lines(
+    session: AsyncSession, order_ids: Sequence[uuid.UUID]
+) -> Sequence[ExhibitorOrderLine]:
+    if not order_ids:
+        return []
+    stmt = (
+        select(ExhibitorOrderLine)
+        .where(ExhibitorOrderLine.order_id.in_(order_ids))
+        .order_by(ExhibitorOrderLine.sort_order, ExhibitorOrderLine.created_at)
+    )
+    return (await session.scalars(stmt)).all()
+
+
+async def order_files(
+    session: AsyncSession, order_ids: Sequence[uuid.UUID]
+) -> Sequence[ExhibitorOrderFile]:
+    if not order_ids:
+        return []
+    stmt = (
+        select(ExhibitorOrderFile)
+        .where(ExhibitorOrderFile.order_id.in_(order_ids))
+        .order_by(ExhibitorOrderFile.created_at)
+    )
+    return (await session.scalars(stmt)).all()
+
+
+async def get_line(session: AsyncSession, line_id: uuid.UUID) -> ExhibitorOrderLine | None:
+    return await session.get(ExhibitorOrderLine, line_id)
+
+
+async def get_file(session: AsyncSession, file_id: uuid.UUID) -> ExhibitorOrderFile | None:
+    return await session.get(ExhibitorOrderFile, file_id)
+
+
+async def waived_form_ids(session: AsyncSession, lead_id: uuid.UUID) -> set[uuid.UUID]:
+    stmt = select(ExhibitorFormWaiver.form_id).where(
+        ExhibitorFormWaiver.exhibitor_lead_id == lead_id
+    )
+    return set((await session.scalars(stmt)).all())
+
+
+async def get_waiver(
+    session: AsyncSession, lead_id: uuid.UUID, form_id: uuid.UUID
+) -> ExhibitorFormWaiver | None:
+    stmt = select(ExhibitorFormWaiver).where(
+        ExhibitorFormWaiver.exhibitor_lead_id == lead_id, ExhibitorFormWaiver.form_id == form_id
+    )
+    return await session.scalar(stmt)
+
+
+async def next_order_number(session: AsyncSession, edition_id: uuid.UUID) -> int:
+    """Next per-edition number; the row lock is held until the transaction ends."""
+    stmt = (
+        insert(ExhibitorOrderCounter)
+        .values(edition_id=edition_id, last_value=1)
+        .on_conflict_do_update(
+            index_elements=[ExhibitorOrderCounter.edition_id],
+            set_={"last_value": ExhibitorOrderCounter.last_value + 1},
+        )
+        .returning(ExhibitorOrderCounter.last_value)
+    )
+    return int((await session.execute(stmt)).scalar_one())
