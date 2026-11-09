@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from app.core.pagination import PageParams
+from app.modules.exhibitors.rules import PaymentState
 from app.modules.orders.rules import (
     AttachmentPurpose,
     DetailsType,
@@ -270,6 +271,7 @@ class PortalOrderOut(BaseModel):
     details: dict[str, Any]  # answers to the form's questions (orders/details.py)
     # Submitted and costs money, but the booth contract is not signed yet (decision O2).
     waiting_for_contract: bool
+    payment_state: PaymentState | None = None  # Phase 7, as on the staff rows
     lines: list[PortalOrderLineOut]
     files: list[PortalOrderFileOut]
     version: int
@@ -367,6 +369,8 @@ class StaffOrderRowOut(BaseModel):
     waiting_for_contract: bool
     # The exhibitor's booth is not the one the order was sent for (decision O2).
     booth_changed: bool
+    # UNPAID / PARTIAL / PAID once approved and costing money (Phase 7), else None.
+    payment_state: PaymentState | None = None
 
 
 class StaffOrderOut(StaffOrderRowOut):
@@ -440,3 +444,30 @@ class FormOptionsIn(BaseModel):
     values: list[
         Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
     ] = Field(max_length=200)
+
+
+class OrderMoney(BaseModel):
+    """Approved service orders of one currency and what was paid on them (Phase 7)."""
+
+    currency: str
+    approved_orders: int
+    approved_value: Decimal
+    verified_amount: Decimal
+    pending_amount: Decimal
+    outstanding_amount: Decimal
+    paid_orders: int
+
+
+class OrdersSummaryOut(BaseModel):
+    """Service orders of one edition, inside the caller's lead scope (Overview panel)."""
+
+    waiting_for_review: int
+    returned: int
+    approved: int
+    money: list[OrderMoney]
+
+
+class OrdersSummaryParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    edition_id: uuid.UUID

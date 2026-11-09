@@ -359,29 +359,14 @@ luas booth, dan nama pemegang badge tetap diisi di pertanyaan form itu.
 Memakai tabel `exhibitor_payments` yang sudah ada, bukan tabel baru, supaya pencatatan, bukti bayar,
 verifikasi, permission, dan audit tetap satu cara.
 
-- [ ] Migration: `exhibitor_payments.contract_id` jadi nullable, kolom baru `order_id` (FK
-      `exhibitor_orders`, index), constraint `num_nonnulls(contract_id, order_id) = 1` (satu payment untuk
-      contract **atau** order, tidak keduanya). Payment yang sudah ada tidak berubah
-- [ ] Semua query payment contract yang ada sudah memfilter/join `contract_id`
-      (`exhibitors/repository.py`), jadi payment order tidak ikut terhitung di contract. Tambahkan tes
-      yang membuktikannya (pipeline dan `GET /exhibitor-leads/{id}/payments` tidak berubah)
-- [ ] Catat payment order: `POST /api/v1/exhibitor-orders/{id}/payments` `{amount, paid_on, method,
-      reference?, notes?}` (`exhibitor_payment.record`). Hanya order `APPROVED` dengan total > 0 (422
-      `ORDER_NOT_APPROVED`); PENDING + VERIFIED + baru <= `total`, baris order di-lock (422
-      `PAYMENT_EXCEEDS_TOTAL`, kode yang sama dengan contract)
-- [ ] Bukti bayar dan review: endpoint proof dan review mengikuti pola payment contract
-      (`.../payments/{payment_id}/proof`, `.../payments/{payment_id}/review`, `exhibitor_payment.verify`),
-      dengan cek ulang batas total saat verifikasi
-- [ ] `GET /api/v1/exhibitor-orders/{id}/payments`: total, verified, pending, outstanding, `payment_state`
-- [ ] Cancel order diblok selama ada payment `VERIFIED` atau `PENDING` (409 `ORDER_HAS_PAYMENTS`)
-- [ ] Portal: status payment per order (tanpa `notes` internal dan reviewer); halaman exhibition
-      menampilkan ringkasan "Booth contract" dan "Service orders" terpisah
-- [ ] Desk: tab Payments di halaman order (catat, bukti, Verify / Reject), kolom payment state di
-      antrian Orders dan tab Orders di lead
-- [ ] Overview: panel exhibitor sales mendapat baris "Service orders" (Approved, paid, waiting,
-      outstanding per currency), terpisah dari nilai contract
-- [ ] Tes: termin sampai PAID, order belum Approved, batas total (termasuk paralel), cancel dengan
-      payment, payment contract dan order tidak saling tercampur, scope dan permission
+- [x] Migration `0034`: `exhibitor_payments.contract_id` nullable, kolom `order_id` (FK `(order_id, edition_id)` ke `exhibitor_orders`, index), CHECK `num_nonnulls(contract_id, order_id) = 1`. Payment yang sudah ada tidak berubah. Downgrade menghapus payment order (tidak bisa ada tanpa kolomnya)
+- [x] Query payment kontrak yang ada sudah memfilter/join `contract_id`; dibuktikan tes (`GET /exhibitor-leads/{id}/payments` dan pipeline tidak memuat payment order, dan sebaliknya)
+- [x] `app/modules/orders/payments.py`: catat (`POST /exhibitor-orders/{id}/payments`, `exhibitor_payment.record`; hanya order APPROVED dengan total > 0, 422 `ORDER_NOT_APPROVED`; `paid_on` tidak di masa depan; PENDING + VERIFIED + baru <= total, baris order di-lock, 422 `PAYMENT_EXCEEDS_TOTAL`), bukti (`.../proof`, PDF/JPG/PNG 10 MB, bucket `orders`), review (`.../review`, `exhibitor_payment.verify`, tolak wajib alasan, cek ulang batas total), daftar (`GET .../payments` dengan total, verified, pending, outstanding, `payment_state`). Semua dalam scope lead; audit `exhibitor_payment` dengan `order_id`
+- [x] Cancel order diblok selama ada payment PENDING atau VERIFIED (409 `ORDER_HAS_PAYMENTS`)
+- [x] Portal: `GET /portal/exhibitors/{lead}/orders/{id}/payments` (tanpa notes internal dan reviewer), `payment_state` di setiap order; order Approved berbayar menampilkan Paid / Being checked / Still to pay dan daftar payment. Ringkasan terpisah "Booth contract" vs "Service orders" di halaman exhibition tidak dibuat: status bayar tampil per order di halaman form
+- [x] Desk: panel Payments di halaman order (catat, bukti, Verify / Reject di halaman payment), `payment_state` di antrian Orders dan tab Orders di lead
+- [x] Overview: baris "Service orders" di panel exhibitor sales lewat `GET /exhibitor-orders/summary?edition_id=` (menunggu review, dikembalikan, nilai Approved, verified, pending, outstanding per currency), terpisah dari nilai kontrak
+- [x] Tes `tests/test_order_payments.py` (termin sampai PAID, hanya order Approved berbayar, tolak dan review ulang, bukti, cancel diblok, tidak tercampur dengan payment kontrak, akses, satu target per payment, ringkasan); E2E: catat dan verifikasi payment order sampai Paid di desk, portal, dan Overview
 
 ### Phase 8: Dokumentasi & laporan
 - [ ] `FEATURES/13-exhibitor-order-forms.md`, CHANGELOG, known-gaps

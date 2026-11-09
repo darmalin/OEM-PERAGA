@@ -267,7 +267,8 @@ class PaymentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    contract_id: uuid.UUID
+    contract_id: uuid.UUID | None  # a payment is for the contract or for one order
+    order_id: uuid.UUID | None = None
     amount: Decimal
     paid_on: date
     method: str

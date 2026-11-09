@@ -251,14 +251,24 @@ class ExhibitorPayment(UUIDPk, Timestamps, Versioned, Base):
         CheckConstraint(
             "(status = 'PENDING') = (reviewed_at IS NULL)", name="reviewed_unless_pending"
         ),
+        # A payment is for the booth contract or for one service order, never both (migration
+        # 0034, docs/EXHIBITOR_ORDER_FORMS.md Phase 7).
+        CheckConstraint("num_nonnulls(contract_id, order_id) = 1", name="one_target"),
+        ForeignKeyConstraint(
+            ["order_id", "edition_id"],
+            ["exhibitor_orders.id", "exhibitor_orders.edition_id"],
+            name="fk_exhibitor_payments_order_id_exhibitor_orders",
+        ),
+        Index("ix_exhibitor_payments_order_id", "order_id"),
     )
 
     edition_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("exhibition_editions.id"), nullable=False
     )
-    contract_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("exhibitor_contracts.id"), nullable=False, index=True
+    contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("exhibitor_contracts.id"), index=True
     )
+    order_id: Mapped[uuid.UUID | None] = mapped_column()
     amount: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     paid_on: Mapped[date] = mapped_column(Date, nullable=False)
     method: Mapped[str] = mapped_column(String(20), nullable=False)

@@ -218,6 +218,21 @@ try {
   await deskShot("07-desk-approved");
   check(true, "desk: order approved once priced and the contract signed");
 
+  // Pay the approved order in full and verify it (Phase 7).
+  await desk.getByRole("link", { name: "Record Payment" }).first().click();
+  await desk.getByLabel(/^Amount/).fill("4564800");
+  await desk.getByLabel(/^Reference/).fill("TRX-E2E-1");
+  await desk.getByRole("button", { name: "Record Payment" }).click();
+  await desk.getByRole("button", { name: "Verify Payment" }).click();
+  await desk.getByText("Payment verified").first().waitFor();
+  await desk.goto(`${DESK}/app/exhibitor-orders?status=APPROVED`);
+  await desk.getByText("Paid", { exact: true }).locator("visible=true").first().waitFor();
+  await deskShot("09-desk-orders-paid");
+  await desk.goto(`${DESK}/app`);
+  await desk.getByText("Service orders").waitFor();
+  await deskShot("10-desk-overview");
+  check(true, "desk: order payment recorded and verified, shown in the queue and on the Overview");
+
   await desk.goto(`${DESK}/app/exhibitor-leads/${lead.id}?tab=orders`);
   await desk.getByText("Forms: 2 of 2 done").waitFor();
   await deskShot("08-lead-orders-tab");
@@ -225,7 +240,9 @@ try {
 
   await portal.goto(`${PORTAL}/e/${lead.id}/forms/04`);
   await portal.getByText("Approved", { exact: true }).first().waitFor();
-  check(true, "portal: the exhibitor sees the order approved");
+  await portal.getByText("Paid", { exact: true }).first().waitFor();
+  await portal.getByText("Still to pay").waitFor();
+  check(true, "portal: the exhibitor sees the order approved and paid");
 
   await portal.getByRole("link", { name: "Order Forms" }).first().click();
   await portal.getByText("2 of 2 done").waitFor();
@@ -238,6 +255,7 @@ try {
 } catch (e) {
   check(false, String(e).split("\n")[0]);
   await shot("failed").catch(() => {});
+  await desk.screenshot({ path: `${OUT}/failed-desk.png`, fullPage: true }).catch(() => {});
 } finally {
   await browser.close();
 }

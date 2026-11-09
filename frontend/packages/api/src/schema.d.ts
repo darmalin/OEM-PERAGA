@@ -1882,6 +1882,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Order Payments */
+        get: operations["portal_order_payments_api_v1_portal_exhibitors__lead_id__orders__order_id__payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exhibitor-orders": {
         parameters: {
             query?: never;
@@ -1891,6 +1908,23 @@ export interface paths {
         };
         /** List Orders */
         get: operations["list_orders_api_v1_exhibitor_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Orders Summary */
+        get: operations["orders_summary_api_v1_exhibitor_orders_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2012,6 +2046,59 @@ export interface paths {
         get: operations["staff_file_api_v1_exhibitor_orders__order_id__files__file_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Order Payments */
+        get: operations["order_payments_api_v1_exhibitor_orders__order_id__payments_get"];
+        put?: never;
+        /** Record Order Payment */
+        post: operations["record_order_payment_api_v1_exhibitor_orders__order_id__payments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}/payments/{payment_id}/proof": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Order Payment Proof */
+        get: operations["order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_get"];
+        put?: never;
+        /** Attach Order Payment Proof */
+        post: operations["attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}/payments/{payment_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Order Payment */
+        post: operations["review_order_payment_api_v1_exhibitor_orders__order_id__payments__payment_id__review_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3116,6 +3203,13 @@ export interface components {
             } | null;
             /** Request Id */
             request_id: string | null;
+        };
+        /** Body_attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post */
+        Body_attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post: {
+            /** File */
+            file: string;
+            /** Version */
+            version: number;
         };
         /** Body_attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post */
         Body_attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post: {
@@ -6390,6 +6484,26 @@ export interface components {
             /** Quantity */
             quantity: number;
         };
+        /**
+         * OrderMoney
+         * @description Approved service orders of one currency and what was paid on them (Phase 7).
+         */
+        OrderMoney: {
+            /** Currency */
+            currency: string;
+            /** Approved Orders */
+            approved_orders: number;
+            /** Approved Value */
+            approved_value: string;
+            /** Verified Amount */
+            verified_amount: string;
+            /** Pending Amount */
+            pending_amount: string;
+            /** Outstanding Amount */
+            outstanding_amount: string;
+            /** Paid Orders */
+            paid_orders: number;
+        };
         /** OrderReviewIn */
         OrderReviewIn: {
             /**
@@ -6411,6 +6525,20 @@ export interface components {
         OrderVersionIn: {
             /** Version */
             version: number;
+        };
+        /**
+         * OrdersSummaryOut
+         * @description Service orders of one edition, inside the caller's lead scope (Overview panel).
+         */
+        OrdersSummaryOut: {
+            /** Waiting For Review */
+            waiting_for_review: number;
+            /** Returned */
+            returned: number;
+            /** Approved */
+            approved: number;
+            /** Money */
+            money: components["schemas"]["OrderMoney"][];
         };
         /**
          * OverrideIn
@@ -6675,11 +6803,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /**
-             * Contract Id
-             * Format: uuid
-             */
-            contract_id: string;
+            /** Contract Id */
+            contract_id: string | null;
+            /** Order Id */
+            order_id?: string | null;
             /** Amount */
             amount: string;
             /**
@@ -7062,6 +7189,7 @@ export interface components {
             };
             /** Waiting For Contract */
             waiting_for_contract: boolean;
+            payment_state?: components["schemas"]["PaymentState"] | null;
             /** Lines */
             lines: components["schemas"]["PortalOrderLineOut"][];
             /** Files */
@@ -7708,6 +7836,7 @@ export interface components {
             waiting_for_contract: boolean;
             /** Booth Changed */
             booth_changed: boolean;
+            payment_state?: components["schemas"]["PaymentState"] | null;
             details_type: components["schemas"]["DetailsType"] | null;
             /** Details */
             details: {
@@ -7777,6 +7906,7 @@ export interface components {
             waiting_for_contract: boolean;
             /** Booth Changed */
             booth_changed: boolean;
+            payment_state?: components["schemas"]["PaymentState"] | null;
         };
         /** StageChangeIn */
         StageChangeIn: {
@@ -12956,6 +13086,38 @@ export interface operations {
             };
         };
     };
+    portal_order_payments_api_v1_portal_exhibitors__lead_id__orders__order_id__payments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalPaymentsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_orders_api_v1_exhibitor_orders_get: {
         parameters: {
             query: {
@@ -12980,6 +13142,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_StaffOrderRowOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    orders_summary_api_v1_exhibitor_orders_summary_get: {
+        parameters: {
+            query: {
+                edition_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrdersSummaryOut"];
                 };
             };
             /** @description Validation Error */
@@ -13217,6 +13410,178 @@ export interface operations {
                     "application/pdf": unknown;
                     "image/jpeg": unknown;
                     "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    order_payments_api_v1_exhibitor_orders__order_id__payments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_order_payment_api_v1_exhibitor_orders__order_id__payments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_order_payment_api_v1_exhibitor_orders__order_id__payments__payment_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
                 };
             };
             /** @description Validation Error */

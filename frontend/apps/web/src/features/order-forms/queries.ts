@@ -99,3 +99,11 @@ export const leadOrdersQuery = (leadId: string) =>
     queryKey: ["exhibitor-lead", leadId, "orders"],
     queryFn: () => call(api.GET("/api/v1/exhibitor-leads/{lead_id}/orders", { params: { path: { lead_id: leadId } } })),
   });
+
+export type OrderPayment = Schemas["PaymentOut"];
+
+export const orderPaymentsQuery = (orderId: string) =>
+  queryOptions({
+    queryKey: ["exhibitor-orders", "order", orderId, "payments"],
+    queryFn: () => call(api.GET("/api/v1/exhibitor-orders/{order_id}/payments", { params: { path: { order_id: orderId } } })),
+  });

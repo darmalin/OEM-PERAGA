@@ -347,4 +347,5 @@ async def pending_by_contract(session: AsyncSession, scope: Scope) -> dict[uuid.
         .where(scope_clause(scope), ExhibitorPayment.status == "PENDING")
         .group_by(ExhibitorPayment.contract_id)
     )
-    return {cid: total for cid, total in (await session.execute(stmt)).all()}
+    # The join to contracts leaves out order payments (contract_id NULL, migration 0034).
+    return {cid: total for cid, total in (await session.execute(stmt)).all() if cid is not None}

@@ -7,6 +7,7 @@ caller's lead scope (edition, team, or own leads), like the rest of the exhibito
 import uuid
 from collections.abc import Iterator
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -24,7 +25,7 @@ from app.core.pagination import Page
 from app.core.storage import get_storage
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitors import repository as exhibitors_repo
-from app.modules.exhibitors.rules import ContractStatus
+from app.modules.exhibitors.rules import ContractStatus, PaymentState, PaymentStatus, payment_state
 from app.modules.identity import repository as identity_repo
 from app.modules.orders import details
 from app.modules.orders import repository as repo
@@ -90,7 +91,19 @@ async def _row_in_scope(
     return row
 
 
-def _row_out(row: repo.StaffOrderRow) -> StaffOrderRowOut:
+ZERO = Decimal("0.00")
+
+
+def _payment_state(order: ExhibitorOrder, sums: dict[str, Decimal]) -> PaymentState | None:
+    """UNPAID / PARTIAL / PAID for an approved order that costs money (Phase 7)."""
+    if order.status != OrderStatus.APPROVED or order.total <= 0:
+        return None
+    return payment_state(order.total, sums.get(PaymentStatus.VERIFIED, ZERO))
+
+
+def _row_out(
+    row: repo.StaffOrderRow, sums: dict[uuid.UUID, dict[str, Decimal]] | None = None
+) -> StaffOrderRowOut:
     order, code, title, company, booth_id, booth_code, contract_status, unpriced = row
     status = OrderStatus(order.status)
     signed = contract_status == ContractStatus.SIGNED
@@ -108,6 +121,7 @@ def _row_out(row: repo.StaffOrderRow) -> StaffOrderRowOut:
         total=order.total,
         currency=order.currency,
         unpriced_lines=unpriced,
+        payment_state=_payment_state(order, (sums or {}).get(order.id, {})),
         submitted_at=order.submitted_at,
         contract_signed=signed,
         waiting_for_contract=status == OrderStatus.SUBMITTED and costs_money and not signed,
@@ -129,7 +143,7 @@ async def _detail(session: AsyncSession, row: repo.StaffOrderRow) -> StaffOrderO
         else None
     )
     return StaffOrderOut(
-        **_row_out(row).model_dump(),
+        **_row_out(row, await repo.order_payment_sums(session, [order.id])).model_dump(),
         details_type=form.details_type if form else None,
         details=order.details,
         price_period=PricePeriod(order.price_period) if order.price_period else None,
@@ -170,8 +184,9 @@ async def list_orders(
         raise ValidationFailed(fields={"status": "Drafts are private to the exhibitor."})
     scope = _scope(ctx, params.edition_id, READ)
     rows, total = await repo.staff_orders(session, scope, params)
+    sums = await repo.order_payment_sums(session, [r[0].id for r in rows])
     return Page(
-        items=[_row_out(r) for r in rows],
+        items=[_row_out(r, sums) for r in rows],
         total=total,
         page=params.page,
         page_size=params.page_size,
@@ -202,6 +217,7 @@ async def lead_orders(session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUI
         scope,
         StaffOrderListParams(edition_id=edition_id, exhibitor_lead_id=lead.id, page_size=500),
     )
+    sums = await repo.order_payment_sums(session, [r[0].id for r in rows])
     return LeadOrdersOut(
         forms=[
             LeadFormProgressOut(
@@ -214,7 +230,7 @@ async def lead_orders(session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUI
             )
             for f in forms
         ],
-        orders=[_row_out(r) for r in rows],
+        orders=[_row_out(r, sums) for r in rows],
     )
 
 
@@ -342,6 +358,12 @@ async def cancel_order(
     order, _row = await _locked(session, ctx, order_id, data.version)
     if not can_move(OrderStatus(order.status), OrderStatus.CANCELLED):
         raise Conflict("This order is already cancelled.", code="ORDER_CANCELLED")
+    sums = (await repo.order_payment_sums(session, [order.id])).get(order.id, {})
+    if sums.get(PaymentStatus.PENDING, ZERO) > 0 or sums.get(PaymentStatus.VERIFIED, ZERO) > 0:
+        raise Conflict(
+            "This order has pending or verified payments; reject the pending ones first.",
+            code="ORDER_HAS_PAYMENTS",
+        )
     reason = clean_text(data.reason)
     if reason is None:
         raise ValidationFailed(fields={"reason": "Give the reason."})

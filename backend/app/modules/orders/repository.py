@@ -3,6 +3,7 @@ edition scope before these run."""
 
 import uuid
 from collections.abc import Sequence
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import ColumnElement, Select, delete, func, or_, select
@@ -10,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import Scope
-from app.modules.exhibitors.models import Booth, ExhibitorContract, ExhibitorLead
+from app.modules.exhibitors.models import Booth, ExhibitorContract, ExhibitorLead, ExhibitorPayment
 from app.modules.exhibitors.repository import scope_clause
 from app.modules.orders.models import (
     ExhibitorFormWaiver,
@@ -412,3 +413,70 @@ async def free_used(
     if exclude_order_id is not None:
         stmt = stmt.where(ExhibitorOrder.id != exclude_order_id)
     return {item_id: int(n or 0) for item_id, n in (await session.execute(stmt)).all() if item_id}
+
+
+# --- payments of orders (exhibitor_payments.order_id, migration 0034) ----------------------
+
+
+async def order_payments(session: AsyncSession, order_id: uuid.UUID) -> Sequence[ExhibitorPayment]:
+    stmt = (
+        select(ExhibitorPayment)
+        .where(ExhibitorPayment.order_id == order_id)
+        .order_by(ExhibitorPayment.paid_on, ExhibitorPayment.created_at)
+    )
+    return (await session.scalars(stmt)).all()
+
+
+async def order_payment(
+    session: AsyncSession, order_id: uuid.UUID, payment_id: uuid.UUID, *, for_update: bool = False
+) -> ExhibitorPayment | None:
+    stmt = select(ExhibitorPayment).where(
+        ExhibitorPayment.id == payment_id, ExhibitorPayment.order_id == order_id
+    )
+    if for_update:
+        stmt = stmt.with_for_update()
+    return await session.scalar(stmt)
+
+
+async def order_payment_sums(
+    session: AsyncSession, order_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, dict[str, Decimal]]:
+    """Per order, the sum of its payments by status."""
+    if not order_ids:
+        return {}
+    stmt = (
+        select(
+            ExhibitorPayment.order_id, ExhibitorPayment.status, func.sum(ExhibitorPayment.amount)
+        )
+        .where(ExhibitorPayment.order_id.in_(order_ids))
+        .group_by(ExhibitorPayment.order_id, ExhibitorPayment.status)
+    )
+    out: dict[uuid.UUID, dict[str, Decimal]] = {}
+    for order_id, status, total in (await session.execute(stmt)).all():
+        if order_id is not None:
+            out.setdefault(order_id, {})[status] = total
+    return out
+
+
+async def status_counts(session: AsyncSession, scope: Scope) -> dict[str, int]:
+    stmt = (
+        select(ExhibitorOrder.status, func.count())
+        .join(ExhibitorLead, ExhibitorLead.id == ExhibitorOrder.exhibitor_lead_id)
+        .where(scope_clause(scope), ExhibitorOrder.status != OrderStatus.DRAFT)
+        .group_by(ExhibitorOrder.status)
+    )
+    return {status: int(n) for status, n in (await session.execute(stmt)).all()}
+
+
+async def approved_orders(session: AsyncSession, scope: Scope) -> Sequence[ExhibitorOrder]:
+    """Approved orders that cost money, in scope; an edition has hundreds at most."""
+    stmt = (
+        select(ExhibitorOrder)
+        .join(ExhibitorLead, ExhibitorLead.id == ExhibitorOrder.exhibitor_lead_id)
+        .where(
+            scope_clause(scope),
+            ExhibitorOrder.status == OrderStatus.APPROVED,
+            ExhibitorOrder.total > 0,
+        )
+    )
+    return (await session.scalars(stmt)).all()

@@ -8,6 +8,7 @@ export function OrderFlags({ order: o }: { order: StaffOrderRow }) {
     <span className="flex flex-wrap gap-1.5">
       <Indicator value={o.status} text={ORDER_STATUSES[o.status as keyof typeof ORDER_STATUSES] ?? o.status} />
       {o.status === "SUBMITTED" && o.unpriced_lines ? <Indicator value="PENDING" text={`${o.unpriced_lines} to price`} /> : null}
+      {o.payment_state ? <Indicator value={o.payment_state} group="payment_state" /> : null}
       {o.waiting_for_contract ? <Indicator value="DRAFT" text="Contract not signed" /> : null}
       {o.booth_changed && (o.status === "SUBMITTED" || o.status === "RETURNED") ? <Indicator value="PENDING" text="Booth changed" /> : null}
     </span>

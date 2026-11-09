@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { AnswersView } from "@/features/order-forms/answers";
 import { OrderFlags } from "@/features/order-forms/order-flags";
+import { OrderPayments } from "@/features/order-forms/order-payments";
 import { DETAILS_TYPES, exhibitorOrderQuery, PERIODS, type StaffOrder } from "@/features/order-forms/queries";
 import { can, useMe } from "@/lib/auth";
 import { formatBytes, formatDateTime, formatMoney } from "@/lib/format";
@@ -97,6 +98,7 @@ function OrderDetail() {
               <Lines order={o} canPrice={review && waiting} onSaved={saved} />
             </Panel>
           ) : null}
+          {o.status === "APPROVED" && Number(o.total) > 0 ? <Panel><OrderPayments order={o} /></Panel> : null}
           {o.details_type ? (
             <Panel>
               <PanelHeader title={`Answers · ${DETAILS_TYPES[o.details_type]}`} />

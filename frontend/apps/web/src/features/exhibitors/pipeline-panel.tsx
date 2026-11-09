@@ -53,8 +53,39 @@ export function ExhibitorPipelinePanel({ editionId }: { editionId: string }) {
               </div>
             ))
           )}
+          <ServiceOrders editionId={editionId} />
         </div>
       )}
     </Panel>
+  );
+}
+
+/** Service orders from the order forms (docs/EXHIBITOR_ORDER_FORMS.md Phase 7), kept apart from booth money. */
+function ServiceOrders({ editionId }: { editionId: string }) {
+  const q = useQuery({
+    queryKey: ["exhibitor-orders", editionId, "summary"],
+    queryFn: () => call(api.GET("/api/v1/exhibitor-orders/summary", { params: { query: { edition_id: editionId } } })),
+    refetchInterval: 60_000,
+  });
+  if (!q.data) return null;
+  const s = q.data;
+  if (s.waiting_for_review + s.returned + s.approved === 0) return null;
+  return (
+    <div className="border-t border-line pt-5">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[12px] text-label">Service orders</p>
+        <Button asChild size="sm" variant="ghost"><Link to="/app/exhibitor-orders" search={{ status: "SUBMITTED", page: 1, page_size: 50 }}>Open Orders</Link></Button>
+      </div>
+      <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+        <Metric label="Waiting for review" value={s.waiting_for_review} hint={s.returned ? `${s.returned} returned to exhibitors` : undefined} />
+        {s.money.map((m) => (
+          <div key={m.currency} className="contents">
+            <Metric label={`Approved (${m.currency})`} value={formatMoney(m.approved_value, m.currency)} hint={`${m.approved_orders} ${m.approved_orders === 1 ? "order" : "orders"}, ${m.paid_orders} fully paid`} />
+            <Metric label="Paid (verified)" value={formatMoney(m.verified_amount, m.currency)} hint={Number(m.pending_amount) > 0 ? `${formatMoney(m.pending_amount, m.currency)} waiting for verification` : undefined} />
+            <Metric label="Outstanding" value={formatMoney(m.outstanding_amount, m.currency)} />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -12,7 +12,14 @@ from app.core.pagination import Page
 from app.modules.exhibitors import portal as exhibitors_portal
 from app.modules.exhibitors.models import ExhibitorLead
 from app.modules.exhibitors.portal import PortalContext, portal_account
-from app.modules.orders import portal, review, service
+from app.modules.exhibitors.schemas import (
+    PaymentCreateIn,
+    PaymentOut,
+    PaymentReviewIn,
+    PaymentsOut,
+    PortalPaymentsOut,
+)
+from app.modules.orders import payments, portal, review, service
 from app.modules.orders.rules import AttachmentPurpose
 from app.modules.orders.schemas import (
     AllowancesIn,
@@ -35,6 +42,8 @@ from app.modules.orders.schemas import (
     OrderFormOut,
     OrderFormUpdateIn,
     OrderReviewIn,
+    OrdersSummaryOut,
+    OrdersSummaryParams,
     OrderVersionIn,
     PortalOrderFormDetailOut,
     PortalOrderFormsOut,
@@ -438,6 +447,13 @@ async def list_orders(
     return await review.list_orders(session, ctx, params)
 
 
+@orders_router.get("/summary", response_model=OrdersSummaryOut)
+async def orders_summary(
+    session: Session, params: Annotated[OrdersSummaryParams, Query()], ctx: AuthContext = LeadRead
+) -> OrdersSummaryOut:
+    return await payments.summary(session, ctx, params.edition_id)
+
+
 # Before /{order_id}, which would take "export" as an id.
 @orders_router.get("/export", response_class=Response, responses={200: {"content": {XLSX: {}}}})
 async def export_orders(
@@ -525,3 +541,83 @@ async def lead_orders(
     lead_id: uuid.UUID, session: Session, ctx: AuthContext = LeadRead
 ) -> LeadOrdersOut:
     return await review.lead_orders(session, ctx, lead_id)
+
+
+# --- payments of orders (Phase 7) --------------------------------------------------------
+
+PAYMENTS = "/{order_id}/payments"
+
+
+@orders_router.get(PAYMENTS, response_model=PaymentsOut)
+async def order_payments(
+    order_id: uuid.UUID, session: Session, ctx: AuthContext = LeadRead
+) -> PaymentsOut:
+    return await payments.list_payments(session, ctx, order_id)
+
+
+@orders_router.post(PAYMENTS, response_model=PaymentOut, status_code=status.HTTP_201_CREATED)
+async def record_order_payment(
+    order_id: uuid.UUID,
+    data: PaymentCreateIn,
+    session: Session,
+    ctx: AuthContext = Depends(require(payments.RECORD)),
+) -> PaymentOut:
+    return await payments.record_payment(session, ctx, order_id, data)
+
+
+@orders_router.post(f"{PAYMENTS}/{{payment_id}}/proof", response_model=PaymentOut)
+async def attach_order_payment_proof(
+    order_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    session: Session,
+    file: Annotated[UploadFile, File()],
+    version: Annotated[int, Form()],
+    ctx: AuthContext = Depends(require(payments.RECORD)),
+) -> PaymentOut:
+    return await payments.attach_proof(
+        session,
+        ctx,
+        order_id,
+        payment_id,
+        file_name=file.filename or "proof",
+        content_type=file.content_type,
+        data=await file.read(payments.PROOF_MAX_BYTES + 1),
+        version=version,
+    )
+
+
+@orders_router.get(
+    f"{PAYMENTS}/{{payment_id}}/proof",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"application/pdf": {}, "image/jpeg": {}, "image/png": {}}}},
+)
+async def order_payment_proof(
+    order_id: uuid.UUID, payment_id: uuid.UUID, session: Session, ctx: AuthContext = LeadRead
+) -> StreamingResponse:
+    chunks, name, media_type = await payments.proof(session, ctx, order_id, payment_id)
+    return StreamingResponse(
+        chunks,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@orders_router.post(f"{PAYMENTS}/{{payment_id}}/review", response_model=PaymentOut)
+async def review_order_payment(
+    order_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    data: PaymentReviewIn,
+    session: Session,
+    ctx: AuthContext = Depends(require(payments.VERIFY)),
+) -> PaymentOut:
+    return await payments.review_payment(session, ctx, order_id, payment_id, data)
+
+
+@portal_router.get(f"{ORDER}/payments", response_model=PortalPaymentsOut)
+async def portal_order_payments(
+    lead_id: uuid.UUID, order_id: uuid.UUID, session: Session, ctx: PortalContext = PortalAccount
+) -> PortalPaymentsOut:
+    return await payments.portal_payments(session, await _lead(session, ctx, lead_id), order_id)

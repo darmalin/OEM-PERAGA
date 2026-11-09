@@ -113,6 +113,8 @@ import { Route as AppVisitorLeadsLeadIdRegisterRouteImport } from './routes/app/
 import { Route as SystemUsersUserIdIndexRouteImport } from './routes/system/users/$userId/index'
 import { Route as AppExhibitorLeadsLeadIdPaymentsPaymentIdRouteImport } from './routes/app/exhibitor-leads/$leadId/payments/$paymentId'
 import { Route as AppExhibitorLeadsLeadIdPaymentsNewRouteImport } from './routes/app/exhibitor-leads/$leadId/payments/new'
+import { Route as AppExhibitorOrdersOrderIdPaymentsPaymentIdRouteImport } from './routes/app/exhibitor-orders/$orderId/payments/$paymentId'
+import { Route as AppExhibitorOrdersOrderIdPaymentsNewRouteImport } from './routes/app/exhibitor-orders/$orderId/payments/new'
 import { Route as AppOrderFormsFormIdItemsItemIdRouteImport } from './routes/app/order-forms/$formId/items/$itemId'
 import { Route as AppOrderFormsFormIdItemsNewRouteImport } from './routes/app/order-forms/$formId/items/new'
 import { Route as SystemUsersUserIdRolesNewRouteImport } from './routes/system/users/$userId/roles/new'
@@ -664,6 +666,18 @@ const AppExhibitorLeadsLeadIdPaymentsNewRoute =
     path: '/exhibitor-leads/$leadId/payments/new',
     getParentRoute: () => AppRoute,
   } as any)
+const AppExhibitorOrdersOrderIdPaymentsPaymentIdRoute =
+  AppExhibitorOrdersOrderIdPaymentsPaymentIdRouteImport.update({
+    id: '/exhibitor-orders/$orderId/payments/$paymentId',
+    path: '/exhibitor-orders/$orderId/payments/$paymentId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppExhibitorOrdersOrderIdPaymentsNewRoute =
+  AppExhibitorOrdersOrderIdPaymentsNewRouteImport.update({
+    id: '/exhibitor-orders/$orderId/payments/new',
+    path: '/exhibitor-orders/$orderId/payments/new',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppOrderFormsFormIdItemsItemIdRoute =
   AppOrderFormsFormIdItemsItemIdRouteImport.update({
     id: '/order-forms/$formId/items/$itemId',
@@ -788,6 +802,8 @@ export interface FileRoutesByFullPath {
   '/system/users/$userId/': typeof SystemUsersUserIdIndexRoute
   '/app/exhibitor-leads/$leadId/payments/$paymentId': typeof AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute
   '/app/exhibitor-leads/$leadId/payments/new': typeof AppExhibitorLeadsLeadIdPaymentsNewRoute
+  '/app/exhibitor-orders/$orderId/payments/$paymentId': typeof AppExhibitorOrdersOrderIdPaymentsPaymentIdRoute
+  '/app/exhibitor-orders/$orderId/payments/new': typeof AppExhibitorOrdersOrderIdPaymentsNewRoute
   '/app/order-forms/$formId/items/$itemId': typeof AppOrderFormsFormIdItemsItemIdRoute
   '/app/order-forms/$formId/items/new': typeof AppOrderFormsFormIdItemsNewRoute
   '/system/users/$userId/roles/new': typeof SystemUsersUserIdRolesNewRoute
@@ -895,6 +911,8 @@ export interface FileRoutesByTo {
   '/system/users/$userId': typeof SystemUsersUserIdIndexRoute
   '/app/exhibitor-leads/$leadId/payments/$paymentId': typeof AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute
   '/app/exhibitor-leads/$leadId/payments/new': typeof AppExhibitorLeadsLeadIdPaymentsNewRoute
+  '/app/exhibitor-orders/$orderId/payments/$paymentId': typeof AppExhibitorOrdersOrderIdPaymentsPaymentIdRoute
+  '/app/exhibitor-orders/$orderId/payments/new': typeof AppExhibitorOrdersOrderIdPaymentsNewRoute
   '/app/order-forms/$formId/items/$itemId': typeof AppOrderFormsFormIdItemsItemIdRoute
   '/app/order-forms/$formId/items/new': typeof AppOrderFormsFormIdItemsNewRoute
   '/system/users/$userId/roles/new': typeof SystemUsersUserIdRolesNewRoute
@@ -1005,6 +1023,8 @@ export interface FileRoutesById {
   '/system/users/$userId/': typeof SystemUsersUserIdIndexRoute
   '/app/exhibitor-leads/$leadId/payments/$paymentId': typeof AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute
   '/app/exhibitor-leads/$leadId/payments/new': typeof AppExhibitorLeadsLeadIdPaymentsNewRoute
+  '/app/exhibitor-orders/$orderId/payments/$paymentId': typeof AppExhibitorOrdersOrderIdPaymentsPaymentIdRoute
+  '/app/exhibitor-orders/$orderId/payments/new': typeof AppExhibitorOrdersOrderIdPaymentsNewRoute
   '/app/order-forms/$formId/items/$itemId': typeof AppOrderFormsFormIdItemsItemIdRoute
   '/app/order-forms/$formId/items/new': typeof AppOrderFormsFormIdItemsNewRoute
   '/system/users/$userId/roles/new': typeof SystemUsersUserIdRolesNewRoute
@@ -1116,6 +1136,8 @@ export interface FileRouteTypes {
     | '/system/users/$userId/'
     | '/app/exhibitor-leads/$leadId/payments/$paymentId'
     | '/app/exhibitor-leads/$leadId/payments/new'
+    | '/app/exhibitor-orders/$orderId/payments/$paymentId'
+    | '/app/exhibitor-orders/$orderId/payments/new'
     | '/app/order-forms/$formId/items/$itemId'
     | '/app/order-forms/$formId/items/new'
     | '/system/users/$userId/roles/new'
@@ -1223,6 +1245,8 @@ export interface FileRouteTypes {
     | '/system/users/$userId'
     | '/app/exhibitor-leads/$leadId/payments/$paymentId'
     | '/app/exhibitor-leads/$leadId/payments/new'
+    | '/app/exhibitor-orders/$orderId/payments/$paymentId'
+    | '/app/exhibitor-orders/$orderId/payments/new'
     | '/app/order-forms/$formId/items/$itemId'
     | '/app/order-forms/$formId/items/new'
     | '/system/users/$userId/roles/new'
@@ -1332,6 +1356,8 @@ export interface FileRouteTypes {
     | '/system/users/$userId/'
     | '/app/exhibitor-leads/$leadId/payments/$paymentId'
     | '/app/exhibitor-leads/$leadId/payments/new'
+    | '/app/exhibitor-orders/$orderId/payments/$paymentId'
+    | '/app/exhibitor-orders/$orderId/payments/new'
     | '/app/order-forms/$formId/items/$itemId'
     | '/app/order-forms/$formId/items/new'
     | '/system/users/$userId/roles/new'
@@ -2076,6 +2102,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExhibitorLeadsLeadIdPaymentsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/exhibitor-orders/$orderId/payments/$paymentId': {
+      id: '/app/exhibitor-orders/$orderId/payments/$paymentId'
+      path: '/exhibitor-orders/$orderId/payments/$paymentId'
+      fullPath: '/app/exhibitor-orders/$orderId/payments/$paymentId'
+      preLoaderRoute: typeof AppExhibitorOrdersOrderIdPaymentsPaymentIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-orders/$orderId/payments/new': {
+      id: '/app/exhibitor-orders/$orderId/payments/new'
+      path: '/exhibitor-orders/$orderId/payments/new'
+      fullPath: '/app/exhibitor-orders/$orderId/payments/new'
+      preLoaderRoute: typeof AppExhibitorOrdersOrderIdPaymentsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/order-forms/$formId/items/$itemId': {
       id: '/app/order-forms/$formId/items/$itemId'
       path: '/order-forms/$formId/items/$itemId'
@@ -2181,6 +2221,8 @@ interface AppRouteChildren {
   AppVisitorLeadsLeadIdIndexRoute: typeof AppVisitorLeadsLeadIdIndexRoute
   AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute: typeof AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute
   AppExhibitorLeadsLeadIdPaymentsNewRoute: typeof AppExhibitorLeadsLeadIdPaymentsNewRoute
+  AppExhibitorOrdersOrderIdPaymentsPaymentIdRoute: typeof AppExhibitorOrdersOrderIdPaymentsPaymentIdRoute
+  AppExhibitorOrdersOrderIdPaymentsNewRoute: typeof AppExhibitorOrdersOrderIdPaymentsNewRoute
   AppOrderFormsFormIdItemsItemIdRoute: typeof AppOrderFormsFormIdItemsItemIdRoute
   AppOrderFormsFormIdItemsNewRoute: typeof AppOrderFormsFormIdItemsNewRoute
 }
@@ -2273,6 +2315,10 @@ const AppRouteChildren: AppRouteChildren = {
     AppExhibitorLeadsLeadIdPaymentsPaymentIdRoute,
   AppExhibitorLeadsLeadIdPaymentsNewRoute:
     AppExhibitorLeadsLeadIdPaymentsNewRoute,
+  AppExhibitorOrdersOrderIdPaymentsPaymentIdRoute:
+    AppExhibitorOrdersOrderIdPaymentsPaymentIdRoute,
+  AppExhibitorOrdersOrderIdPaymentsNewRoute:
+    AppExhibitorOrdersOrderIdPaymentsNewRoute,
   AppOrderFormsFormIdItemsItemIdRoute: AppOrderFormsFormIdItemsItemIdRoute,
   AppOrderFormsFormIdItemsNewRoute: AppOrderFormsFormIdItemsNewRoute,
 }

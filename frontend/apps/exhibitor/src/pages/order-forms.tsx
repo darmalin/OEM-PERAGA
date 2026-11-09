@@ -472,7 +472,7 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
           </div>
         </Panel>
       ) : null}
-      {d.sent_orders.length ? <SentOrders orders={d.sent_orders} /> : null}
+      {d.sent_orders.length ? <SentOrders leadId={leadId} orders={d.sent_orders} /> : null}
     </>
   );
 }
@@ -555,7 +555,7 @@ function LinesTable({ order }: { order: Order }) {
   );
 }
 
-function SentOrders({ orders }: { orders: Order[] }) {
+function SentOrders({ leadId, orders }: { leadId: string; orders: Order[] }) {
   return (
     <Panel title="Sent Orders">
       <div className="flex flex-col gap-6">
@@ -565,6 +565,7 @@ function SentOrders({ orders }: { orders: Order[] }) {
               <h3 className="text-[15px] font-semibold">Order {o.order_number}</h3>
               <Status value={o.status} />
               <span className="text-[13px] text-label">Sent {date(o.submitted_at)} · {label(o.price_period)}</span>
+              {o.payment_state ? <Status value={o.payment_state} /> : null}
             </div>
             {o.waiting_for_contract ? <div className="mb-2"><Notice tone="amber">The organizer confirms this order once your booth contract is signed.</Notice></div> : null}
             {o.status === "CANCELLED" && o.cancel_reason ? <div className="mb-2"><Notice tone="amber">Cancelled: {o.cancel_reason}</Notice></div> : null}
@@ -572,6 +573,7 @@ function SentOrders({ orders }: { orders: Order[] }) {
             <p className="mt-2 text-right text-[14px] font-semibold tabular-nums">
               Total {money(o.total, o.currency)}{o.unpriced_lines ? <span className="font-normal text-label"> + extra items priced by the organizer</span> : null}
             </p>
+            {o.status === "APPROVED" && Number(o.total) > 0 ? <OrderPaymentStatus leadId={leadId} order={o} /> : null}
           </div>
         ))}
       </div>
@@ -665,3 +667,35 @@ function AnswerList({ type, answers }: { type: DetailsType; answers: Answers }) 
     </div>
   );
 }
+
+/** What was paid on an approved order and what is still owed (staff record and verify payments). */
+function OrderPaymentStatus({ leadId, order: o }: { leadId: string; order: Order }) {
+  const [state, setState] = useState<Schemas["PortalPaymentsOut"] | null>(null);
+  useEffect(() => {
+    call(api.GET("/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}/payments", { params: { path: { lead_id: leadId, order_id: o.id } } }))
+      .then(setState)
+      .catch(() => setState(null));
+  }, [leadId, o.id]);
+  if (!state) return null;
+  return (
+    <div className="mt-3 rounded-[8px] border border-line p-3 text-[14px]">
+      <div className="flex flex-wrap gap-x-6 gap-y-1">
+        <span>Paid <span className="font-medium tabular-nums">{money(state.verified_amount, state.currency)}</span></span>
+        {Number(state.pending_amount) > 0 ? <span>Being checked <span className="font-medium tabular-nums">{money(state.pending_amount, state.currency)}</span></span> : null}
+        <span>Still to pay <span className="font-medium tabular-nums">{money(state.outstanding_amount, state.currency)}</span></span>
+      </div>
+      {state.items.length ? (
+        <ul className="mt-2 flex flex-col gap-1 text-[13px] text-muted">
+          {state.items.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center gap-2">
+              <span className="tabular-nums">{date(p.paid_on)}</span>
+              <span className="tabular-nums">{money(p.amount, state.currency)}</span>
+              <Status value={p.status} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+

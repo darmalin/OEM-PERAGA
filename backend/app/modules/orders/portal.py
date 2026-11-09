@@ -26,7 +26,12 @@ from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitions.models import Edition
 from app.modules.exhibitors import repository as exhibitors_repo
 from app.modules.exhibitors.models import ExhibitorLead
-from app.modules.exhibitors.rules import ContractStatus
+from app.modules.exhibitors.rules import (
+    ContractStatus,
+    PaymentState,
+    PaymentStatus,
+    payment_state,
+)
 from app.modules.orders import details
 from app.modules.orders import repository as repo
 from app.modules.orders.models import (
@@ -216,6 +221,7 @@ def _order_out(
     lines: Sequence[ExhibitorOrderLine],
     files: Sequence[ExhibitorOrderFile],
     contract_signed: bool,
+    payment: PaymentState | None = None,
 ) -> PortalOrderOut:
     unpriced = sum(1 for line in lines if line.unit_price is None)
     status = OrderStatus(order.status)
@@ -234,6 +240,7 @@ def _order_out(
         cancel_reason=order.cancel_reason,
         unpriced_lines=unpriced,
         details=order.details,
+        payment_state=payment,
         waiting_for_contract=status == OrderStatus.SUBMITTED
         and costs_money
         and not contract_signed,
@@ -255,6 +262,7 @@ async def _orders_out(
     lines = await repo.order_lines(session, ids)
     files = await repo.order_files(session, ids)
     signed = await _contract_signed(session, lead)
+    sums = await repo.order_payment_sums(session, ids)
     return [
         _order_out(
             o,
@@ -262,9 +270,16 @@ async def _orders_out(
             [line for line in lines if line.order_id == o.id],
             [f for f in files if f.order_id == o.id],
             signed,
+            _payment_state(o, sums.get(o.id, {})),
         )
         for o in orders
     ]
+
+
+def _payment_state(order: ExhibitorOrder, sums: dict[str, Decimal]) -> PaymentState | None:
+    if order.status != OrderStatus.APPROVED or order.total <= 0:
+        return None
+    return payment_state(order.total, sums.get(PaymentStatus.VERIFIED, Decimal("0.00")))
 
 
 async def _one_order_out(
@@ -643,7 +658,7 @@ async def submit_order(
 # --- extra item pictures and attachments -------------------------------------------------
 
 
-def _check_file(
+def check_file(
     file_name: str, content_type: str | None, data: bytes, allowed: tuple[str, ...], limit: int
 ) -> str:
     """Extension, MIME, magic bytes, size (BACKEND_RULES/security-permissions.md "Uploads")."""
@@ -699,7 +714,7 @@ async def set_line_image(
     line = await repo.get_line(session, line_id)
     if line is None or line.order_id != order.id or line.item_id is not None:
         raise NotFound("Extra item not found.")
-    ext = _check_file(file_name, content_type, data, _IMAGES, IMAGE_MAX_BYTES)
+    ext = check_file(file_name, content_type, data, _IMAGES, IMAGE_MAX_BYTES)
     key = new_object_key(ext)
     await _put(key, data, _KINDS[ext][0])
     line.image_key = key
@@ -745,7 +760,7 @@ async def add_file(
             fields={"file": f"At most {MAX_FILES_PER_ORDER} files per order."},
             code="TOO_MANY_FILES",
         )
-    ext = _check_file(file_name, content_type, data, _PURPOSE_KINDS[purpose], FILE_MAX_BYTES)
+    ext = check_file(file_name, content_type, data, _PURPOSE_KINDS[purpose], FILE_MAX_BYTES)
     key = new_object_key(ext)
     await _put(key, data, _KINDS[ext][0])
     row = ExhibitorOrderFile(
