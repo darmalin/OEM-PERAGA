@@ -22,10 +22,13 @@ from app.core.pagination import Page
 from app.core.storage import get_storage, new_object_key
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.orders import repository as repo
-from app.modules.orders.models import OrderForm, OrderFormItem
+from app.modules.orders.models import OrderForm, OrderFormItem, OrderFormOption
+from app.modules.orders.rules import DETAILS_OPTION_KINDS, DetailsType, OptionKind
 from app.modules.orders.schemas import (
     CopyFormsIn,
     CopyFormsOut,
+    FormOptionsIn,
+    FormOptionsOut,
     ItemImportOut,
     ItemImportRowError,
     OrderFormCreateIn,
@@ -342,6 +345,14 @@ async def copy_forms(session: AsyncSession, ctx: AuthContext, data: CopyFormsIn)
             item.form_id = form.id
         if items:
             await _flush(session, *items)
+        for kind, choices in (await repo.form_options(session, source.id)).items():
+            session.add_all(
+                OrderFormOption(
+                    edition_id=target.id, form_id=form.id, kind=kind, value=v, sort_order=n
+                )
+                for n, v in enumerate(choices)
+            )
+        await session.flush()
         forms_copied += 1
         items_copied += len(items)
     await audit.record(
@@ -358,6 +369,51 @@ async def copy_forms(session: AsyncSession, ctx: AuthContext, data: CopyFormsIn)
         edition_id=target.id,
     )
     return CopyFormsOut(forms_copied=forms_copied, items_copied=items_copied, skipped_codes=skipped)
+
+
+# --- question choices --------------------------------------------------------------------
+
+
+def _options_out(options: dict[str, list[str]]) -> FormOptionsOut:
+    return FormOptionsOut(options={OptionKind(k): v for k, v in options.items()})
+
+
+async def get_options(
+    session: AsyncSession, ctx: AuthContext, form_id: uuid.UUID
+) -> FormOptionsOut:
+    form = await _form_for(session, ctx, form_id, manage=False)
+    return _options_out(await repo.form_options(session, form.id))
+
+
+async def set_options(
+    session: AsyncSession, ctx: AuthContext, form_id: uuid.UUID, data: FormOptionsIn
+) -> FormOptionsOut:
+    """Replace the choices of one kind, in the order given. Sent answers keep their text."""
+    form = await _form_for(session, ctx, form_id, manage=True, for_update=True)
+    await exhibitions_service.ensure_writable(session, form.edition_id)
+    used = DETAILS_OPTION_KINDS[DetailsType(form.details_type)] if form.details_type else ()
+    if data.kind not in used:
+        raise ValidationFailed(fields={"kind": "This form's questions do not use these choices."})
+    values = list(dict.fromkeys(data.values))
+    before = (await repo.form_options(session, form.id)).get(data.kind, [])
+    await repo.delete_options(session, form.id, data.kind)
+    session.add_all(
+        OrderFormOption(
+            edition_id=form.edition_id, form_id=form.id, kind=data.kind, value=v, sort_order=n
+        )
+        for n, v in enumerate(values)
+    )
+    await session.flush()
+    await audit.record(
+        session,
+        entity_type=FORM_ENTITY,
+        entity_id=form.id,
+        action="set_options",
+        before={"kind": data.kind, "values": before},
+        after={"kind": data.kind, "values": values},
+        edition_id=form.edition_id,
+    )
+    return _options_out(await repo.form_options(session, form.id))
 
 
 # --- catalog items -----------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 
 import { date, type ExhibitorRecord, href, label, messageOf, money, navigate, timeLeft } from "../lib";
 import { Button, Facts, Field, Input, Notice, Panel, Status, Textarea } from "../ui";
+import { type Answers, answerRows, cleanAnswers, DETAILS_TITLES, type DetailsType, Questions } from "./questions";
 
 type FormsList = Schemas["PortalOrderFormsOut"];
 type FormRow = Schemas["PortalOrderFormOut"];
@@ -160,6 +161,7 @@ function FormsPanel({ forms, leadId, filter, onFilter }: { forms: FormRow[]; lea
 interface Draft {
   quantities: Record<string, string>; // item id -> typed quantity
   custom: { key: string; id: string | null; name: string; size: string; quantity: string; notes: string; hasImage: boolean }[];
+  details: Answers;
   remarks: string;
 }
 
@@ -170,13 +172,14 @@ function draftOf(order: Order | null | undefined): Draft {
     if (line.item_id) quantities[line.item_id] = String(line.quantity);
     else custom.push({ key: line.id, id: line.id, name: line.name, size: line.size ?? "", quantity: String(line.quantity), notes: line.notes ?? "", hasImage: line.has_image });
   }
-  return { quantities, custom, remarks: order?.remarks ?? "" };
+  return { quantities, custom, details: (order?.details as Answers | undefined) ?? {}, remarks: order?.remarks ?? "" };
 }
 
 function bodyOf(d: Draft, items: Item[]) {
   return {
     lines: items.filter((i) => Number(d.quantities[i.id] ?? 0) > 0).map((i) => ({ item_id: i.id, quantity: Number(d.quantities[i.id]) })),
     custom_lines: d.custom.filter((c) => c.name.trim()).map((c) => ({ id: c.id, name: c.name, size: c.size || null, quantity: Number(c.quantity) || 1, notes: c.notes || null })),
+    details: (cleanAnswers(d.details) as Answers | undefined) ?? {},
     remarks: d.remarks || null,
   };
 }
@@ -321,6 +324,11 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
 
       {showEditor ? (
         <>
+        {d.details_type ? (
+          <Panel title={DETAILS_TITLES[d.details_type as DetailsType]}>
+            <Questions type={d.details_type as DetailsType} value={draft.details} onChange={(details) => setDraft((s) => ({ ...s, details }))} errors={errors} disabled={!editable} options={d.options} />
+          </Panel>
+        ) : null}
         {d.has_catalog ? (
           <Panel title="Items" aside={<span className="text-[14px] font-semibold tabular-nums">Total {money(String(total), d.currency)}</span>}>
             {d.items.length === 0 ? <p className="text-[14px] text-muted">No items yet.</p> : sections.map(([section, items]) => (
@@ -610,15 +618,20 @@ export function OrderReviewPage({ record, code, onSignedOut }: { record: Exhibit
       ) : (
         <>
           {periodNotice(quote.price_period)}
-          <Panel title="Order Summary" aside={quote.price_period ? <span className="text-[13px] text-label">{label(quote.price_period)}s</span> : null}>
-            {quote.lines.length ? <LinesTable order={quote} /> : <p className="text-[14px] text-muted">No items.</p>}
-            <p className="mt-3 text-right text-[16px] font-semibold tabular-nums">Total {money(quote.total, quote.currency)}</p>
+          <Panel title="Order Summary" aside={quote.price_period && d.has_catalog ? <span className="text-[13px] text-label">{label(quote.price_period)}s</span> : null}>
+            {d.has_catalog ? (
+              <>
+                {quote.lines.length ? <LinesTable order={quote} /> : <p className="text-[14px] text-muted">No items.</p>}
+                <p className="mt-3 text-right text-[16px] font-semibold tabular-nums">Total {money(quote.total, quote.currency)}</p>
+              </>
+            ) : null}
             {quote.unpriced_lines ? <p className="mt-1 text-right text-[13px] text-label">Extra items are priced by the organizer and added to the total.</p> : null}
+            {d.details_type && Object.keys(quote.details).length ? <AnswerList type={d.details_type as DetailsType} answers={quote.details as Answers} /> : null}
             {quote.files.length ? <p className="mt-4 text-[14px]">Attachments: {quote.files.map((f) => f.file_name).join(", ")}</p> : null}
             {quote.remarks ? <p className="mt-2 text-[14px] whitespace-pre-line">Remarks: {quote.remarks}</p> : null}
           </Panel>
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[13px] text-muted">Prices are fixed when you send. The organizer reviews the order and sends payment details.</p>
+            <p className="text-[13px] text-muted">{d.has_catalog ? "Prices are fixed when you send. The organizer reviews the order and sends payment details." : "The organizer reviews your answers and confirms them."}</p>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => navigate(formPath)}>Change Order</Button>
               <Button variant="primary" loading={busy} disabled={quote.price_period === null} onClick={() => void send()}><Send aria-hidden />Send Order</Button>
@@ -626,6 +639,23 @@ export function OrderReviewPage({ record, code, onSignedOut }: { record: Exhibit
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** Answers in plain words for the review page. */
+function AnswerList({ type, answers }: { type: DetailsType; answers: Answers }) {
+  return (
+    <div className="mt-5 first:mt-0">
+      <h3 className="mb-2 text-[14px] font-semibold">Your Answers</h3>
+      <dl className="grid grid-cols-[minmax(0,180px)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[14px] max-sm:grid-cols-1">
+        {answerRows(type, answers).map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-label">{k}</dt>
+            <dd className="min-w-0 break-words">{v}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

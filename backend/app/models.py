@@ -40,6 +40,7 @@ from app.modules.orders.models import (
     ExhibitorOrderLine,
     OrderForm,
     OrderFormItem,
+    OrderFormOption,
 )
 from app.modules.registrations.models import (
     EmailTemplate,
@@ -100,6 +101,7 @@ __all__ = [
     "LeadSourceOption",
     "OrderForm",
     "OrderFormItem",
+    "OrderFormOption",
     "OutboxEvent",
     "PasswordResetToken",
     "Permission",

@@ -14,6 +14,7 @@ import {
   type OrderForm,
   type OrderFormItem,
 } from "@/features/order-forms/queries";
+import { OptionsSection } from "@/features/order-forms/answers";
 import { can, useMe } from "@/lib/auth";
 import { useEditionById } from "@/lib/edition";
 import { handleFormError } from "@/lib/forms";
@@ -62,7 +63,7 @@ function OrderFormDetail() {
         <Tabs value={tab} onValueChange={(v) => void navigate({ search: { tab: v as (typeof TABS)[number] }, replace: true })}>
           <TabList tabs={[{ value: "catalog", label: "Catalog" }, { value: "settings", label: "Settings" }]} />
           <TabPanel value="catalog"><Catalog form={f} manage={manage} /></TabPanel>
-          <TabPanel value="settings">{manage ? <Settings form={f} /> : <SettingsFacts form={f} />}</TabPanel>
+          <TabPanel value="settings">{manage ? <><Settings form={f} /><OptionsSection form={f} /></> : <SettingsFacts form={f} />}</TabPanel>
         </Tabs>
       </Panel>
     </Page>

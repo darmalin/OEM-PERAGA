@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
@@ -10,6 +10,7 @@ from app.modules.orders.rules import (
     AttachmentPurpose,
     DetailsType,
     FormProgress,
+    OptionKind,
     OrderStatus,
     PricePeriod,
 )
@@ -247,6 +248,7 @@ class PortalOrderOut(BaseModel):
     review_notes: str | None
     cancel_reason: str | None
     unpriced_lines: int  # extra items still waiting for a price from staff
+    details: dict[str, Any]  # answers to the form's questions (orders/details.py)
     # Submitted and costs money, but the booth contract is not signed yet (decision O2).
     waiting_for_contract: bool
     lines: list[PortalOrderLineOut]
@@ -271,6 +273,7 @@ class PortalOrderFormDetailOut(BaseModel):
     price_period: PricePeriod | None
     progress: FormProgress
     not_required: bool
+    options: dict[OptionKind, list[str]]  # choices of the form's questions
     company_name: str
     booth_code: str | None
     items: list[PortalCatalogItemOut]
@@ -302,6 +305,8 @@ class OrderDraftIn(BaseModel):
 
     lines: list[OrderLineIn] = Field(default_factory=list, max_length=500)
     custom_lines: list[CustomLineIn] = Field(default_factory=list, max_length=20)
+    # Answers to the form's questions; checked against the form's schema (orders/details.py).
+    details: dict[str, Any] = Field(default_factory=dict)
     remarks: str | None = Field(default=None, max_length=2000)
     version: int
 
@@ -346,6 +351,8 @@ class StaffOrderRowOut(BaseModel):
 
 
 class StaffOrderOut(StaffOrderRowOut):
+    details_type: DetailsType | None
+    details: dict[str, Any]
     price_period: PricePeriod | None
     remarks: str | None
     booth_code_at_submit: str | None
@@ -399,3 +406,18 @@ class OrderExportParams(BaseModel):
     edition_id: uuid.UUID
     form_id: uuid.UUID
     status: OrderStatus | None = None
+
+
+class FormOptionsOut(BaseModel):
+    options: dict[OptionKind, list[str]]
+
+
+class FormOptionsIn(BaseModel):
+    """Replaces the choices of one kind; answers already sent keep their text."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: OptionKind
+    values: list[
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    ] = Field(max_length=200)

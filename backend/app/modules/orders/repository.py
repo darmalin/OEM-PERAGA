@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, func, or_, select
+from sqlalchemy import ColumnElement, Select, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +20,7 @@ from app.modules.orders.models import (
     ExhibitorOrderLine,
     OrderForm,
     OrderFormItem,
+    OrderFormOption,
 )
 from app.modules.orders.rules import OrderStatus
 from app.modules.orders.schemas import (
@@ -347,3 +348,23 @@ async def export_rows(
         .limit(EXPORT_MAX_ROWS + 1)
     )
     return [(r[0], r[1], r[2], r[3]) for r in (await session.execute(stmt)).all()]
+
+
+async def form_options(session: AsyncSession, form_id: uuid.UUID) -> dict[str, list[str]]:
+    stmt = (
+        select(OrderFormOption.kind, OrderFormOption.value)
+        .where(OrderFormOption.form_id == form_id)
+        .order_by(OrderFormOption.kind, OrderFormOption.sort_order, OrderFormOption.value)
+    )
+    out: dict[str, list[str]] = {}
+    for kind, value in (await session.execute(stmt)).all():
+        out.setdefault(kind, []).append(value)
+    return out
+
+
+async def delete_options(session: AsyncSession, form_id: uuid.UUID, kind: str) -> None:
+    await session.execute(
+        delete(OrderFormOption).where(
+            OrderFormOption.form_id == form_id, OrderFormOption.kind == kind
+        )
+    )

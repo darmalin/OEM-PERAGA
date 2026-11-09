@@ -86,6 +86,8 @@ try {
   await staff("POST", `/order-forms/${form.id}/items`, { section: "A. Lighting & Equipment", code: "E-002", name: "Spotlight", size: "100 W", price_regular: "1046500", max_quantity: 5 });
   await staff("POST", `/order-forms/${form.id}/items`, { section: "B. Electricity Power", code: "P-001", name: "Power 2 A", price_regular: "1014300" });
   await staff("PATCH", `/order-forms/${form.id}`, { is_published: true, version: form.version });
+  // A questions-only form: badges for the stand staff.
+  await staff("POST", "/order-forms", { edition_id: edition.id, code: "09", title: "Exhibitor Badges & Visa", details_type: "badges_visa", is_published: true, sort_order: 9 });
   const booth = await staff("POST", "/booths", { edition_id: edition.id, code: "A01", area_sqm: "18", price: "30000000" });
   let lead = await staff("POST", "/exhibitor-leads", { edition_id: edition.id, company_name: `E2E Exhibitor ${run}`, contact_name: "E2E Contact", email: `orders-${run.toLowerCase()}@example.test` });
   lead = await staff("POST", `/exhibitor-leads/${lead.id}/stage`, { stage: "OPPORTUNITY", version: lead.version });
@@ -102,7 +104,7 @@ try {
   await portal.getByText(edition.code).first().click();
   await portal.getByRole("button", { name: "Open Order Forms" }).click();
   await portal.getByRole("heading", { name: "Order Forms" }).waitFor();
-  await portal.getByText("0 of 1 done").waitFor();
+  await portal.getByText("0 of 2 done").waitFor();
   await shot("01-forms");
   check(true, "Order Forms list opens from the exhibition page");
 
@@ -141,6 +143,27 @@ try {
   check((await portal.getByLabel("Quantity of Fluorescent lamp").count()) === 0, "after sending, a new order starts only with Order More");
   await portal.getByRole("button", { name: "Order More" }).click();
   await portal.getByLabel("Quantity of Fluorescent lamp").waitFor();
+
+  // --- a questions form ---------------------------------------------------------------------
+  await portal.goto(`${PORTAL}/e/${lead.id}/forms/09`);
+  await portal.getByRole("heading", { name: /09 · Exhibitor Badges/ }).waitFor();
+  await portal.getByRole("button", { name: "Review and Send" }).click();
+  await portal.getByRole("button", { name: "Send Order" }).click();
+  await portal.getByText("Some answers are missing.", { exact: false }).waitFor();
+  check(true, "questions: sending with missing answers is refused with the reasons");
+  await portal.goto(`${PORTAL}/e/${lead.id}/forms/09`);
+  await portal.getByLabel("Indonesian company").check();
+  await portal.getByRole("button", { name: "Add Badge" }).click();
+  await portal.getByLabel("Full name 1").fill("Budi Santoso");
+  await portal.getByLabel("Gender 1").selectOption("MALE");
+  await portal.getByLabel("Designation 1").fill("Sales Manager");
+  await portal.getByRole("button", { name: "Review and Send" }).click();
+  await portal.getByText("Your Answers", { exact: true }).waitFor();
+  await shot("05-questions-review");
+  await portal.getByRole("button", { name: "Send Order" }).click();
+  await portal.getByText(`Order ${edition.code}-O-0002 sent.`, { exact: false }).waitFor();
+  check(true, "questions: badge holders answered and sent");
+  await portal.goto(`${PORTAL}/e/${lead.id}/forms/04`);
 
   // --- desk review ------------------------------------------------------------------------
   const deskShot = (name) => desk.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
@@ -191,7 +214,7 @@ try {
   check(true, "desk: order approved once priced and the contract signed");
 
   await desk.goto(`${DESK}/app/exhibitor-leads/${lead.id}?tab=orders`);
-  await desk.getByText("Forms: 1 of 1 done").waitFor();
+  await desk.getByText("Forms: 2 of 2 done").waitFor();
   await deskShot("08-lead-orders-tab");
   check(true, "desk: the lead's Orders tab shows the progress and the order");
 
@@ -200,7 +223,7 @@ try {
   check(true, "portal: the exhibitor sees the order approved");
 
   await portal.getByRole("link", { name: "Order Forms" }).first().click();
-  await portal.getByText("1 of 1 done").waitFor();
+  await portal.getByText("2 of 2 done").waitFor();
   await portal.setViewportSize({ width: 390, height: 844 });
   await shot("05-forms-mobile");
   check(

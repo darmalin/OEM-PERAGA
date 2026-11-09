@@ -29,6 +29,7 @@ from app.modules.orders.rules import (
     OPEN_STATUSES,
     AttachmentPurpose,
     DetailsType,
+    OptionKind,
     OrderStatus,
     PricePeriod,
 )
@@ -366,3 +367,32 @@ class ExhibitorFormWaiver(UUIDPk, Timestamps, Base):
     waived_by_account_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("exhibitor_accounts.id")
     )
+
+
+class OrderFormOption(UUIDPk, Timestamps, Base):
+    """One choice of a form's question (product category, official forwarder, seminar date).
+
+    Replaced as a list per kind by staff; answers store the chosen text, so editing the list
+    never changes sent orders.
+    """
+
+    __tablename__ = "order_form_options"
+    __table_args__ = (
+        UniqueConstraint("form_id", "kind", "value"),
+        ForeignKeyConstraint(
+            ["form_id", "edition_id"],
+            ["order_forms.id", "order_forms.edition_id"],
+            name="fk_order_form_options_form_id_order_forms",
+            ondelete="CASCADE",
+        ),
+        CheckConstraint(_in("kind", list(OptionKind)), name="kind_valid"),
+        Index("ix_order_form_options_form_kind_sort", "form_id", "kind", "sort_order"),
+    )
+
+    edition_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("exhibition_editions.id"), nullable=False
+    )
+    form_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
+    kind: Mapped[str] = mapped_column(String(30), nullable=False)
+    value: Mapped[str] = mapped_column(String(200), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

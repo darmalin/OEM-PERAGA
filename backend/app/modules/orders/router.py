@@ -17,6 +17,8 @@ from app.modules.orders.rules import AttachmentPurpose
 from app.modules.orders.schemas import (
     CopyFormsIn,
     CopyFormsOut,
+    FormOptionsIn,
+    FormOptionsOut,
     ItemImportOut,
     LeadOrdersOut,
     LinePriceIn,
@@ -96,6 +98,20 @@ async def update_form(
     form_id: uuid.UUID, data: OrderFormUpdateIn, session: Session, ctx: AuthContext = Manage
 ) -> OrderFormOut:
     return await service.update_form(session, ctx, form_id, data)
+
+
+@router.get("/{form_id}/options", response_model=FormOptionsOut)
+async def get_options(
+    form_id: uuid.UUID, session: Session, ctx: AuthContext = Read
+) -> FormOptionsOut:
+    return await service.get_options(session, ctx, form_id)
+
+
+@router.put("/{form_id}/options", response_model=FormOptionsOut)
+async def set_options(
+    form_id: uuid.UUID, data: FormOptionsIn, session: Session, ctx: AuthContext = Manage
+) -> FormOptionsOut:
+    return await service.set_options(session, ctx, form_id, data)
 
 
 @router.get("/{form_id}/items", response_model=Page[OrderFormItemOut])

@@ -61,6 +61,30 @@ class DetailsType(StrEnum):
     PARKING = "parking"
 
 
+class OptionKind(StrEnum):
+    """Choices staff set per form for its questions (decision O10)."""
+
+    PRODUCT_CATEGORY = "PRODUCT_CATEGORY"
+    STAND_SERVICE = "STAND_SERVICE"
+    OFFICIAL_CONTRACTOR = "OFFICIAL_CONTRACTOR"
+    OFFICIAL_FORWARDER = "OFFICIAL_FORWARDER"
+    SEMINAR_DATE = "SEMINAR_DATE"
+
+
+# Which choices each question set uses.
+DETAILS_OPTION_KINDS: dict[DetailsType, tuple[OptionKind, ...]] = {
+    DetailsType.DIRECTORY_LISTING: (OptionKind.PRODUCT_CATEGORY,),
+    DetailsType.ADVERTISING: (),
+    DetailsType.SOCIAL_MEDIA: (OptionKind.PRODUCT_CATEGORY,),
+    DetailsType.STAND_SERVICE: (OptionKind.STAND_SERVICE, OptionKind.OFFICIAL_CONTRACTOR),
+    DetailsType.EXHIBIT_DETAILS: (),
+    DetailsType.FREIGHT: (OptionKind.OFFICIAL_FORWARDER,),
+    DetailsType.BADGES_VISA: (),
+    DetailsType.SEMINAR: (OptionKind.SEMINAR_DATE,),
+    DetailsType.PARKING: (),
+}
+
+
 ORDER_TRANSITIONS: dict[OrderStatus, frozenset[OrderStatus]] = {
     OrderStatus.DRAFT: frozenset({OrderStatus.SUBMITTED}),  # a draft can also be deleted
     OrderStatus.SUBMITTED: frozenset(

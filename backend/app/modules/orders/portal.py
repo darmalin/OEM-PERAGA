@@ -27,6 +27,7 @@ from app.modules.exhibitions.models import Edition
 from app.modules.exhibitors import repository as exhibitors_repo
 from app.modules.exhibitors.models import ExhibitorLead
 from app.modules.exhibitors.rules import ContractStatus
+from app.modules.orders import details
 from app.modules.orders import repository as repo
 from app.modules.orders.models import (
     ExhibitorFormWaiver,
@@ -40,6 +41,7 @@ from app.modules.orders.rules import (
     OPEN_STATUSES,
     AttachmentPurpose,
     DateRange,
+    OptionKind,
     OrderStatus,
     PricePeriod,
     PricePeriods,
@@ -214,6 +216,7 @@ def _order_out(
         review_notes=order.review_notes if status == OrderStatus.RETURNED else None,
         cancel_reason=order.cancel_reason,
         unpriced_lines=unpriced,
+        details=order.details,
         waiting_for_contract=status == OrderStatus.SUBMITTED
         and costs_money
         and not contract_signed,
@@ -311,6 +314,7 @@ async def form_detail(
         price_period=period,
         progress=form_progress([OrderStatus(o.status) for o in orders], waiver is not None),
         not_required=waiver is not None,
+        options={OptionKind(k): v for k, v in (await repo.form_options(session, form.id)).items()},
         company_name=lead.company_name,
         booth_code=await exhibitors_repo.booth_code(session, lead.booth_id),
         items=[
@@ -422,6 +426,11 @@ async def update_order(
     _require_open(order)
     if data.lines and not form.has_catalog:
         raise ValidationFailed(fields={"lines": "This form has no catalog."})
+    answers = details.parse(
+        form.details_type,
+        data.details,
+        {k: set(v) for k, v in (await repo.form_options(session, form.id)).items()},
+    )
     if data.custom_lines and not form.allow_custom_items:
         raise ValidationFailed(fields={"custom_lines": "This form takes catalog items only."})
     period = (await _clock(session, lead)).period
@@ -489,6 +498,7 @@ async def update_order(
         )
     session.add_all(lines)
     order.remarks = clean_text(data.remarks)
+    order.details = answers
     order.total = order_total(line.amount for line in lines)
     flag_modified(order, "details")  # line edits bump the order's version too
     await session.flush()
@@ -555,6 +565,11 @@ async def submit_order(
         )
     lines = list(await repo.order_lines(session, [order.id]))
     files = await repo.order_files(session, [order.id])
+    incomplete = details.missing(form.details_type, order.details)
+    if incomplete:
+        raise ValidationFailed(
+            "Some answers are missing.", code="DETAILS_INCOMPLETE", fields=incomplete
+        )
     if not lines and not files and not order.details:
         raise ValidationFailed("Add at least one item before sending.", code="ORDER_EMPTY")
     catalog = {i.id: i for i in await repo.active_items(session, form.id)}

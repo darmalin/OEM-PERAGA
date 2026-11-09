@@ -1586,6 +1586,24 @@ export interface paths {
         patch: operations["update_form_api_v1_order_forms__form_id__patch"];
         trace?: never;
     };
+    "/api/v1/order-forms/{form_id}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Options */
+        get: operations["get_options_api_v1_order_forms__form_id__options_get"];
+        /** Set Options */
+        put: operations["set_options_api_v1_order_forms__form_id__options_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/order-forms/{form_id}/items": {
         parameters: {
             query?: never;
@@ -5154,6 +5172,22 @@ export interface components {
             note?: string | null;
         };
         /**
+         * FormOptionsIn
+         * @description Replaces the choices of one kind; answers already sent keep their text.
+         */
+        FormOptionsIn: {
+            kind: components["schemas"]["OptionKind"];
+            /** Values */
+            values: string[];
+        };
+        /** FormOptionsOut */
+        FormOptionsOut: {
+            /** Options */
+            options: {
+                [key: string]: string[];
+            };
+        };
+        /**
          * FormProgress
          * @description Derived per exhibitor and form, never stored.
          * @enum {string}
@@ -6039,6 +6073,12 @@ export interface components {
          * @enum {string}
          */
         OptionField: "BUSINESS_TYPE" | "BRANCH" | "EXHIBITION_TYPE" | "PRODUCT_CATEGORY";
+        /**
+         * OptionKind
+         * @description Choices staff set per form for its questions (decision O10).
+         * @enum {string}
+         */
+        OptionKind: "PRODUCT_CATEGORY" | "STAND_SERVICE" | "OFFICIAL_CONTRACTOR" | "OFFICIAL_FORWARDER" | "SEMINAR_DATE";
         /** OrderCancelIn */
         OrderCancelIn: {
             /** Reason */
@@ -6055,6 +6095,10 @@ export interface components {
             lines?: components["schemas"]["OrderLineIn"][];
             /** Custom Lines */
             custom_lines?: components["schemas"]["CustomLineIn"][];
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            };
             /** Remarks */
             remarks?: string | null;
             /** Version */
@@ -6861,6 +6905,10 @@ export interface components {
             progress: components["schemas"]["FormProgress"];
             /** Not Required */
             not_required: boolean;
+            /** Options */
+            options: {
+                [key: string]: string[];
+            };
             /** Company Name */
             company_name: string;
             /** Booth Code */
@@ -6962,6 +7010,10 @@ export interface components {
             cancel_reason: string | null;
             /** Unpriced Lines */
             unpriced_lines: number;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
             /** Waiting For Contract */
             waiting_for_contract: boolean;
             /** Lines */
@@ -7610,6 +7662,11 @@ export interface components {
             waiting_for_contract: boolean;
             /** Booth Changed */
             booth_changed: boolean;
+            details_type: components["schemas"]["DetailsType"] | null;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
             price_period: components["schemas"]["PricePeriod"] | null;
             /** Remarks */
             remarks: string | null;
@@ -12024,6 +12081,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderFormOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_options_api_v1_order_forms__form_id__options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormOptionsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_options_api_v1_order_forms__form_id__options_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormOptionsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormOptionsOut"];
                 };
             };
             /** @description Validation Error */

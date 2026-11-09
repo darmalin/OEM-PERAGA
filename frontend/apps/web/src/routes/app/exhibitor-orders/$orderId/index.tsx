@@ -4,8 +4,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Download, RotateCcw, XCircle } from "lucide-react";
 import { useState } from "react";
 
+import { AnswersView } from "@/features/order-forms/answers";
 import { OrderFlags } from "@/features/order-forms/order-flags";
-import { exhibitorOrderQuery, PERIODS, type StaffOrder } from "@/features/order-forms/queries";
+import { DETAILS_TYPES, exhibitorOrderQuery, PERIODS, type StaffOrder } from "@/features/order-forms/queries";
 import { can, useMe } from "@/lib/auth";
 import { formatBytes, formatDateTime, formatMoney } from "@/lib/format";
 import { notifyError, notifySuccess } from "@/lib/notify";
@@ -90,10 +91,18 @@ function OrderDetail() {
               Booth changed since submit: sent for {o.booth_code_at_submit} ({Number(o.area_sqm_at_submit)} m²), now {o.booth_code ?? "no booth"}. Return the order if the quantities depend on the booth size.
             </p>
           ) : null}
-          <Panel>
-            <PanelHeader title="Items" actions={<span className="text-[14px] font-semibold tabular">Total {formatMoney(o.total, o.currency)}</span>} />
-            <Lines order={o} canPrice={review && waiting} onSaved={saved} />
-          </Panel>
+          {o.lines.length ? (
+            <Panel>
+              <PanelHeader title="Items" actions={<span className="text-[14px] font-semibold tabular">Total {formatMoney(o.total, o.currency)}</span>} />
+              <Lines order={o} canPrice={review && waiting} onSaved={saved} />
+            </Panel>
+          ) : null}
+          {o.details_type ? (
+            <Panel>
+              <PanelHeader title={`Answers · ${DETAILS_TYPES[o.details_type]}`} />
+              <div className="p-5"><AnswersView type={o.details_type} answers={o.details as Record<string, unknown>} /></div>
+            </Panel>
+          ) : null}
           {o.files.length ? (
             <Panel>
               <PanelHeader title="Attachments" />

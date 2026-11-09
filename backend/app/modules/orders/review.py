@@ -26,6 +26,7 @@ from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitors import repository as exhibitors_repo
 from app.modules.exhibitors.rules import ContractStatus
 from app.modules.identity import repository as identity_repo
+from app.modules.orders import details
 from app.modules.orders import repository as repo
 from app.modules.orders.models import ExhibitorOrder
 from app.modules.orders.portal import AUDIT_FIELDS, ENTITY, file_out, line_out
@@ -116,6 +117,7 @@ def _row_out(row: repo.StaffOrderRow) -> StaffOrderRowOut:
 
 async def _detail(session: AsyncSession, row: repo.StaffOrderRow) -> StaffOrderOut:
     order = row[0]
+    form = await repo.get_form(session, order.form_id)
     lines = await repo.order_lines(session, [order.id])
     files = await repo.order_files(session, [order.id])
     reviewer = (
@@ -128,6 +130,8 @@ async def _detail(session: AsyncSession, row: repo.StaffOrderRow) -> StaffOrderO
     )
     return StaffOrderOut(
         **_row_out(row).model_dump(),
+        details_type=form.details_type if form else None,
+        details=order.details,
         price_period=PricePeriod(order.price_period) if order.price_period else None,
         remarks=order.remarks,
         booth_code_at_submit=booth_at_submit,
@@ -355,6 +359,7 @@ async def cancel_order(
 EXPORT_HEADERS = [
     "Order No.", "Status", "Company", "Booth", "Sent", "Price Period", "Item Code", "Item",
     "Size", "Quantity", "Free", "Unit Price", "Amount", "Currency", "Order Total", "Remarks",
+    "Answers",
 ]  # fmt: skip
 
 
@@ -394,6 +399,7 @@ async def export_form(
                 order.currency,
                 float(order.total),
                 order.remarks,
+                details.summary(form.details_type, order.details),
             ]
         )
     data = await run_in_threadpool(

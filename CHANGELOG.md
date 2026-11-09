@@ -5,7 +5,7 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
-Exhibitor order forms, Phases 1 to 4 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
+Exhibitor order forms, Phases 1 to 5 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
 Exhibitors → Order Forms, permission `order_form.manage`); exhibitors fill and send them in the portal;
 staff review them (menu Exhibitors → Orders, permission `exhibitor_order.review`).
 
@@ -24,9 +24,14 @@ staff review them (menu Exhibitors → Orders, permission `exhibitor_order.revie
   items to price, an unsigned contract, and a booth moved since the order was sent. On an order: set
   the price of extra items, Approve, Return to Exhibitor with a reason (sent back with the same
   number), or Cancel with a reason. Export a form's orders to Excel. The lead page has an Orders tab.
+- **Questions**: forms can ask questions instead of, or next to, a catalog: e-directory listing,
+  advertising details, social media promotion, stand service and contractor, exhibit details, freight
+  forwarder, badges and visa, seminar, parking plate numbers. Staff set the choices (product categories,
+  stand services, official contractors and forwarders, seminar dates) in the form's Settings; sending
+  needs every required answer. Staff see the answers on the order and in the export.
 
-Migrations 0030 and 0031: new tables `order_forms`, `order_form_items`, `exhibitor_orders`,
-`exhibitor_order_lines`, `exhibitor_order_files`, `exhibitor_form_waivers`,
+Migrations 0030 to 0032: new tables `order_forms`, `order_form_items`, `order_form_options`,
+`exhibitor_orders`, `exhibitor_order_lines`, `exhibitor_order_files`, `exhibitor_form_waivers`,
 `exhibitor_order_counters`; unique `(id, edition_id)` on `exhibitor_leads`; permissions
 `order_form.manage` and `exhibitor_order.review` for Super Admin and Exhibition Admin. New
 `orders` bucket (`EMS_S3_BUCKET_ORDERS`), made by `ensure-buckets` in the migrate service.

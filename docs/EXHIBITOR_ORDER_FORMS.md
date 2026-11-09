@@ -336,10 +336,11 @@ Catatan Phase 4: saat order Returned lalu dikirim ulang, item tambahan yang nama
 diubah tetap memakai harga dari staff; yang diubah perlu diberi harga lagi.
 
 ### Phase 5: Form isian (01, 02, 02a, 08, 08a, 09, 10)
-- [ ] Skema `details_type` per form (Lampiran A), opsi per edition (kategori produk, forwarder resmi, kontraktor resmi, tanggal seminar)
-- [ ] Lampiran logo, gambar produk, daftar visa (XLSX)
-- [ ] Portal: komponen isian per skema
-- [ ] Tes validasi per skema
+- [x] Skema per `details_type` di `app/modules/orders/details.py` (9 jenis, Lampiran A). Draft hanya diperiksa bentuk dan pilihannya; submit memeriksa field wajib (422 `DETAILS_INCOMPLETE`, per field `details.<path>`), termasuk syarat bersyarat (kontraktor sendiri, forwarder non-resmi, tamu VIP). Jawaban menyimpan teks pilihan, jadi mengubah daftar pilihan tidak mengubah order terkirim
+- [x] Pilihan per form (bukan per edition: setiap form punya daftarnya sendiri), tabel `order_form_options` (migration `0032`): kategori produk, stand service, kontraktor resmi, forwarder resmi, tanggal seminar. `GET/PUT /order-forms/{id}/options` (ganti satu jenis sekaligus; hanya jenis yang dipakai pertanyaan form itu); ikut disalin Copy from Edition
+- [x] Lampiran logo, gambar produk, daftar visa (XLSX): sudah ada sejak Phase 3 lewat `attachment_purposes`
+- [x] Portal: komponen pertanyaan per jenis (`apps/exhibitor/src/pages/questions.tsx`), jawaban di halaman Review; form tanpa katalog tidak menampilkan total. Desk: bagian Choices di Settings form, panel Answers di halaman order, kolom Answers di export
+- [x] Tes: `tests/test_order_details.py` (setiap jenis lengkap dan kosong, jawaban salah, syarat bersyarat, API pilihan dan copy, simpan dan kirim form pertanyaan, form katalog dengan pertanyaan, export); E2E portal ditambah form badge (ditolak saat belum lengkap, lalu diisi dan dikirim)
 
 ### Phase 6: Jatah gratis (09, 12)
 - [ ] Tabel `order_form_allowances`, hitung `free_quantity` saat quote dan submit dari luas booth
