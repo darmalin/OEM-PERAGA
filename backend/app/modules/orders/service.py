@@ -2,7 +2,7 @@
 docs/EXHIBITOR_ORDER_FORMS.md)."""
 
 import uuid
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
 from typing import Any
@@ -22,9 +22,16 @@ from app.core.pagination import Page
 from app.core.storage import get_storage, new_object_key
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.orders import repository as repo
-from app.modules.orders.models import OrderForm, OrderFormItem, OrderFormOption
-from app.modules.orders.rules import DETAILS_OPTION_KINDS, DetailsType, OptionKind
+from app.modules.orders.models import (
+    OrderForm,
+    OrderFormAllowance,
+    OrderFormItem,
+    OrderFormOption,
+)
+from app.modules.orders.rules import DETAILS_OPTION_KINDS, AllowanceTier, DetailsType, OptionKind
 from app.modules.orders.schemas import (
+    AllowancesIn,
+    AllowanceTierIO,
     CopyFormsIn,
     CopyFormsOut,
     FormOptionsIn,
@@ -330,6 +337,7 @@ async def copy_forms(session: AsyncSession, ctx: AuthContext, data: CopyFormsIn)
             is_published=False,
         )
         form = OrderForm(edition_id=target.id, created_by=actor, updated_by=actor, **values)
+        source_items = list(await repo.form_items(session, source.id))
         items = [
             OrderFormItem(
                 edition_id=target.id,
@@ -338,13 +346,24 @@ async def copy_forms(session: AsyncSession, ctx: AuthContext, data: CopyFormsIn)
                 updated_by=actor,
                 **audit.snapshot(item, ITEM_AUDIT_FIELDS),
             )
-            for item in await repo.form_items(session, source.id)
+            for item in source_items
         ]
         await _flush(session, form)
         for item in items:
             item.form_id = form.id
         if items:
             await _flush(session, *items)
+        tiers = await repo.allowances(session, [i.id for i in source_items])
+        for old, new in zip(source_items, items, strict=True):
+            session.add_all(
+                OrderFormAllowance(
+                    edition_id=target.id,
+                    item_id=new.id,
+                    min_area_sqm=tier.min_area_sqm,
+                    free_quantity=tier.free_quantity,
+                )
+                for tier in tiers.get(old.id, [])
+            )
         for kind, choices in (await repo.form_options(session, source.id)).items():
             session.add_all(
                 OrderFormOption(
@@ -419,10 +438,17 @@ async def set_options(
 # --- catalog items -----------------------------------------------------------------------
 
 
-def _item_out(item: OrderFormItem) -> OrderFormItemOut:
+def _item_out(item: OrderFormItem, tiers: Sequence[AllowanceTier] = ()) -> OrderFormItemOut:
     out = OrderFormItemOut.model_validate(item)
     out.has_image = item.image_key is not None
+    out.allowances = [
+        AllowanceTierIO(min_area_sqm=t.min_area_sqm, free_quantity=t.free_quantity) for t in tiers
+    ]
     return out
+
+
+async def _item_out_loaded(session: AsyncSession, item: OrderFormItem) -> OrderFormItemOut:
+    return _item_out(item, (await repo.allowances(session, [item.id])).get(item.id, []))
 
 
 def _clean_item(values: dict[str, Any]) -> dict[str, Any]:
@@ -454,8 +480,9 @@ async def list_items(
 ) -> Page[OrderFormItemOut]:
     form = await _form_for(session, ctx, form_id, manage=False)
     items, total = await repo.list_items(session, form.id, params)
+    tiers = await repo.allowances(session, [i.id for i in items])
     return Page(
-        items=[_item_out(i) for i in items],
+        items=[_item_out(i, tiers.get(i.id, [])) for i in items],
         total=total,
         page=params.page,
         page_size=params.page_size,
@@ -507,7 +534,50 @@ async def update_item(
     await _save_item(session, item, before, "update")
     if changes.get("is_active") is False:
         await _check_still_publishable(session, form)
-    return _item_out(item)
+    return await _item_out_loaded(session, item)
+
+
+async def set_allowances(
+    session: AsyncSession,
+    ctx: AuthContext,
+    form_id: uuid.UUID,
+    item_id: uuid.UUID,
+    data: AllowancesIn,
+) -> OrderFormItemOut:
+    """Replace the item's free quantities by booth area (decision O9).
+
+    Orders already sent keep the free quantity they were sent with.
+    """
+    form, item = await _item_for(session, ctx, form_id, item_id, manage=True, for_update=True)
+    await exhibitions_service.ensure_writable(session, form.edition_id)
+    areas = [t.min_area_sqm for t in data.tiers]
+    if len(set(areas)) != len(areas):
+        raise ValidationFailed(fields={"tiers": "Each booth size can appear once."})
+    before = [
+        {"min_area_sqm": t.min_area_sqm, "free_quantity": t.free_quantity}
+        for t in (await repo.allowances(session, [item.id])).get(item.id, [])
+    ]
+    await repo.delete_allowances(session, item.id)
+    session.add_all(
+        OrderFormAllowance(
+            edition_id=item.edition_id,
+            item_id=item.id,
+            min_area_sqm=t.min_area_sqm,
+            free_quantity=t.free_quantity,
+        )
+        for t in sorted(data.tiers, key=lambda t: t.min_area_sqm)
+    )
+    await session.flush()
+    await audit.record(
+        session,
+        entity_type=ITEM_ENTITY,
+        entity_id=item.id,
+        action="set_allowances",
+        before={"tiers": before},
+        after={"tiers": [t.model_dump() for t in data.tiers]},
+        edition_id=item.edition_id,
+    )
+    return await _item_out_loaded(session, item)
 
 
 def _check_image(file_name: str, content_type: str | None, data: bytes) -> str:
@@ -547,7 +617,7 @@ async def set_item_image(
     item.image_key = key
     item.updated_by = current_actor_id()
     await _save_item(session, item, before, "set_image")
-    return _item_out(item)
+    return await _item_out_loaded(session, item)
 
 
 async def item_image(

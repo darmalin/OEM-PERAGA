@@ -166,8 +166,10 @@ Form yang belum `is_published` tidak terlihat di portal.
 hanya dinonaktifkan, karena baris order lama menunjuk ke sana.
 
 ### `order_form_allowances` (Phase 6)
-`form_id`, `item_id` (NULL = jatah untuk seluruh form), `min_area_sqm`, `max_area_sqm`,
-`free_quantity`. Contoh form 12: booth < 9 m² → 1 pass gratis. Luas diambil dari `booths.area_sqm`.
+Dibangun di migration `0033`: `item_id` (selalu per item katalog), `min_area_sqm`, `free_quantity`; satu
+baris per tingkatan, unik per (item, luas). Exhibitor mendapat tingkatan dengan `min_area_sqm` terbesar
+yang dicapai booth-nya ("mulai 18 m²: 2 gratis"), lebih jelas daripada "< 9 m²" di sistem lama yang ambigu
+untuk booth tepat 9 m². Luas diambil dari `booths.area_sqm`.
 
 ### `exhibitor_orders`
 `exhibitor_lead_id`, `form_id`, `order_number` (`<kode edition>-O-0001`, counter
@@ -343,8 +345,14 @@ diubah tetap memakai harga dari staff; yang diubah perlu diberi harga lagi.
 - [x] Tes: `tests/test_order_details.py` (setiap jenis lengkap dan kosong, jawaban salah, syarat bersyarat, API pilihan dan copy, simpan dan kirim form pertanyaan, form katalog dengan pertanyaan, export); E2E portal ditambah form badge (ditolak saat belum lengkap, lalu diisi dan dikirim)
 
 ### Phase 6: Jatah gratis (09, 12)
-- [ ] Tabel `order_form_allowances`, hitung `free_quantity` saat quote dan submit dari luas booth
-- [ ] Desk: atur jatah per form; portal: tampilkan "Your free parking pass: 4"
+- [x] Tabel `order_form_allowances` (migration `0033`), aturan `free_allowance` / `free_quantity` di `rules.py`. `free_quantity` dihitung saat simpan draft, quote, dan submit dari luas booth saat itu (luas tercatat di order saat submit); jumlah yang ditagih = jumlah − gratis
+- [x] Jatah berlaku **sekali per exhibitor**, bukan per order: order lain yang masih hidup (Submitted, Returned, Approved) mengurangi sisa jatah; order yang di-Cancel mengembalikannya. Order terkirim tetap memakai jumlah gratis saat dikirim walau tingkatan diubah
+- [x] API: `PUT /order-forms/{id}/items/{item_id}/allowances` `{tiers: [{min_area_sqm, free_quantity}]}` (ganti semua; luas yang sama dua kali ditolak); item menyertakan `allowances`; ikut disalin Copy from Edition. Portal: `free_quantity` per item katalog
+- [x] Desk: bagian "Free by Booth Size" di halaman item, tanda "free by booth size" di katalog. Portal: "N free with your booth" di item, amount dan total memperhitungkan jumlah gratis, "N free" di order terkirim
+- [x] Tes `tests/test_order_allowances.py` (tingkatan, API, portal, sekali per exhibitor, cancel mengembalikan jatah, order terkirim tidak berubah, copy); E2E portal: satu power point gratis per booth
+
+Catatan Phase 6: badge gratis (form 09) dibuat sebagai item katalog "Exhibitor badge" dengan jatah per
+luas booth, dan nama pemegang badge tetap diisi di pertanyaan form itu.
 
 ### Phase 7: Pembayaran order (O3)
 

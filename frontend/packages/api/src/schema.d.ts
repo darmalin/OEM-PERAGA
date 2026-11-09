@@ -1656,6 +1656,23 @@ export interface paths {
         patch: operations["update_item_api_v1_order_forms__form_id__items__item_id__patch"];
         trace?: never;
     };
+    "/api/v1/order-forms/{form_id}/items/{item_id}/allowances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Allowances */
+        put: operations["set_allowances_api_v1_order_forms__form_id__items__item_id__allowances_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/order-forms/{form_id}/items/{item_id}/image": {
         parameters: {
             query?: never;
@@ -2856,6 +2873,28 @@ export interface components {
             report: "AGENTS";
             /** Agents */
             agents: components["schemas"]["AgentRow"][];
+        };
+        /** AllowanceTierIO */
+        "AllowanceTierIO-Input": {
+            /** Min Area Sqm */
+            min_area_sqm: number | string;
+            /** Free Quantity */
+            free_quantity: number;
+        };
+        /** AllowanceTierIO */
+        "AllowanceTierIO-Output": {
+            /** Min Area Sqm */
+            min_area_sqm: string;
+            /** Free Quantity */
+            free_quantity: number;
+        };
+        /**
+         * AllowancesIn
+         * @description Replaces the item's tiers; an empty list removes the allowance.
+         */
+        AllowancesIn: {
+            /** Tiers */
+            tiers: components["schemas"]["AllowanceTierIO-Input"][];
         };
         /** AssignedCount */
         AssignedCount: {
@@ -6207,6 +6246,8 @@ export interface components {
              * @default false
              */
             has_image: boolean;
+            /** Allowances */
+            allowances?: components["schemas"]["AllowanceTierIO-Output"][];
             /**
              * Created At
              * Format: date-time
@@ -6800,6 +6841,11 @@ export interface components {
             max_quantity: number | null;
             /** Has Image */
             has_image: boolean;
+            /**
+             * Free Quantity
+             * @default 0
+             */
+            free_quantity: number;
         };
         /** PortalExhibitorOut */
         PortalExhibitorOut: {
@@ -12278,6 +12324,42 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["OrderFormItemUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderFormItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_allowances_api_v1_order_forms__form_id__items__item_id__allowances_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                form_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllowancesIn"];
             };
         };
         responses: {

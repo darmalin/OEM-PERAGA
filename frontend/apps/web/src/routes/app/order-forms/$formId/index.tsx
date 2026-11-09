@@ -134,6 +134,7 @@ function Catalog({ form: f, manage }: { form: OrderForm; manage: boolean }) {
           {i.has_image ? <ImageIcon aria-label="Has a picture" className="size-4 shrink-0 text-label" /> : null}
           <span>{i.name}</span>
           {i.size ? <span className="text-label">{i.size}</span> : null}
+          {i.allowances?.length ? <span className="text-[12px] text-label">· free by booth size</span> : null}
         </span>
       ),
     },

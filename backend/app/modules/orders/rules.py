@@ -163,6 +163,27 @@ def line_amount(quantity: int, free_quantity: int, price: Decimal | None) -> Dec
     return ((quantity - free_quantity) * price).quantize(CENT)
 
 
+@dataclass(frozen=True)
+class AllowanceTier:
+    """From this booth area up, this many of the item are free (decision O9)."""
+
+    min_area_sqm: Decimal
+    free_quantity: int
+
+
+def free_allowance(area_sqm: Decimal | None, tiers: Iterable[AllowanceTier]) -> int:
+    """Free quantity for a booth: the tier with the largest minimum area the booth reaches."""
+    if area_sqm is None:
+        return 0
+    reached = [t for t in tiers if area_sqm >= t.min_area_sqm]
+    return max(reached, key=lambda t: t.min_area_sqm).free_quantity if reached else 0
+
+
+def free_quantity(quantity: int, allowance: int) -> int:
+    """Free part of an ordered quantity; ordering fewer than the allowance makes them all free."""
+    return min(quantity, max(allowance, 0))
+
+
 def order_total(amounts: Iterable[Decimal | None]) -> Decimal:
     """Sum of the priced lines; unpriced extra items count once staff price them."""
     return sum((a for a in amounts if a is not None), Decimal(0))

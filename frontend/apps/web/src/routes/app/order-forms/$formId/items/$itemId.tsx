@@ -15,6 +15,7 @@ import { FormActions, Page, PageHead, Panel } from "@/ui/page";
 import { EmptyState, ErrorState, FormSkeleton } from "@/ui/states";
 
 import { ITEM_FIELDS, itemBody, ItemFields, itemValues, type ItemValues } from "../-item-form";
+import { AllowancesSection } from "./-allowances";
 
 export const Route = createFileRoute("/app/order-forms/$formId/items/$itemId")({ component: EditItem });
 
@@ -62,6 +63,7 @@ function EditItem() {
               </FormActions>
             </form>
             <ItemPicture formId={formId} item={item} />
+            <AllowancesSection key={item.version} formId={formId} item={item} />
           </>
         )}
       </Panel>

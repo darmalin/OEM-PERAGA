@@ -19,10 +19,11 @@ from app.modules.orders.models import (
     ExhibitorOrderFile,
     ExhibitorOrderLine,
     OrderForm,
+    OrderFormAllowance,
     OrderFormItem,
     OrderFormOption,
 )
-from app.modules.orders.rules import OrderStatus
+from app.modules.orders.rules import AllowanceTier, OrderStatus
 from app.modules.orders.schemas import (
     OrderFormItemListParams,
     OrderFormListParams,
@@ -368,3 +369,46 @@ async def delete_options(session: AsyncSession, form_id: uuid.UUID, kind: str) -
             OrderFormOption.form_id == form_id, OrderFormOption.kind == kind
         )
     )
+
+
+# --- allowances (free quantities by booth area) -------------------------------------------
+
+
+async def allowances(
+    session: AsyncSession, item_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, list[AllowanceTier]]:
+    if not item_ids:
+        return {}
+    stmt = (
+        select(OrderFormAllowance)
+        .where(OrderFormAllowance.item_id.in_(item_ids))
+        .order_by(OrderFormAllowance.min_area_sqm)
+    )
+    out: dict[uuid.UUID, list[AllowanceTier]] = {}
+    for row in (await session.scalars(stmt)).all():
+        out.setdefault(row.item_id, []).append(AllowanceTier(row.min_area_sqm, row.free_quantity))
+    return out
+
+
+async def delete_allowances(session: AsyncSession, item_id: uuid.UUID) -> None:
+    await session.execute(delete(OrderFormAllowance).where(OrderFormAllowance.item_id == item_id))
+
+
+async def free_used(
+    session: AsyncSession, lead_id: uuid.UUID, exclude_order_id: uuid.UUID | None
+) -> dict[uuid.UUID, int]:
+    """Free quantity already taken per item by the exhibitor's other live orders."""
+    live = (OrderStatus.SUBMITTED, OrderStatus.RETURNED, OrderStatus.APPROVED)
+    stmt = (
+        select(ExhibitorOrderLine.item_id, func.sum(ExhibitorOrderLine.free_quantity))
+        .join(ExhibitorOrder, ExhibitorOrder.id == ExhibitorOrderLine.order_id)
+        .where(
+            ExhibitorOrder.exhibitor_lead_id == lead_id,
+            ExhibitorOrder.status.in_(live),
+            ExhibitorOrderLine.item_id.is_not(None),
+        )
+        .group_by(ExhibitorOrderLine.item_id)
+    )
+    if exclude_order_id is not None:
+        stmt = stmt.where(ExhibitorOrder.id != exclude_order_id)
+    return {item_id: int(n or 0) for item_id, n in (await session.execute(stmt)).all() if item_id}

@@ -5,7 +5,7 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
-Exhibitor order forms, Phases 1 to 5 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
+Exhibitor order forms, Phases 1 to 6 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
 Exhibitors → Order Forms, permission `order_form.manage`); exhibitors fill and send them in the portal;
 staff review them (menu Exhibitors → Orders, permission `exhibitor_order.review`).
 
@@ -29,8 +29,11 @@ staff review them (menu Exhibitors → Orders, permission `exhibitor_order.revie
   forwarder, badges and visa, seminar, parking plate numbers. Staff set the choices (product categories,
   stand services, official contractors and forwarders, seminar dates) in the form's Settings; sending
   needs every required answer. Staff see the answers on the order and in the export.
+- **Free by booth size**: a catalog item can come free with the booth, more for larger booths (e.g.
+  parking passes, badges). Once per exhibitor across orders; more than that is charged.
 
-Migrations 0030 to 0032: new tables `order_forms`, `order_form_items`, `order_form_options`,
+Migrations 0030 to 0033: new tables `order_forms`, `order_form_items`, `order_form_options`,
+`order_form_allowances`,
 `exhibitor_orders`, `exhibitor_order_lines`, `exhibitor_order_files`, `exhibitor_form_waivers`,
 `exhibitor_order_counters`; unique `(id, edition_id)` on `exhibitor_leads`; permissions
 `order_form.manage` and `exhibitor_order.review` for Super Admin and Exhibition Admin. New

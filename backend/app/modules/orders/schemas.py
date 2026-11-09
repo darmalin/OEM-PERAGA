@@ -105,6 +105,21 @@ class CopyFormsOut(BaseModel):
 # --- catalog items -----------------------------------------------------------------------
 
 
+class AllowanceTierIO(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    min_area_sqm: Decimal = Field(ge=0, max_digits=8, decimal_places=2)
+    free_quantity: int = Field(gt=0, le=9999)
+
+
+class AllowancesIn(BaseModel):
+    """Replaces the item's tiers; an empty list removes the allowance."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tiers: list[AllowanceTierIO] = Field(max_length=20)
+
+
 class OrderFormItemFields(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -150,6 +165,8 @@ class OrderFormItemOut(BaseModel):
     is_active: bool
     sort_order: int
     has_image: bool = False
+    # Free quantity by booth area (decision O9), smallest area first.
+    allowances: list[AllowanceTierIO] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     version: int
@@ -209,6 +226,8 @@ class PortalCatalogItemOut(BaseModel):
     unit_price: Decimal  # in today's price period (Regular while ordering is not open)
     max_quantity: int | None
     has_image: bool
+    # Still free for this exhibitor's booth, after the exhibitor's other sent orders.
+    free_quantity: int = 0
 
 
 class PortalOrderLineOut(BaseModel):

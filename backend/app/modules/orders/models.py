@@ -396,3 +396,27 @@ class OrderFormOption(UUIDPk, Timestamps, Base):
     kind: Mapped[str] = mapped_column(String(30), nullable=False)
     value: Mapped[str] = mapped_column(String(200), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class OrderFormAllowance(UUIDPk, Timestamps, Base):
+    """Free quantity of a catalog item by booth area (decision O9): one row per tier."""
+
+    __tablename__ = "order_form_allowances"
+    __table_args__ = (
+        UniqueConstraint("item_id", "min_area_sqm"),
+        ForeignKeyConstraint(
+            ["item_id", "edition_id"],
+            ["order_form_items.id", "order_form_items.edition_id"],
+            name="fk_order_form_allowances_item_id_order_form_items",
+            ondelete="CASCADE",
+        ),
+        CheckConstraint("min_area_sqm >= 0", name="min_area_not_negative"),
+        CheckConstraint("free_quantity > 0", name="free_quantity_positive"),
+    )
+
+    edition_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("exhibition_editions.id"), nullable=False
+    )
+    item_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
+    min_area_sqm: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
+    free_quantity: Mapped[int] = mapped_column(Integer, nullable=False)

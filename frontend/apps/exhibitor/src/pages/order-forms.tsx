@@ -219,7 +219,12 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
   const [adding, setAdding] = useState(false);
   const showEditor = open !== null || d.sent_orders.length === 0 || adding;
   const dirty = !sameDraft(draft, saved, d.items);
-  const total = d.items.reduce((sum, i) => sum + Number(draft.quantities[i.id] ?? 0) * Number(i.unit_price), 0);
+  // Same as the server: the booth's free quantity comes off the charged quantity (decision O9).
+  const charged = (i: Item) => {
+    const qty = Number(draft.quantities[i.id] ?? 0);
+    return qty - Math.min(qty, i.free_quantity ?? 0);
+  };
+  const total = d.items.reduce((sum, i) => sum + charged(i) * Number(i.unit_price), 0);
   const base = `/api/v1/portal/exhibitors/${leadId}`;
 
   const fail = (e: unknown) => {
@@ -358,6 +363,7 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
                                   <div className="font-medium">{i.name}</div>
                                   <div className="text-[12px] text-label">{[i.code, i.size, i.unit].filter(Boolean).join(" · ")}</div>
                                   {i.description ? <div className="text-[12px] text-muted">{i.description}</div> : null}
+                                {i.free_quantity ? <div className="text-[12px] font-medium" style={{ color: "var(--green-fg)" }}>{i.free_quantity} free with your booth</div> : null}
                                   {error ? <div className="text-[12px] text-required">{error}</div> : null}
                                 </div>
                               </div>
@@ -372,7 +378,7 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
                                 }} />
                               {i.max_quantity ? <div className="mt-1 text-[11px] text-label">Up to {i.max_quantity}</div> : null}
                             </td>
-                            <td className="py-2.5 text-right tabular-nums">{qty > 0 ? money(String(qty * Number(i.unit_price)), d.currency) : ""}</td>
+                            <td className="py-2.5 text-right tabular-nums">{qty > 0 ? money(String(charged(i) * Number(i.unit_price)), d.currency) : ""}</td>
                           </tr>
                         );
                       })}
@@ -539,7 +545,7 @@ function LinesTable({ order }: { order: Order }) {
             <tr key={l.id} className="border-b border-line last:border-0">
               <td className="py-2 pr-3">{l.name}{l.size ? <span className="text-label"> · {l.size}</span> : null}{l.item_id ? null : <span className="text-label"> (extra item)</span>}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{l.unit_price == null ? <span className="text-label">Set by the organizer</span> : money(l.unit_price, order.currency)}</td>
-              <td className="py-2 pr-3 text-right tabular-nums">{l.quantity}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{l.quantity}{l.free_quantity ? <span className="block text-[12px] text-label">{l.free_quantity} free</span> : null}</td>
               <td className="py-2 text-right tabular-nums">{l.amount == null ? "" : money(l.amount, order.currency)}</td>
             </tr>
           ))}

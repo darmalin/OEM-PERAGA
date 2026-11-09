@@ -84,7 +84,9 @@ try {
   });
   await staff("POST", `/order-forms/${form.id}/items`, { section: "A. Lighting & Equipment", code: "E-001", name: "Fluorescent lamp", size: "40 W", price_regular: "740600" });
   await staff("POST", `/order-forms/${form.id}/items`, { section: "A. Lighting & Equipment", code: "E-002", name: "Spotlight", size: "100 W", price_regular: "1046500", max_quantity: 5 });
-  await staff("POST", `/order-forms/${form.id}/items`, { section: "B. Electricity Power", code: "P-001", name: "Power 2 A", price_regular: "1014300" });
+  const power = await staff("POST", `/order-forms/${form.id}/items`, { section: "B. Electricity Power", code: "P-001", name: "Power 2 A", price_regular: "1014300" });
+  // One power point comes free with every booth (Phase 6 allowances).
+  await staff("PUT", `/order-forms/${form.id}/items/${power.id}/allowances`, { tiers: [{ min_area_sqm: "0", free_quantity: 1 }] });
   await staff("PATCH", `/order-forms/${form.id}`, { is_published: true, version: form.version });
   // A questions-only form: badges for the stand staff.
   await staff("POST", "/order-forms", { edition_id: edition.id, code: "09", title: "Exhibitor Badges & Visa", details_type: "badges_visa", is_published: true, sort_order: 9 });
@@ -187,6 +189,7 @@ try {
 
   await portal.reload();
   await portal.getByText("Please add the power outlet for the spotlights.", { exact: false }).waitFor();
+  await portal.getByText("1 free with your booth").waitFor();
   await portal.getByLabel("Quantity of Power 2 A").fill("1");
   await portal.getByRole("button", { name: "Review and Send" }).click();
   await portal.getByRole("button", { name: "Send Order" }).click();
@@ -207,7 +210,9 @@ try {
   check(signed.ok(), "contract signed");
   await desk.reload();
   // The extra item kept its staff price: the exhibitor sent it back unchanged.
-  await desk.getByText("Total IDR 5,579,100").waitFor();
+  // The power point was free: 2,221,800 + 2,093,000 + 0 + 250,000.
+  await desk.getByText("Total IDR 4,564,800").waitFor();
+  await desk.getByText("1 free", { exact: true }).waitFor();
   await desk.getByRole("button", { name: "Approve" }).click();
   await desk.getByText(`Order ${edition.code}-O-0001 approved`).waitFor();
   await deskShot("07-desk-approved");

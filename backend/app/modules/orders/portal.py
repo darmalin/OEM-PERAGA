@@ -48,6 +48,8 @@ from app.modules.orders.rules import (
     can_move,
     can_waive,
     form_progress,
+    free_allowance,
+    free_quantity,
     line_amount,
     order_total,
     price_period,
@@ -164,6 +166,21 @@ def _item_price(item: OrderFormItem, period: PricePeriod | None) -> Decimal:
     return unit_price(
         period or PricePeriod.REGULAR, item.price_regular, item.price_surcharge, item.price_onsite
     )
+
+
+async def _free_left(
+    session: AsyncSession,
+    lead: ExhibitorLead,
+    order_id: uuid.UUID | None,
+    item_ids: Sequence[uuid.UUID],
+) -> dict[uuid.UUID, int]:
+    """Free quantity per item still open to this exhibitor (decision O9): the allowance for the
+    booth's area, less what the exhibitor's other live orders already took."""
+    booth = await exhibitors_repo.get_booth(session, lead.booth_id) if lead.booth_id else None
+    area = booth.area_sqm if booth is not None else None
+    tiers = await repo.allowances(session, item_ids)
+    used = await repo.free_used(session, lead.id, order_id)
+    return {i: max(0, free_allowance(area, tiers.get(i, [])) - used.get(i, 0)) for i in item_ids}
 
 
 def line_out(line: ExhibitorOrderLine) -> PortalOrderLineOut:
@@ -297,6 +314,8 @@ async def form_detail(
     orders = await repo.lead_orders(session, lead.id, form.id)
     outs = await _orders_out(session, lead, form, orders)
     waiver = await repo.get_waiver(session, lead.id, form.id)
+    open_id = next((o.id for o in orders if o.status in OPEN_STATUSES), None)
+    free = await _free_left(session, lead, open_id, [i.id for i in items])
     return PortalOrderFormDetailOut(
         code=form.code,
         title=form.title,
@@ -329,6 +348,7 @@ async def form_detail(
                 unit_price=_item_price(i, period),
                 max_quantity=i.max_quantity,
                 has_image=i.image_key is not None,
+                free_quantity=free.get(i.id, 0),
             )
             for i in items
         ],
@@ -457,9 +477,11 @@ async def update_order(
         await session.delete(line)
     await session.flush()
     lines: list[ExhibitorOrderLine] = []
+    free = await _free_left(session, lead, order.id, [row.item_id for row in data.lines])
     for n, row in enumerate(data.lines):
         item = catalog[row.item_id]
         price = _item_price(item, period)
+        given = free_quantity(row.quantity, free[row.item_id])
         lines.append(
             ExhibitorOrderLine(
                 edition_id=order.edition_id,
@@ -470,9 +492,9 @@ async def update_order(
                 name=item.name,
                 size=item.size,
                 quantity=row.quantity,
-                free_quantity=0,
+                free_quantity=given,
                 unit_price=price,
-                amount=line_amount(row.quantity, 0, price),
+                amount=line_amount(row.quantity, given, price),
                 sort_order=n,
             )
         )
@@ -531,10 +553,12 @@ async def quote_order(
     if order.status not in OPEN_STATUSES:
         return out
     catalog = {i.id: i for i in await repo.active_items(session, form.id)}
+    free = await _free_left(session, lead, order.id, list(catalog))
     for line in out.lines:
         item = catalog.get(line.item_id) if line.item_id else None
         if item is not None:
             line.unit_price = _item_price(item, period)
+            line.free_quantity = free_quantity(line.quantity, free[item.id])
             line.amount = line_amount(line.quantity, line.free_quantity, line.unit_price)
     out.total = order_total(line.amount for line in out.lines)
     out.price_period = period
@@ -573,6 +597,8 @@ async def submit_order(
     if not lines and not files and not order.details:
         raise ValidationFailed("Add at least one item before sending.", code="ORDER_EMPTY")
     catalog = {i.id: i for i in await repo.active_items(session, form.id)}
+    # Free quantities from the booth's area now, the area recorded with the order below.
+    free = await _free_left(session, lead, order.id, list(catalog))
     errors: dict[str, str] = {}
     for line in lines:
         if line.item_id is None:
@@ -584,6 +610,7 @@ async def submit_order(
             errors[f"lines.{line.item_id}"] = f"At most {item.max_quantity} per order."
         else:
             line.unit_price = _item_price(item, period)
+            line.free_quantity = free_quantity(line.quantity, free[item.id])
             line.amount = line_amount(line.quantity, line.free_quantity, line.unit_price)
     if errors:
         raise ValidationFailed("Some items changed since you saved.", fields=errors)

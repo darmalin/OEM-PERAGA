@@ -39,6 +39,7 @@ from app.modules.orders.models import (
     ExhibitorOrderFile,
     ExhibitorOrderLine,
     OrderForm,
+    OrderFormAllowance,
     OrderFormItem,
     OrderFormOption,
 )
@@ -100,6 +101,7 @@ __all__ = [
     "LeadAssignmentHistory",
     "LeadSourceOption",
     "OrderForm",
+    "OrderFormAllowance",
     "OrderFormItem",
     "OrderFormOption",
     "OutboxEvent",

@@ -15,6 +15,7 @@ from app.modules.exhibitors.portal import PortalContext, portal_account
 from app.modules.orders import portal, review, service
 from app.modules.orders.rules import AttachmentPurpose
 from app.modules.orders.schemas import (
+    AllowancesIn,
     CopyFormsIn,
     CopyFormsOut,
     FormOptionsIn,
@@ -154,6 +155,17 @@ async def update_item(
     ctx: AuthContext = Manage,
 ) -> OrderFormItemOut:
     return await service.update_item(session, ctx, form_id, item_id, data)
+
+
+@router.put("/{form_id}/items/{item_id}/allowances", response_model=OrderFormItemOut)
+async def set_allowances(
+    form_id: uuid.UUID,
+    item_id: uuid.UUID,
+    data: AllowancesIn,
+    session: Session,
+    ctx: AuthContext = Manage,
+) -> OrderFormItemOut:
+    return await service.set_allowances(session, ctx, form_id, item_id, data)
 
 
 @router.post("/{form_id}/items/{item_id}/image", response_model=OrderFormItemOut)
