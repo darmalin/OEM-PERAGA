@@ -17,6 +17,7 @@ import {
   ListChecks,
   Mail,
   MapPin,
+  PackageCheck,
   Megaphone,
   ScanLine,
   ScrollText,
@@ -81,6 +82,7 @@ export const PANELS: PanelDef[] = [
         items: [
           { label: "Exhibitor Leads", to: "/app/exhibitor-leads", icon: Handshake, perms: ["exhibitor_lead.read"] },
           { label: "Booths", to: "/app/booths", icon: LayoutGrid, perms: ["booth.manage", "exhibitor_lead.read"] },
+          { label: "Orders", to: "/app/exhibitor-orders", icon: PackageCheck, perms: ["exhibitor_lead.read"] },
           { label: "Order Forms", to: "/app/order-forms", icon: ClipboardPen, perms: ["order_form.manage"] },
         ],
       },

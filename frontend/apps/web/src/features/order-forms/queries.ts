@@ -62,3 +62,40 @@ export function formParts(f: OrderForm): string {
   if (f.attachment_purposes.length) parts.push(f.attachment_purposes.map((p) => PURPOSES[p]).join(", "));
   return parts.join(" · ") || "Nothing to fill yet";
 }
+
+export type StaffOrder = Schemas["StaffOrderOut"];
+export type StaffOrderRow = Schemas["StaffOrderRowOut"];
+export type OrderStatus = StaffOrderRow["status"];
+
+export const ORDER_STATUSES: Record<Exclude<OrderStatus, "DRAFT">, string> = {
+  SUBMITTED: "Waiting for Review",
+  RETURNED: "Returned",
+  APPROVED: "Approved",
+  CANCELLED: "Cancelled",
+};
+
+export const PROGRESS: Record<Schemas["LeadFormProgressOut"]["progress"], string> = {
+  NOT_STARTED: "Not Filled",
+  IN_PROGRESS: "In Progress",
+  SUBMITTED: "Waiting for Review",
+  APPROVED: "Approved",
+  NOT_REQUIRED: "Not Required",
+};
+
+export const PERIODS: Record<NonNullable<StaffOrder["price_period"]>, string> = {
+  REGULAR: "Regular",
+  SURCHARGE: "Surcharge",
+  ONSITE: "Onsite",
+};
+
+export const exhibitorOrderQuery = (orderId: string) =>
+  queryOptions({
+    queryKey: ["exhibitor-orders", "order", orderId],
+    queryFn: () => call(api.GET("/api/v1/exhibitor-orders/{order_id}", { params: { path: { order_id: orderId } } })),
+  });
+
+export const leadOrdersQuery = (leadId: string) =>
+  queryOptions({
+    queryKey: ["exhibitor-lead", leadId, "orders"],
+    queryFn: () => call(api.GET("/api/v1/exhibitor-leads/{lead_id}/orders", { params: { path: { lead_id: leadId } } })),
+  });

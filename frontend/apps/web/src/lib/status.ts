@@ -57,6 +57,12 @@ const TONES: Record<string, Tone> = {
   SIGNED: "green",
   VERIFIED: "green",
   REJECTED: "red",
+  // exhibitor orders
+  SUBMITTED: "blue",
+  APPROVED: "green",
+  RETURNED: "amber",
+  IN_PROGRESS: "amber",
+  NOT_REQUIRED: "gray",
   UNPAID: "gray",
   PARTIAL: "amber",
   PAID: "green",

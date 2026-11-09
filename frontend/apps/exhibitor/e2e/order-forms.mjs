@@ -142,6 +142,63 @@ try {
   await portal.getByRole("button", { name: "Order More" }).click();
   await portal.getByLabel("Quantity of Fluorescent lamp").waitFor();
 
+  // --- desk review ------------------------------------------------------------------------
+  const deskShot = (name) => desk.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
+  await desk.setViewportSize({ width: 1440, height: 900 });
+  await desk.evaluate((id) => localStorage.setItem("ems.edition", id), edition.id);
+  await desk.goto(`${DESK}/app/exhibitor-orders`);
+  await desk.getByRole("cell", { name: `${edition.code}-O-0001` }).click();
+  await desk.getByRole("heading", { name: `Order ${edition.code}-O-0001` }).waitFor();
+  check(await desk.getByRole("button", { name: "Approve" }).isDisabled(), "desk: Approve waits for the extra item price and the contract");
+  await desk.getByLabel("Unit price").fill("250000");
+  await desk.getByRole("button", { name: "Set Price" }).click();
+  await desk.getByText("Total IDR 4,564,800").waitFor();
+  await deskShot("06-desk-order");
+  check(true, "desk: extra item priced, total updated");
+
+  await desk.getByRole("link", { name: "Return to Exhibitor" }).click();
+  await desk.getByLabel("What should the exhibitor change?").fill("Please add the power outlet for the spotlights.");
+  await desk.getByRole("button", { name: "Return to Exhibitor" }).click();
+  await desk.getByRole("heading", { name: `Order ${edition.code}-O-0001` }).waitFor();
+  check(true, "desk: order returned with a reason");
+
+  await portal.reload();
+  await portal.getByText("Please add the power outlet for the spotlights.", { exact: false }).waitFor();
+  await portal.getByLabel("Quantity of Power 2 A").fill("1");
+  await portal.getByRole("button", { name: "Review and Send" }).click();
+  await portal.getByRole("button", { name: "Send Order" }).click();
+  await portal.getByText(`Order ${edition.code}-O-0001 sent.`, { exact: false }).waitFor();
+  check(true, "portal: returned order changed and sent again with the same number");
+
+  // Sign the contract through the portal API, then approve in the desk.
+  const portalApi = `${new URL(PORTAL).origin}/api/v1/portal`;
+  const portalCsrf = (await (await portal.request.get(`${portalApi}/auth/me`)).json()).csrf_token;
+  const contractUrl = `${portalApi}/exhibitors/${lead.id}/contract`;
+  const contract = await (await portal.request.get(contractUrl)).json();
+  await portal.request.patch(contractUrl, { headers: { "X-CSRF-Token": portalCsrf }, data: { pic_name: "E2E PIC", company_address: "Jl. E2E 1, Jakarta", version: contract.version } });
+  const filled = await (await portal.request.get(contractUrl)).json();
+  const signed = await portal.request.post(`${contractUrl}/signed-copy`, {
+    headers: { "X-CSRF-Token": portalCsrf },
+    multipart: { version: String(filled.version), file: { name: "signed.pdf", mimeType: "application/pdf", buffer: PDF } },
+  });
+  check(signed.ok(), "contract signed");
+  await desk.reload();
+  // The extra item kept its staff price: the exhibitor sent it back unchanged.
+  await desk.getByText("Total IDR 5,579,100").waitFor();
+  await desk.getByRole("button", { name: "Approve" }).click();
+  await desk.getByText(`Order ${edition.code}-O-0001 approved`).waitFor();
+  await deskShot("07-desk-approved");
+  check(true, "desk: order approved once priced and the contract signed");
+
+  await desk.goto(`${DESK}/app/exhibitor-leads/${lead.id}?tab=orders`);
+  await desk.getByText("Forms: 1 of 1 done").waitFor();
+  await deskShot("08-lead-orders-tab");
+  check(true, "desk: the lead's Orders tab shows the progress and the order");
+
+  await portal.goto(`${PORTAL}/e/${lead.id}/forms/04`);
+  await portal.getByText("Approved", { exact: true }).first().waitFor();
+  check(true, "portal: the exhibitor sees the order approved");
+
   await portal.getByRole("link", { name: "Order Forms" }).first().click();
   await portal.getByText("1 of 1 done").waitFor();
   await portal.setViewportSize({ width: 390, height: 844 });

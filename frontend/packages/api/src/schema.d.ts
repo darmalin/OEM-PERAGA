@@ -1847,6 +1847,159 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exhibitor-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Orders */
+        get: operations["list_orders_api_v1_exhibitor_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Orders */
+        get: operations["export_orders_api_v1_exhibitor_orders_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Order */
+        get: operations["get_order_api_v1_exhibitor_orders__order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}/lines/{line_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Price Line */
+        patch: operations["price_line_api_v1_exhibitor_orders__order_id__lines__line_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Order */
+        post: operations["review_order_api_v1_exhibitor_orders__order_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Order */
+        post: operations["cancel_order_api_v1_exhibitor_orders__order_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}/lines/{line_id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Staff Line Image */
+        get: operations["staff_line_image_api_v1_exhibitor_orders__order_id__lines__line_id__image_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Staff File */
+        get: operations["staff_file_api_v1_exhibitor_orders__order_id__files__file_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lead Orders */
+        get: operations["lead_orders_api_v1_exhibitor_leads__lead_id__orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/visitor-registrations": {
         parameters: {
             query?: never;
@@ -5492,6 +5645,19 @@ export interface components {
             /** Filters */
             filters?: string | null;
         };
+        /** LeadFormProgressOut */
+        LeadFormProgressOut: {
+            /**
+             * Form Id
+             * Format: uuid
+             */
+            form_id: string;
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            progress: components["schemas"]["FormProgress"];
+        };
         /** LeadListItem */
         LeadListItem: {
             /**
@@ -5549,6 +5715,13 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** LeadOrdersOut */
+        LeadOrdersOut: {
+            /** Forms */
+            forms: components["schemas"]["LeadFormProgressOut"][];
+            /** Orders */
+            orders: components["schemas"]["StaffOrderRowOut"][];
         };
         /** LeadOut */
         LeadOut: {
@@ -5807,6 +5980,13 @@ export interface components {
             /** By Country */
             by_country: components["schemas"]["Count"][];
         };
+        /** LinePriceIn */
+        LinePriceIn: {
+            /** Unit Price */
+            unit_price: number | string;
+            /** Version */
+            version: number;
+        };
         /**
          * LinkState
          * @enum {string}
@@ -5859,6 +6039,13 @@ export interface components {
          * @enum {string}
          */
         OptionField: "BUSINESS_TYPE" | "BRANCH" | "EXHIBITION_TYPE" | "PRODUCT_CATEGORY";
+        /** OrderCancelIn */
+        OrderCancelIn: {
+            /** Reason */
+            reason: string;
+            /** Version */
+            version: number;
+        };
         /**
          * OrderDraftIn
          * @description Replaces the order's lines; lines left out are removed.
@@ -6118,6 +6305,18 @@ export interface components {
             /** Quantity */
             quantity: number;
         };
+        /** OrderReviewIn */
+        OrderReviewIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "APPROVED" | "RETURNED";
+            /** Notes */
+            notes?: string | null;
+            /** Version */
+            version: number;
+        };
         /**
          * OrderStatus
          * @enum {string}
@@ -6320,6 +6519,17 @@ export interface components {
         Page_ScanOut_: {
             /** Items */
             items: components["schemas"]["ScanOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[StaffOrderRowOut] */
+        Page_StaffOrderRowOut_: {
+            /** Items */
+            items: components["schemas"]["StaffOrderRowOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -7358,6 +7568,113 @@ export interface components {
          * @enum {string}
          */
         SmtpSecurity: "NONE" | "STARTTLS" | "SSL";
+        /** StaffOrderOut */
+        StaffOrderOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Order Number */
+            order_number: string | null;
+            status: components["schemas"]["OrderStatus"];
+            /**
+             * Form Id
+             * Format: uuid
+             */
+            form_id: string;
+            /** Form Code */
+            form_code: string;
+            /** Form Title */
+            form_title: string;
+            /**
+             * Exhibitor Lead Id
+             * Format: uuid
+             */
+            exhibitor_lead_id: string;
+            /** Company Name */
+            company_name: string;
+            /** Booth Code */
+            booth_code: string | null;
+            /** Total */
+            total: string;
+            /** Currency */
+            currency: string;
+            /** Unpriced Lines */
+            unpriced_lines: number;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Contract Signed */
+            contract_signed: boolean;
+            /** Waiting For Contract */
+            waiting_for_contract: boolean;
+            /** Booth Changed */
+            booth_changed: boolean;
+            price_period: components["schemas"]["PricePeriod"] | null;
+            /** Remarks */
+            remarks: string | null;
+            /** Booth Code At Submit */
+            booth_code_at_submit: string | null;
+            /** Area Sqm At Submit */
+            area_sqm_at_submit: string | null;
+            /** Review Notes */
+            review_notes: string | null;
+            /** Reviewed At */
+            reviewed_at: string | null;
+            /** Reviewed By Name */
+            reviewed_by_name: string | null;
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Lines */
+            lines: components["schemas"]["PortalOrderLineOut"][];
+            /** Files */
+            files: components["schemas"]["PortalOrderFileOut"][];
+            /** Version */
+            version: number;
+        };
+        /** StaffOrderRowOut */
+        StaffOrderRowOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Order Number */
+            order_number: string | null;
+            status: components["schemas"]["OrderStatus"];
+            /**
+             * Form Id
+             * Format: uuid
+             */
+            form_id: string;
+            /** Form Code */
+            form_code: string;
+            /** Form Title */
+            form_title: string;
+            /**
+             * Exhibitor Lead Id
+             * Format: uuid
+             */
+            exhibitor_lead_id: string;
+            /** Company Name */
+            company_name: string;
+            /** Booth Code */
+            booth_code: string | null;
+            /** Total */
+            total: string;
+            /** Currency */
+            currency: string;
+            /** Unpriced Lines */
+            unpriced_lines: number;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Contract Signed */
+            contract_signed: boolean;
+            /** Waiting For Contract */
+            waiting_for_contract: boolean;
+            /** Booth Changed */
+            booth_changed: boolean;
+        };
         /** StageChangeIn */
         StageChangeIn: {
             /**
@@ -12421,6 +12738,311 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortalOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_orders_api_v1_exhibitor_orders_get: {
+        parameters: {
+            query: {
+                page?: number;
+                page_size?: number;
+                edition_id: string;
+                form_id?: string | null;
+                status?: components["schemas"]["OrderStatus"] | null;
+                q?: string | null;
+                exhibitor_lead_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_StaffOrderRowOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_orders_api_v1_exhibitor_orders_export_get: {
+        parameters: {
+            query: {
+                edition_id: string;
+                form_id: string;
+                status?: components["schemas"]["OrderStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_order_api_v1_exhibitor_orders__order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    price_line_api_v1_exhibitor_orders__order_id__lines__line_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinePriceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_order_api_v1_exhibitor_orders__order_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_order_api_v1_exhibitor_orders__order_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderCancelIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    staff_line_image_api_v1_exhibitor_orders__order_id__lines__line_id__image_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    staff_file_api_v1_exhibitor_orders__order_id__files__file_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lead_orders_api_v1_exhibitor_leads__lead_id__orders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadOrdersOut"];
                 };
             };
             /** @description Validation Error */

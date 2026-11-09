@@ -44,6 +44,7 @@ import { Route as AppExhibitionsNewRouteImport } from './routes/app/exhibitions/
 import { Route as AppExhibitorLeadsIndexRouteImport } from './routes/app/exhibitor-leads/index'
 import { Route as AppExhibitorLeadsBoardRouteImport } from './routes/app/exhibitor-leads/board'
 import { Route as AppExhibitorLeadsNewRouteImport } from './routes/app/exhibitor-leads/new'
+import { Route as AppExhibitorOrdersIndexRouteImport } from './routes/app/exhibitor-orders/index'
 import { Route as AppExportsIndexRouteImport } from './routes/app/exports/index'
 import { Route as AppExportsNewRouteImport } from './routes/app/exports/new'
 import { Route as AppFieldOptionsIndexRouteImport } from './routes/app/field-options/index'
@@ -98,6 +99,9 @@ import { Route as AppExhibitorLeadsLeadIdInvitationRouteImport } from './routes/
 import { Route as AppExhibitorLeadsLeadIdOwnerRouteImport } from './routes/app/exhibitor-leads/$leadId/owner'
 import { Route as AppExhibitorLeadsLeadIdPortalAccountRouteImport } from './routes/app/exhibitor-leads/$leadId/portal-account'
 import { Route as AppExhibitorLeadsLeadIdStageRouteImport } from './routes/app/exhibitor-leads/$leadId/stage'
+import { Route as AppExhibitorOrdersOrderIdIndexRouteImport } from './routes/app/exhibitor-orders/$orderId/index'
+import { Route as AppExhibitorOrdersOrderIdCancelRouteImport } from './routes/app/exhibitor-orders/$orderId/cancel'
+import { Route as AppExhibitorOrdersOrderIdReturnRouteImport } from './routes/app/exhibitor-orders/$orderId/return'
 import { Route as AppOrderFormsFormIdIndexRouteImport } from './routes/app/order-forms/$formId/index'
 import { Route as AppOrderFormsFormIdImportRouteImport } from './routes/app/order-forms/$formId/import'
 import { Route as AppRegistrationsRegistrationIdIndexRouteImport } from './routes/app/registrations/$registrationId/index'
@@ -287,6 +291,11 @@ const AppExhibitorLeadsBoardRoute = AppExhibitorLeadsBoardRouteImport.update({
 const AppExhibitorLeadsNewRoute = AppExhibitorLeadsNewRouteImport.update({
   id: '/exhibitor-leads/new',
   path: '/exhibitor-leads/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExhibitorOrdersIndexRoute = AppExhibitorOrdersIndexRouteImport.update({
+  id: '/exhibitor-orders/',
+  path: '/exhibitor-orders/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppExportsIndexRoute = AppExportsIndexRouteImport.update({
@@ -572,6 +581,24 @@ const AppExhibitorLeadsLeadIdStageRoute =
     path: '/exhibitor-leads/$leadId/stage',
     getParentRoute: () => AppRoute,
   } as any)
+const AppExhibitorOrdersOrderIdIndexRoute =
+  AppExhibitorOrdersOrderIdIndexRouteImport.update({
+    id: '/exhibitor-orders/$orderId/',
+    path: '/exhibitor-orders/$orderId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppExhibitorOrdersOrderIdCancelRoute =
+  AppExhibitorOrdersOrderIdCancelRouteImport.update({
+    id: '/exhibitor-orders/$orderId/cancel',
+    path: '/exhibitor-orders/$orderId/cancel',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppExhibitorOrdersOrderIdReturnRoute =
+  AppExhibitorOrdersOrderIdReturnRouteImport.update({
+    id: '/exhibitor-orders/$orderId/return',
+    path: '/exhibitor-orders/$orderId/return',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppOrderFormsFormIdIndexRoute =
   AppOrderFormsFormIdIndexRouteImport.update({
     id: '/order-forms/$formId/',
@@ -720,6 +747,7 @@ export interface FileRoutesByFullPath {
   '/app/editions/': typeof AppEditionsIndexRoute
   '/app/exhibitions/': typeof AppExhibitionsIndexRoute
   '/app/exhibitor-leads/': typeof AppExhibitorLeadsIndexRoute
+  '/app/exhibitor-orders/': typeof AppExhibitorOrdersIndexRoute
   '/app/exports/': typeof AppExportsIndexRoute
   '/app/field-options/': typeof AppFieldOptionsIndexRoute
   '/app/followups/': typeof AppFollowupsIndexRoute
@@ -744,6 +772,8 @@ export interface FileRoutesByFullPath {
   '/app/exhibitor-leads/$leadId/owner': typeof AppExhibitorLeadsLeadIdOwnerRoute
   '/app/exhibitor-leads/$leadId/portal-account': typeof AppExhibitorLeadsLeadIdPortalAccountRoute
   '/app/exhibitor-leads/$leadId/stage': typeof AppExhibitorLeadsLeadIdStageRoute
+  '/app/exhibitor-orders/$orderId/cancel': typeof AppExhibitorOrdersOrderIdCancelRoute
+  '/app/exhibitor-orders/$orderId/return': typeof AppExhibitorOrdersOrderIdReturnRoute
   '/app/order-forms/$formId/import': typeof AppOrderFormsFormIdImportRoute
   '/app/registrations/$registrationId/revoke': typeof AppRegistrationsRegistrationIdRevokeRoute
   '/app/visitor-leads/$leadId/followup': typeof AppVisitorLeadsLeadIdFollowupRoute
@@ -751,6 +781,7 @@ export interface FileRoutesByFullPath {
   '/app/visitor-leads/$leadId/register': typeof AppVisitorLeadsLeadIdRegisterRoute
   '/app/devices/$deviceId/': typeof AppDevicesDeviceIdIndexRoute
   '/app/exhibitor-leads/$leadId/': typeof AppExhibitorLeadsLeadIdIndexRoute
+  '/app/exhibitor-orders/$orderId/': typeof AppExhibitorOrdersOrderIdIndexRoute
   '/app/order-forms/$formId/': typeof AppOrderFormsFormIdIndexRoute
   '/app/registrations/$registrationId/': typeof AppRegistrationsRegistrationIdIndexRoute
   '/app/visitor-leads/$leadId/': typeof AppVisitorLeadsLeadIdIndexRoute
@@ -823,6 +854,7 @@ export interface FileRoutesByTo {
   '/app/editions': typeof AppEditionsIndexRoute
   '/app/exhibitions': typeof AppExhibitionsIndexRoute
   '/app/exhibitor-leads': typeof AppExhibitorLeadsIndexRoute
+  '/app/exhibitor-orders': typeof AppExhibitorOrdersIndexRoute
   '/app/exports': typeof AppExportsIndexRoute
   '/app/field-options': typeof AppFieldOptionsIndexRoute
   '/app/followups': typeof AppFollowupsIndexRoute
@@ -847,6 +879,8 @@ export interface FileRoutesByTo {
   '/app/exhibitor-leads/$leadId/owner': typeof AppExhibitorLeadsLeadIdOwnerRoute
   '/app/exhibitor-leads/$leadId/portal-account': typeof AppExhibitorLeadsLeadIdPortalAccountRoute
   '/app/exhibitor-leads/$leadId/stage': typeof AppExhibitorLeadsLeadIdStageRoute
+  '/app/exhibitor-orders/$orderId/cancel': typeof AppExhibitorOrdersOrderIdCancelRoute
+  '/app/exhibitor-orders/$orderId/return': typeof AppExhibitorOrdersOrderIdReturnRoute
   '/app/order-forms/$formId/import': typeof AppOrderFormsFormIdImportRoute
   '/app/registrations/$registrationId/revoke': typeof AppRegistrationsRegistrationIdRevokeRoute
   '/app/visitor-leads/$leadId/followup': typeof AppVisitorLeadsLeadIdFollowupRoute
@@ -854,6 +888,7 @@ export interface FileRoutesByTo {
   '/app/visitor-leads/$leadId/register': typeof AppVisitorLeadsLeadIdRegisterRoute
   '/app/devices/$deviceId': typeof AppDevicesDeviceIdIndexRoute
   '/app/exhibitor-leads/$leadId': typeof AppExhibitorLeadsLeadIdIndexRoute
+  '/app/exhibitor-orders/$orderId': typeof AppExhibitorOrdersOrderIdIndexRoute
   '/app/order-forms/$formId': typeof AppOrderFormsFormIdIndexRoute
   '/app/registrations/$registrationId': typeof AppRegistrationsRegistrationIdIndexRoute
   '/app/visitor-leads/$leadId': typeof AppVisitorLeadsLeadIdIndexRoute
@@ -929,6 +964,7 @@ export interface FileRoutesById {
   '/app/editions/': typeof AppEditionsIndexRoute
   '/app/exhibitions/': typeof AppExhibitionsIndexRoute
   '/app/exhibitor-leads/': typeof AppExhibitorLeadsIndexRoute
+  '/app/exhibitor-orders/': typeof AppExhibitorOrdersIndexRoute
   '/app/exports/': typeof AppExportsIndexRoute
   '/app/field-options/': typeof AppFieldOptionsIndexRoute
   '/app/followups/': typeof AppFollowupsIndexRoute
@@ -953,6 +989,8 @@ export interface FileRoutesById {
   '/app/exhibitor-leads/$leadId/owner': typeof AppExhibitorLeadsLeadIdOwnerRoute
   '/app/exhibitor-leads/$leadId/portal-account': typeof AppExhibitorLeadsLeadIdPortalAccountRoute
   '/app/exhibitor-leads/$leadId/stage': typeof AppExhibitorLeadsLeadIdStageRoute
+  '/app/exhibitor-orders/$orderId/cancel': typeof AppExhibitorOrdersOrderIdCancelRoute
+  '/app/exhibitor-orders/$orderId/return': typeof AppExhibitorOrdersOrderIdReturnRoute
   '/app/order-forms/$formId/import': typeof AppOrderFormsFormIdImportRoute
   '/app/registrations/$registrationId/revoke': typeof AppRegistrationsRegistrationIdRevokeRoute
   '/app/visitor-leads/$leadId/followup': typeof AppVisitorLeadsLeadIdFollowupRoute
@@ -960,6 +998,7 @@ export interface FileRoutesById {
   '/app/visitor-leads/$leadId/register': typeof AppVisitorLeadsLeadIdRegisterRoute
   '/app/devices/$deviceId/': typeof AppDevicesDeviceIdIndexRoute
   '/app/exhibitor-leads/$leadId/': typeof AppExhibitorLeadsLeadIdIndexRoute
+  '/app/exhibitor-orders/$orderId/': typeof AppExhibitorOrdersOrderIdIndexRoute
   '/app/order-forms/$formId/': typeof AppOrderFormsFormIdIndexRoute
   '/app/registrations/$registrationId/': typeof AppRegistrationsRegistrationIdIndexRoute
   '/app/visitor-leads/$leadId/': typeof AppVisitorLeadsLeadIdIndexRoute
@@ -1036,6 +1075,7 @@ export interface FileRouteTypes {
     | '/app/editions/'
     | '/app/exhibitions/'
     | '/app/exhibitor-leads/'
+    | '/app/exhibitor-orders/'
     | '/app/exports/'
     | '/app/field-options/'
     | '/app/followups/'
@@ -1060,6 +1100,8 @@ export interface FileRouteTypes {
     | '/app/exhibitor-leads/$leadId/owner'
     | '/app/exhibitor-leads/$leadId/portal-account'
     | '/app/exhibitor-leads/$leadId/stage'
+    | '/app/exhibitor-orders/$orderId/cancel'
+    | '/app/exhibitor-orders/$orderId/return'
     | '/app/order-forms/$formId/import'
     | '/app/registrations/$registrationId/revoke'
     | '/app/visitor-leads/$leadId/followup'
@@ -1067,6 +1109,7 @@ export interface FileRouteTypes {
     | '/app/visitor-leads/$leadId/register'
     | '/app/devices/$deviceId/'
     | '/app/exhibitor-leads/$leadId/'
+    | '/app/exhibitor-orders/$orderId/'
     | '/app/order-forms/$formId/'
     | '/app/registrations/$registrationId/'
     | '/app/visitor-leads/$leadId/'
@@ -1139,6 +1182,7 @@ export interface FileRouteTypes {
     | '/app/editions'
     | '/app/exhibitions'
     | '/app/exhibitor-leads'
+    | '/app/exhibitor-orders'
     | '/app/exports'
     | '/app/field-options'
     | '/app/followups'
@@ -1163,6 +1207,8 @@ export interface FileRouteTypes {
     | '/app/exhibitor-leads/$leadId/owner'
     | '/app/exhibitor-leads/$leadId/portal-account'
     | '/app/exhibitor-leads/$leadId/stage'
+    | '/app/exhibitor-orders/$orderId/cancel'
+    | '/app/exhibitor-orders/$orderId/return'
     | '/app/order-forms/$formId/import'
     | '/app/registrations/$registrationId/revoke'
     | '/app/visitor-leads/$leadId/followup'
@@ -1170,6 +1216,7 @@ export interface FileRouteTypes {
     | '/app/visitor-leads/$leadId/register'
     | '/app/devices/$deviceId'
     | '/app/exhibitor-leads/$leadId'
+    | '/app/exhibitor-orders/$orderId'
     | '/app/order-forms/$formId'
     | '/app/registrations/$registrationId'
     | '/app/visitor-leads/$leadId'
@@ -1244,6 +1291,7 @@ export interface FileRouteTypes {
     | '/app/editions/'
     | '/app/exhibitions/'
     | '/app/exhibitor-leads/'
+    | '/app/exhibitor-orders/'
     | '/app/exports/'
     | '/app/field-options/'
     | '/app/followups/'
@@ -1268,6 +1316,8 @@ export interface FileRouteTypes {
     | '/app/exhibitor-leads/$leadId/owner'
     | '/app/exhibitor-leads/$leadId/portal-account'
     | '/app/exhibitor-leads/$leadId/stage'
+    | '/app/exhibitor-orders/$orderId/cancel'
+    | '/app/exhibitor-orders/$orderId/return'
     | '/app/order-forms/$formId/import'
     | '/app/registrations/$registrationId/revoke'
     | '/app/visitor-leads/$leadId/followup'
@@ -1275,6 +1325,7 @@ export interface FileRouteTypes {
     | '/app/visitor-leads/$leadId/register'
     | '/app/devices/$deviceId/'
     | '/app/exhibitor-leads/$leadId/'
+    | '/app/exhibitor-orders/$orderId/'
     | '/app/order-forms/$formId/'
     | '/app/registrations/$registrationId/'
     | '/app/visitor-leads/$leadId/'
@@ -1540,6 +1591,13 @@ declare module '@tanstack/react-router' {
       path: '/exhibitor-leads/new'
       fullPath: '/app/exhibitor-leads/new'
       preLoaderRoute: typeof AppExhibitorLeadsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-orders/': {
+      id: '/app/exhibitor-orders/'
+      path: '/exhibitor-orders'
+      fullPath: '/app/exhibitor-orders/'
+      preLoaderRoute: typeof AppExhibitorOrdersIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/exports/': {
@@ -1920,6 +1978,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExhibitorLeadsLeadIdStageRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/exhibitor-orders/$orderId/': {
+      id: '/app/exhibitor-orders/$orderId/'
+      path: '/exhibitor-orders/$orderId'
+      fullPath: '/app/exhibitor-orders/$orderId/'
+      preLoaderRoute: typeof AppExhibitorOrdersOrderIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-orders/$orderId/cancel': {
+      id: '/app/exhibitor-orders/$orderId/cancel'
+      path: '/exhibitor-orders/$orderId/cancel'
+      fullPath: '/app/exhibitor-orders/$orderId/cancel'
+      preLoaderRoute: typeof AppExhibitorOrdersOrderIdCancelRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exhibitor-orders/$orderId/return': {
+      id: '/app/exhibitor-orders/$orderId/return'
+      path: '/exhibitor-orders/$orderId/return'
+      fullPath: '/app/exhibitor-orders/$orderId/return'
+      preLoaderRoute: typeof AppExhibitorOrdersOrderIdReturnRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/order-forms/$formId/': {
       id: '/app/order-forms/$formId/'
       path: '/order-forms/$formId'
@@ -2068,6 +2147,7 @@ interface AppRouteChildren {
   AppEditionsIndexRoute: typeof AppEditionsIndexRoute
   AppExhibitionsIndexRoute: typeof AppExhibitionsIndexRoute
   AppExhibitorLeadsIndexRoute: typeof AppExhibitorLeadsIndexRoute
+  AppExhibitorOrdersIndexRoute: typeof AppExhibitorOrdersIndexRoute
   AppExportsIndexRoute: typeof AppExportsIndexRoute
   AppFieldOptionsIndexRoute: typeof AppFieldOptionsIndexRoute
   AppFollowupsIndexRoute: typeof AppFollowupsIndexRoute
@@ -2086,6 +2166,8 @@ interface AppRouteChildren {
   AppExhibitorLeadsLeadIdOwnerRoute: typeof AppExhibitorLeadsLeadIdOwnerRoute
   AppExhibitorLeadsLeadIdPortalAccountRoute: typeof AppExhibitorLeadsLeadIdPortalAccountRoute
   AppExhibitorLeadsLeadIdStageRoute: typeof AppExhibitorLeadsLeadIdStageRoute
+  AppExhibitorOrdersOrderIdCancelRoute: typeof AppExhibitorOrdersOrderIdCancelRoute
+  AppExhibitorOrdersOrderIdReturnRoute: typeof AppExhibitorOrdersOrderIdReturnRoute
   AppOrderFormsFormIdImportRoute: typeof AppOrderFormsFormIdImportRoute
   AppRegistrationsRegistrationIdRevokeRoute: typeof AppRegistrationsRegistrationIdRevokeRoute
   AppVisitorLeadsLeadIdFollowupRoute: typeof AppVisitorLeadsLeadIdFollowupRoute
@@ -2093,6 +2175,7 @@ interface AppRouteChildren {
   AppVisitorLeadsLeadIdRegisterRoute: typeof AppVisitorLeadsLeadIdRegisterRoute
   AppDevicesDeviceIdIndexRoute: typeof AppDevicesDeviceIdIndexRoute
   AppExhibitorLeadsLeadIdIndexRoute: typeof AppExhibitorLeadsLeadIdIndexRoute
+  AppExhibitorOrdersOrderIdIndexRoute: typeof AppExhibitorOrdersOrderIdIndexRoute
   AppOrderFormsFormIdIndexRoute: typeof AppOrderFormsFormIdIndexRoute
   AppRegistrationsRegistrationIdIndexRoute: typeof AppRegistrationsRegistrationIdIndexRoute
   AppVisitorLeadsLeadIdIndexRoute: typeof AppVisitorLeadsLeadIdIndexRoute
@@ -2149,6 +2232,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEditionsIndexRoute: AppEditionsIndexRoute,
   AppExhibitionsIndexRoute: AppExhibitionsIndexRoute,
   AppExhibitorLeadsIndexRoute: AppExhibitorLeadsIndexRoute,
+  AppExhibitorOrdersIndexRoute: AppExhibitorOrdersIndexRoute,
   AppExportsIndexRoute: AppExportsIndexRoute,
   AppFieldOptionsIndexRoute: AppFieldOptionsIndexRoute,
   AppFollowupsIndexRoute: AppFollowupsIndexRoute,
@@ -2170,6 +2254,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppExhibitorLeadsLeadIdPortalAccountRoute:
     AppExhibitorLeadsLeadIdPortalAccountRoute,
   AppExhibitorLeadsLeadIdStageRoute: AppExhibitorLeadsLeadIdStageRoute,
+  AppExhibitorOrdersOrderIdCancelRoute: AppExhibitorOrdersOrderIdCancelRoute,
+  AppExhibitorOrdersOrderIdReturnRoute: AppExhibitorOrdersOrderIdReturnRoute,
   AppOrderFormsFormIdImportRoute: AppOrderFormsFormIdImportRoute,
   AppRegistrationsRegistrationIdRevokeRoute:
     AppRegistrationsRegistrationIdRevokeRoute,
@@ -2178,6 +2264,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppVisitorLeadsLeadIdRegisterRoute: AppVisitorLeadsLeadIdRegisterRoute,
   AppDevicesDeviceIdIndexRoute: AppDevicesDeviceIdIndexRoute,
   AppExhibitorLeadsLeadIdIndexRoute: AppExhibitorLeadsLeadIdIndexRoute,
+  AppExhibitorOrdersOrderIdIndexRoute: AppExhibitorOrdersOrderIdIndexRoute,
   AppOrderFormsFormIdIndexRoute: AppOrderFormsFormIdIndexRoute,
   AppRegistrationsRegistrationIdIndexRoute:
     AppRegistrationsRegistrationIdIndexRoute,

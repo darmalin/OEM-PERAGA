@@ -164,7 +164,7 @@ def _item_price(item: OrderFormItem, period: PricePeriod | None) -> Decimal:
     )
 
 
-def _line_out(line: ExhibitorOrderLine) -> PortalOrderLineOut:
+def line_out(line: ExhibitorOrderLine) -> PortalOrderLineOut:
     return PortalOrderLineOut(
         id=line.id,
         item_id=line.item_id,
@@ -181,7 +181,7 @@ def _line_out(line: ExhibitorOrderLine) -> PortalOrderLineOut:
     )
 
 
-def _file_out(f: ExhibitorOrderFile) -> PortalOrderFileOut:
+def file_out(f: ExhibitorOrderFile) -> PortalOrderFileOut:
     return PortalOrderFileOut(
         id=f.id,
         purpose=AttachmentPurpose(f.purpose),
@@ -217,8 +217,8 @@ def _order_out(
         waiting_for_contract=status == OrderStatus.SUBMITTED
         and costs_money
         and not contract_signed,
-        lines=[_line_out(line) for line in lines],
-        files=[_file_out(f) for f in files],
+        lines=[line_out(line) for line in lines],
+        files=[file_out(f) for f in files],
         version=order.version,
     )
 
@@ -441,7 +441,9 @@ async def update_order(
         raise ValidationFailed(fields=errors)
 
     existing = list(await repo.order_lines(session, [order.id]))
-    kept_images = {line.id: line.image_key for line in existing if line.item_id is None}
+    # Extra items saved again with their id keep their picture, and the staff price as long as
+    # the exhibitor did not change what the item is (a returned order sent back).
+    kept = {line.id: line for line in existing if line.item_id is None}
     for line in existing:
         await session.delete(line)
     await session.flush()
@@ -467,6 +469,9 @@ async def update_order(
         )
     for n, custom in enumerate(data.custom_lines):
         name, size, notes = _clean_custom(custom.name, custom.size, custom.notes)
+        before = kept.get(custom.id) if custom.id else None
+        same = before is not None and (before.name, before.size) == (name, size)
+        staff_price = before.unit_price if same and before is not None else None
         lines.append(
             ExhibitorOrderLine(
                 edition_id=order.edition_id,
@@ -476,7 +481,9 @@ async def update_order(
                 notes=notes,
                 quantity=custom.quantity,
                 free_quantity=0,
-                image_key=kept_images.get(custom.id) if custom.id else None,
+                unit_price=staff_price,
+                amount=line_amount(custom.quantity, 0, staff_price),
+                image_key=before.image_key if before is not None else None,
                 sort_order=len(data.lines) + n,
             )
         )

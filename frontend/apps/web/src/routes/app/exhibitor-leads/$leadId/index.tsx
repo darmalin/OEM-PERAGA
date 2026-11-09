@@ -8,6 +8,7 @@ import { z } from "zod";
 import { ContractTab } from "@/features/exhibitors/contract-tab";
 import { ExhibitorLeadFields, LEAD_FIELDS, leadBody, type ExhibitorLeadValues } from "@/features/exhibitors/lead-form";
 import { PaymentsTab } from "@/features/exhibitors/payments-tab";
+import { LeadOrdersTab } from "@/features/order-forms/lead-orders-tab";
 import { PortalAccountPanel } from "@/features/exhibitors/portal-account-panel";
 import { contractQuery, type ExhibitorLead, exhibitorLeadQuery, leadOwnersQuery, STAGE_MOVES } from "@/features/exhibitors/queries";
 import { can, useMe } from "@/lib/auth";
@@ -26,7 +27,7 @@ import { Facts, FormActions, Page, PageHead, Panel, PanelHeader } from "@/ui/pag
 import { ErrorState, FormSkeleton } from "@/ui/states";
 import { TabList, TabPanel, Tabs } from "@/ui/tabs";
 
-const TABS = ["details", "contract", "payments", "activity"] as const;
+const TABS = ["details", "contract", "payments", "orders", "activity"] as const;
 
 export const Route = createFileRoute("/app/exhibitor-leads/$leadId/")({
   validateSearch: z.object({ tab: z.enum(TABS).default("details") }),
@@ -78,12 +79,14 @@ function ExhibitorLeadDetail() {
                 { value: "details", label: "Details" },
                 { value: "contract", label: "Contract" },
                 { value: "payments", label: "Payments" },
+                { value: "orders", label: "Orders" },
                 { value: "activity", label: "Activity" },
               ]}
             />
             <TabPanel value="details"><DetailsTab lead={l} /></TabPanel>
             <TabPanel value="contract"><ContractTab lead={l} timezone={tz} /></TabPanel>
             <TabPanel value="payments"><PaymentsTab lead={l} timezone={tz} /></TabPanel>
+            <TabPanel value="orders"><LeadOrdersTab lead={l} timezone={tz} /></TabPanel>
             <TabPanel value="activity"><ActivityTab leadId={l.id} timezone={tz} /></TabPanel>
           </Tabs>
         </Panel>

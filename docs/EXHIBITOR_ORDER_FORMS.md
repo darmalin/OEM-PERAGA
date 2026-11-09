@@ -246,7 +246,8 @@ URL mengikuti pola project: flat, `edition_id` di query/body.
 - `POST /api/v1/exhibitor-orders/{id}/review` `{decision: APPROVED|RETURNED, notes, version}`
 - `POST /api/v1/exhibitor-orders/{id}/cancel` `{reason, version}`
 - `GET /api/v1/exhibitor-leads/{id}/orders`: semua order dan progres per form untuk satu exhibitor
-- Export per form (job worker): contoh daftar nama badge untuk dicetak, rekap furnitur untuk kontraktor
+- `GET /api/v1/exhibitor-orders/export?edition_id=&form_id=&status=`: export per form (xlsx), contoh rekap furnitur untuk kontraktor
+- `GET /api/v1/exhibitor-orders/{id}/files/{file_id}` dan `.../lines/{line_id}/image`: lampiran dan gambar item tambahan
 
 **Portal** (`/api/v1/portal/exhibitors/{lead_id}/...`)
 - `GET .../order-forms`: daftar form `is_published` dengan deadline, progres, jumlah order
@@ -325,11 +326,14 @@ Catatan Phase 3:
   `Depends(get_session, scope="function")` di semua router. E2E mencoba ulang sekali pada 404 sampai itu diperbaiki.
 
 ### Phase 4: Review di desk
-- [ ] API antrian, detail, harga item tambahan, review, cancel; audit
-- [ ] Desk: Orders, halaman order, tab Orders di lead
-- [ ] Export per form
-- [ ] Peringatan "Booth changed since submit" di halaman review (O2)
-- [ ] Tes: approve butuh semua harga terisi, approve order berharga dengan contract DRAFT ditolak (`CONTRACT_NOT_SIGNED`), alasan wajib, dua reviewer bersamaan (`version`)
+- [x] API (`app/modules/orders/review.py`, `orders_router`): antrian (draft tidak pernah tampil; filter status, form, cari perusahaan/nomor; scope lead: edition, team, atau lead sendiri), detail, harga item tambahan (hanya SUBMITTED; item katalog 422 `CATALOG_PRICE`), review Approve / Return (alasan wajib; Approve butuh semua harga 422 `UNPRICED_LINES` dan, untuk order berharga, contract SIGNED 422 `CONTRACT_NOT_SIGNED`), cancel dengan alasan; semua tercatat di audit (`price_line`, `approve`, `return`, `cancel`, `export`). Membaca: `exhibitor_lead.read`; mengubah: `exhibitor_order.review`, keduanya dalam scope lead
+- [x] Desk: menu Exhibitors → Orders (antrian, mulai dari "Waiting for Review"), halaman order (baris, isi harga item tambahan, lampiran, gambar, Approve, Return to Exhibitor, Cancel Order sebagai halaman), tab Orders di halaman lead (progres per form + order terkirim)
+- [x] Export per form: `GET /exhibitor-orders/export?edition_id=&form_id=&status=` (xlsx, satu baris per item). Sinkron, bukan job worker: satu form paling banyak beberapa ratus order; batas 20.000 baris
+- [x] Peringatan "Booth changed since submit" di antrian dan halaman order (O2)
+- [x] Tes: `tests/test_order_review.py` (antrian dan scope, harga, approve dan syarat contract, order gratis tanpa contract, return lalu kirim ulang dengan nomor sama, harga staff bertahan saat item tambahan tidak diubah, cancel, versi basi, edition ARCHIVED, booth berubah, tab lead, file dan export); E2E portal diperluas dengan alur desk (harga, Return, kirim ulang, tanda tangan, Approve, tab lead)
+
+Catatan Phase 4: saat order Returned lalu dikirim ulang, item tambahan yang nama dan ukurannya tidak
+diubah tetap memakai harga dari staff; yang diubah perlu diberi harga lagi.
 
 ### Phase 5: Form isian (01, 02, 02a, 08, 08a, 09, 10)
 - [ ] Skema `details_type` per form (Lampiran A), opsi per edition (kategori produk, forwarder resmi, kontraktor resmi, tanggal seminar)

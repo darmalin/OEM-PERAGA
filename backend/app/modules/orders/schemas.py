@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
@@ -310,3 +310,92 @@ class OrderVersionIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     version: int
+
+
+# --- staff review ------------------------------------------------------------------------
+
+
+class StaffOrderListParams(PageParams):
+    edition_id: uuid.UUID
+    form_id: uuid.UUID | None = None
+    # Drafts are the exhibitor's own work in progress and never listed for staff.
+    status: OrderStatus | None = None
+    q: str | None = Field(default=None, max_length=100)  # company or order number
+    exhibitor_lead_id: uuid.UUID | None = None
+
+
+class StaffOrderRowOut(BaseModel):
+    id: uuid.UUID
+    order_number: str | None
+    status: OrderStatus
+    form_id: uuid.UUID
+    form_code: str
+    form_title: str
+    exhibitor_lead_id: uuid.UUID
+    company_name: str
+    booth_code: str | None
+    total: Decimal
+    currency: str
+    unpriced_lines: int
+    submitted_at: datetime | None
+    contract_signed: bool
+    # Submitted, costs money, contract not signed: cannot be approved yet (decision O2).
+    waiting_for_contract: bool
+    # The exhibitor's booth is not the one the order was sent for (decision O2).
+    booth_changed: bool
+
+
+class StaffOrderOut(StaffOrderRowOut):
+    price_period: PricePeriod | None
+    remarks: str | None
+    booth_code_at_submit: str | None
+    area_sqm_at_submit: Decimal | None
+    review_notes: str | None
+    reviewed_at: datetime | None
+    reviewed_by_name: str | None
+    cancel_reason: str | None
+    lines: list[PortalOrderLineOut]
+    files: list[PortalOrderFileOut]
+    version: int
+
+
+class LinePriceIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    unit_price: Money
+    version: int  # the order's version
+
+
+class OrderReviewIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    decision: Literal["APPROVED", "RETURNED"]
+    notes: str | None = Field(default=None, max_length=2000)  # required to return
+    version: int
+
+
+class OrderCancelIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(max_length=2000)
+    version: int
+
+
+class LeadFormProgressOut(BaseModel):
+    form_id: uuid.UUID
+    code: str
+    title: str
+    progress: FormProgress
+
+
+class LeadOrdersOut(BaseModel):
+    forms: list[LeadFormProgressOut]  # published forms of the lead's edition
+    orders: list[StaffOrderRowOut]  # sent orders, newest first
+
+
+class OrderExportParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    edition_id: uuid.UUID
+    form_id: uuid.UUID
+    status: OrderStatus | None = None

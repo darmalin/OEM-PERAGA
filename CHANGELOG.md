@@ -5,9 +5,9 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
-Exhibitor order forms, Phases 1 to 3 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
-Exhibitors → Order Forms, permission `order_form.manage`); exhibitors fill and send them in the portal.
-Staff review of sent orders comes in Phase 4.
+Exhibitor order forms, Phases 1 to 4 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
+Exhibitors → Order Forms, permission `order_form.manage`); exhibitors fill and send them in the portal;
+staff review them (menu Exhibitors → Orders, permission `exhibitor_order.review`).
 
 - **Order Forms**: forms per edition with number, title, deadlines, instructions, and what the exhibitor
   fills in (catalog, extra items, questions, attachments). Published only when there is something to fill.
@@ -20,6 +20,10 @@ Staff review of sent orders comes in Phase 4.
   edition's price dates), extra items without a price, attachments, and remarks. Save a draft, review,
   and send; prices are fixed when sent and the order gets a number (`<edition code>-O-0001`). Orders
   that cost money wait for the signed contract before staff confirm them. "I don't require this form".
+- **Orders** (desk): queue of sent orders, starting with those waiting for review; flags for extra
+  items to price, an unsigned contract, and a booth moved since the order was sent. On an order: set
+  the price of extra items, Approve, Return to Exhibitor with a reason (sent back with the same
+  number), or Cancel with a reason. Export a form's orders to Excel. The lead page has an Orders tab.
 
 Migrations 0030 and 0031: new tables `order_forms`, `order_form_items`, `exhibitor_orders`,
 `exhibitor_order_lines`, `exhibitor_order_files`, `exhibitor_form_waivers`,

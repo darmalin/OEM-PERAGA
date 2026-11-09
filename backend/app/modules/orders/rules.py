@@ -7,6 +7,8 @@ from datetime import date
 from decimal import Decimal
 from enum import StrEnum
 
+CENT = Decimal("0.01")  # money columns are NUMERIC(14, 2)
+
 # "01", "02a": the numbering of the order forms in the old portal, kept for the exhibitors.
 FORM_CODE_PATTERN = re.compile(r"^[0-9]{2}[a-z]?$")
 
@@ -134,7 +136,7 @@ def line_amount(quantity: int, free_quantity: int, price: Decimal | None) -> Dec
         raise ValueError("free_quantity must be between 0 and quantity")
     if price is None:
         return None
-    return (quantity - free_quantity) * price
+    return ((quantity - free_quantity) * price).quantize(CENT)
 
 
 def order_total(amounts: Iterable[Decimal | None]) -> Decimal:

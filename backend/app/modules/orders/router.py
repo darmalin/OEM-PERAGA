@@ -12,13 +12,17 @@ from app.core.pagination import Page
 from app.modules.exhibitors import portal as exhibitors_portal
 from app.modules.exhibitors.models import ExhibitorLead
 from app.modules.exhibitors.portal import PortalContext, portal_account
-from app.modules.orders import portal, service
+from app.modules.orders import portal, review, service
 from app.modules.orders.rules import AttachmentPurpose
 from app.modules.orders.schemas import (
     CopyFormsIn,
     CopyFormsOut,
     ItemImportOut,
+    LeadOrdersOut,
+    LinePriceIn,
+    OrderCancelIn,
     OrderDraftIn,
+    OrderExportParams,
     OrderFormCreateIn,
     OrderFormItemCreateIn,
     OrderFormItemListParams,
@@ -27,10 +31,14 @@ from app.modules.orders.schemas import (
     OrderFormListParams,
     OrderFormOut,
     OrderFormUpdateIn,
+    OrderReviewIn,
     OrderVersionIn,
     PortalOrderFormDetailOut,
     PortalOrderFormsOut,
     PortalOrderOut,
+    StaffOrderListParams,
+    StaffOrderOut,
+    StaffOrderRowOut,
 )
 
 router = APIRouter(prefix="/order-forms", tags=["order-forms"])
@@ -386,3 +394,106 @@ async def portal_file(
             "Cache-Control": "no-store",
         },
     )
+
+
+# --- staff review ------------------------------------------------------------------------
+
+orders_router = APIRouter(prefix="/exhibitor-orders", tags=["exhibitor-orders"])
+LeadRead = Depends(require(review.READ))
+Review = Depends(require(review.REVIEW))
+
+
+@orders_router.get("", response_model=Page[StaffOrderRowOut])
+async def list_orders(
+    session: Session, params: Annotated[StaffOrderListParams, Query()], ctx: AuthContext = LeadRead
+) -> Page[StaffOrderRowOut]:
+    return await review.list_orders(session, ctx, params)
+
+
+# Before /{order_id}, which would take "export" as an id.
+@orders_router.get("/export", response_class=Response, responses={200: {"content": {XLSX: {}}}})
+async def export_orders(
+    session: Session, params: Annotated[OrderExportParams, Query()], ctx: AuthContext = LeadRead
+) -> Response:
+    data, name = await review.export_form(session, ctx, params)
+    return Response(
+        data,
+        media_type=XLSX,
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@orders_router.get("/{order_id}", response_model=StaffOrderOut)
+async def get_order(
+    order_id: uuid.UUID, session: Session, ctx: AuthContext = LeadRead
+) -> StaffOrderOut:
+    return await review.get_order(session, ctx, order_id)
+
+
+@orders_router.patch("/{order_id}/lines/{line_id}", response_model=StaffOrderOut)
+async def price_line(
+    order_id: uuid.UUID,
+    line_id: uuid.UUID,
+    data: LinePriceIn,
+    session: Session,
+    ctx: AuthContext = Review,
+) -> StaffOrderOut:
+    return await review.price_line(session, ctx, order_id, line_id, data)
+
+
+@orders_router.post("/{order_id}/review", response_model=StaffOrderOut)
+async def review_order(
+    order_id: uuid.UUID, data: OrderReviewIn, session: Session, ctx: AuthContext = Review
+) -> StaffOrderOut:
+    return await review.review_order(session, ctx, order_id, data)
+
+
+@orders_router.post("/{order_id}/cancel", response_model=StaffOrderOut)
+async def cancel_order(
+    order_id: uuid.UUID, data: OrderCancelIn, session: Session, ctx: AuthContext = Review
+) -> StaffOrderOut:
+    return await review.cancel_order(session, ctx, order_id, data)
+
+
+@orders_router.get(
+    "/{order_id}/lines/{line_id}/image",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"image/jpeg": {}, "image/png": {}}}},
+)
+async def staff_line_image(
+    order_id: uuid.UUID, line_id: uuid.UUID, session: Session, ctx: AuthContext = LeadRead
+) -> StreamingResponse:
+    return _inline(*await review.line_image(session, ctx, order_id, line_id))
+
+
+@orders_router.get(
+    "/{order_id}/files/{file_id}",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"application/pdf": {}, "image/jpeg": {}, "image/png": {}}}},
+)
+async def staff_file(
+    order_id: uuid.UUID, file_id: uuid.UUID, session: Session, ctx: AuthContext = LeadRead
+) -> StreamingResponse:
+    chunks, name, media_type = await review.file_download(session, ctx, order_id, file_id)
+    return StreamingResponse(
+        chunks,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+# On the lead, next to its contract and payments.
+lead_orders_router = APIRouter(tags=["exhibitor-orders"])
+
+
+@lead_orders_router.get("/exhibitor-leads/{lead_id}/orders", response_model=LeadOrdersOut)
+async def lead_orders(
+    lead_id: uuid.UUID, session: Session, ctx: AuthContext = LeadRead
+) -> LeadOrdersOut:
+    return await review.lead_orders(session, ctx, lead_id)
