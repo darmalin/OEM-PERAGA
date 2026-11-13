@@ -52,6 +52,10 @@ Defaults are in code; changing them later may need a migration. Full list in `FE
 | F9 | P2 | Order forms send no email (decision O11): exhibitors see Returned / Approved / payments only when they open the portal. | `mail.service.queue_email` on return, approve, and verified payment, with templates. |
 | F10 | P2 | The catalog of the next edition is not loaded: prices of the old portal are in its HTML, and the owner has not sent the new price list (docs/EXHIBITOR_ORDER_FORMS.md Phase 0, Phase 2). | Import the owner's list per form with Import from Excel, or build the sheets from the old HTML once the owner agrees. |
 | F11 | P3 | Order export runs in the request (one form, up to 20,000 rows), not in the worker like visitor exports. | Move to `importexport` export jobs if forms grow past a few hundred orders. |
+| F12 | P2 | Quotations send no email (decision Q10): staff download the PDF and send it themselves. | `mail.service.queue_email` with the PDF attached, from the quotation page. |
+| F13 | P3 | Contract terms of payment (from an accepted quotation) are shown only: payments are not matched to a term and nothing reminds anyone of a due date. | Link payments to terms; a Beat task for due and overdue terms. |
+| F14 | P3 | One letterhead (PNJS, a fixed image) and one signer per edition (decisions Q6, Q7); the PDF is in English only. | Signer per user and a letterhead setting if another company or language is needed. |
+| F15 | P3 | Quotation numbers run in the app from Start From; numbers issued meanwhile in Excel for the same code and year can collide. | Stop issuing from Excel once the app is used, or raise Start From past the Excel numbers. |
 
 ## Performance and scale
 

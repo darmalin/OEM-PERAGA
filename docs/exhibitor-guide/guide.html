@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>Panduan Portal Exhibitor PERAGA Expo</title>
+<style>
+  @font-face { font-family: "Jakarta"; src: url("fonts/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; }
+  @font-face { font-family: "Inter"; src: url("fonts/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+
+  /* Same palette as the portal (frontend/apps/exhibitor/src/styles.css), so the guide and the
+     screens it shows read as one product. */
+  :root {
+    --page: #f4f5fb; --ink: #1b1c3d; --muted: #4a4d70; --label: #5b5e80; --line: #e1e3f0;
+    --primary: #2f318b; --primary-soft: #eceefb; --hero-muted: #c7c9ee;
+    --accent: #e62129; --accent-ink: #c4161f; --accent-soft: #fdecec;
+    --green: #17663b; --green-bg: #e3f4e9; --amber: #7a4f00; --amber-bg: #fff2d6; --blue-bg: #eceefb; --gray-bg: #eef0f6;
+  }
+  @page { size: A4; margin: 16mm 16mm 18mm; }
+  @page :first { margin: 0; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Inter", sans-serif; font-size: 10.5pt; line-height: 1.55; color: var(--ink); }
+  h1, h2, h3 { font-family: "Jakarta", sans-serif; margin: 0; line-height: 1.2; }
+  p { margin: 0 0 8px; }
+  b, strong { font-weight: 650; }
+
+  /* --- cover ---------------------------------------------------------------------------------- */
+  .cover { height: 297mm; display: flex; flex-direction: column; background: var(--primary); color: #fff; padding: 22mm 20mm 18mm; page-break-after: always; }
+  .cover .logo { align-self: flex-start; background: #fff; border-radius: 14px; padding: 12px 18px; }
+  .cover .logo img { height: 34px; display: block; }
+  .cover .kicker { margin-top: 34mm; font-weight: 600; color: var(--hero-muted); font-size: 12pt; }
+  .cover h1 { font-size: 38pt; font-weight: 800; margin-top: 6px; letter-spacing: -0.5px; }
+  .cover .lede { font-size: 13pt; color: #fff; max-width: 135mm; margin-top: 14px; line-height: 1.5; }
+  .cover .tag { margin-top: 18mm; display: inline-flex; flex-direction: column; align-items: center; background: #fff; color: var(--primary); border-radius: 14px; padding: 10px 22px 14px; position: relative; align-self: flex-start; }
+  .cover .tag::before { content: ""; position: absolute; top: -6px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+  .cover .tag small { font-size: 9pt; font-weight: 600; color: var(--label); }
+  .cover .tag span { font-family: "Jakarta"; font-weight: 800; font-size: 26pt; line-height: 1; }
+  .cover .route { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cover .route div { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; }
+  .cover .route b { display: block; font-family: "Jakarta"; font-size: 12pt; }
+  .cover .route span { color: var(--hero-muted); font-size: 9.5pt; }
+  .cover .route i { font-style: normal; display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: #fff; color: var(--primary); font-weight: 700; align-items: center; justify-content: center; font-size: 10pt; margin-bottom: 6px; }
+  .cover .foot { margin-top: 10mm; color: var(--hero-muted); font-size: 9pt; }
+
+  /* --- body ------------------------------------------------------------------------------------ */
+  .chapter { break-before: page; }
+  .chapter-head { break-after: avoid; display: flex; align-items: center; gap: 14px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-soft); }
+  .chapter-head .num { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--primary); color: #fff; font-family: "Jakarta"; font-weight: 800; font-size: 18pt; display: flex; align-items: center; justify-content: center; }
+  .chapter-head h2 { font-size: 20pt; font-weight: 800; }
+  .chapter-head p { margin: 2px 0 0; color: var(--muted); }
+  h3 { font-size: 13pt; font-weight: 700; margin: 18px 0 6px; break-after: avoid; }
+  .muted { color: var(--muted); }
+
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 8px 0 12px; }
+  ol.steps li { counter-increment: s; position: relative; padding-left: 34px; margin-bottom: 8px; break-inside: avoid; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+  ul.dots { padding-left: 18px; margin: 6px 0 10px; }
+  ul.dots li { margin-bottom: 4px; }
+
+  /* A button or label exactly as it is written on screen. */
+  .ui { display: inline-block; font-weight: 650; color: var(--primary); background: var(--primary-soft); border-radius: 6px; padding: 0 6px; font-size: 9.5pt; line-height: 1.6; white-space: nowrap; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 9px; font-size: 9pt; font-weight: 650; white-space: nowrap; }
+  .chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .c-gray { background: var(--gray-bg); color: var(--muted); } .c-blue { background: var(--blue-bg); color: var(--primary); }
+  .c-green { background: var(--green-bg); color: var(--green); } .c-amber { background: var(--amber-bg); color: var(--amber); }
+  .c-red { background: var(--accent-soft); color: var(--accent-ink); }
+
+  figure { margin: 10px 0 14px; break-inside: avoid; }
+  figure img { display: block; max-width: 100%; max-height: 92mm; margin: 0 auto; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 10px rgba(47,49,139,0.08); }
+  figure.narrow img { max-height: 80mm; }
+  figcaption { font-size: 9pt; color: var(--label); margin-top: 6px; text-align: center; }
+    .phones { display: flex; gap: 22px; justify-content: center; }
+  .phones figure { width: 62mm; margin: 6px 0; } .phones img { max-height: 88mm; } .phones figure { width: 46mm; }
+
+  .note { break-inside: avoid; border-radius: 12px; padding: 10px 14px; margin: 10px 0 14px; font-size: 10pt; }
+  .note b.t { display: block; font-family: "Jakarta"; font-size: 10.5pt; margin-bottom: 2px; }
+  .tip { background: var(--primary-soft); } .tip b.t { color: var(--primary); }
+  .warn { background: var(--accent-soft); } .warn b.t { color: var(--accent-ink); }
+  .ok { background: var(--green-bg); } .ok b.t { color: var(--green); }
+
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 10pt; break-inside: avoid; }
+  th { text-align: left; font-size: 9pt; color: var(--label); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { width: 34%; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; break-inside: avoid; }
+  .card h3 { margin-top: 0; font-size: 11.5pt; }
+  .toc { margin-top: 6px; }
+  .toc div { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .toc i { font-style: normal; width: 26px; height: 26px; flex: none; border-radius: 8px; background: var(--primary-soft); color: var(--primary); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .toc span { color: var(--muted); font-size: 9.5pt; display: block; }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<section class="cover">
+  <div class="logo"><img src="img/peraga-expo-logo.png" alt="PERAGA Expo" /></div>
+  <div class="kicker">Untuk exhibitor PERAGA Expo</div>
+  <h1>Panduan Portal Exhibitor</h1>
+  <p class="lede">Semua urusan booth Anda dalam satu tempat: tanda tangan kontrak, pantau pembayaran, dan pesan layanan booth seperti listrik, furnitur, internet, dan badge.</p>
+  <div class="tag"><small>Booth</small><span>B12</span></div>
+  <div class="route">
+    <div><i>1</i><b>Tanda tangan kontrak</b><span>Isi data PIC, unggah kontrak yang sudah ditandatangani</span></div>
+    <div><i>2</i><b>Bayar booth</b><span>Lihat yang sudah dibayar dan yang masih harus dibayar</span></div>
+    <div><i>3</i><b>Pesan layanan booth</b><span>Isi order form sebelum tenggat, lalu kirim</span></div>
+  </div>
+  <div class="foot">Contoh di panduan ini memakai pameran INATEX 2027 dan perusahaan PT Maju Tekstil Nusantara. Data Anda sendiri akan tampil di portal Anda.</div>
+</section>
+
+<!-- ============================== START ============================== -->
+<section>
+  <div class="chapter-head"><div class="num">0</div><div><h2>Sebelum mulai</h2><p>Apa yang perlu disiapkan dan isi panduan ini.</p></div></div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Yang Anda butuhkan</h3>
+      <ul class="dots">
+        <li><b>Email undangan</b> dari sales PERAGA Expo. Isinya tautan untuk membuat password.</li>
+        <li><b>Kontrak booth</b> yang sudah ditandatangani, dalam bentuk PDF (maksimal 10 MB).</li>
+        <li><b>Denah booth</b> bila form meminta lokasi pemasangan (PDF, JPG, atau PNG).</li>
+        <li>Komputer atau HP dengan browser terbaru (Chrome, Safari, Edge, atau Firefox).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Kata-kata di layar</h3>
+      <p>Tampilan portal memakai bahasa Inggris. Di panduan ini, tombol dan label ditulis persis seperti di layar, misalnya <span class="ui">Review and Send</span>, supaya mudah dicari.</p>
+      <p class="muted">Status ditulis seperti ini: <span class="chip c-green">Approved</span>. Arti semua status ada di bab 9.</p>
+    </div>
+  </div>
+
+  <h3>Isi panduan</h3>
+  <div class="toc">
+    <div><i>1</i><p><b>Masuk ke portal</b><span>Membuat password dari email undangan, lalu masuk setiap kali</span></p></div>
+    <div><i>2</i><p><b>Halaman pameran dan checklist</b><span>Tiga langkah yang perlu Anda selesaikan</span></p></div>
+    <div><i>3</i><p><b>Tanda tangan kontrak</b><span>Isi data PIC dan unggah kontrak yang sudah ditandatangani</span></p></div>
+    <div><i>4</i><p><b>Pembayaran booth</b><span>Membaca total, yang sudah dibayar, dan sisa tagihan</span></p></div>
+    <div><i>5</i><p><b>Order Forms: memesan layanan booth</b><span>Memilih barang, item tambahan, lampiran, simpan dan kirim</span></p></div>
+    <div><i>6</i><p><b>Setelah pesanan dikirim</b><span>Dikembalikan, disetujui, dan pembayaran pesanan</span></p></div>
+    <div><i>7</i><p><b>Form pertanyaan dan form yang tidak dibutuhkan</b><span>Badge, visa, dan cara menandai form yang tidak Anda perlukan</span></p></div>
+    <div><i>8</i><p><b>Memakai portal di HP</b></p></div>
+    <div><i>9</i><p><b>Arti status dan pertanyaan umum</b></p></div>
+  </div>
+</section>
+
+<!-- ============================== 1. SIGN IN ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">1</div><div><h2>Masuk ke portal</h2><p>Pertama kali lewat email undangan, selanjutnya cukup email dan password.</p></div></div>
+
+  <h3>Pertama kali: buat password</h3>
+  <p>Setelah booth Anda dikonfirmasi, sales PERAGA Expo mengirim email undangan berisi tautan. Tautan ini hanya berlaku untuk akun Anda.</p>
+  <ol class="steps">
+    <li>Buka tautan di email undangan. Halaman <b>Set Your Password</b> akan terbuka dengan email Anda.</li>
+    <li>Isi <span class="ui">New Password</span> minimal 8 karakter. Hindari password yang mudah ditebak.</li>
+    <li>Ketik password yang sama di <span class="ui">Confirm Password</span>.</li>
+    <li>Klik <span class="ui">Set Password and Sign In</span>. Anda langsung masuk ke portal.</li>
+  </ol>
+  <figure><img src="img/01-set-password.png" alt="" /><figcaption>Halaman membuat password dari email undangan</figcaption></figure>
+
+  <h3>Masuk berikutnya</h3>
+  <p>Buka alamat portal dari sales, isi <span class="ui">Email</span> dan <span class="ui">Password</span>, lalu klik <span class="ui">Sign In</span>.</p>
+  <figure class="narrow"><img src="img/00-sign-in.png" alt="" /><figcaption>Halaman Sign In</figcaption></figure>
+  <div class="note tip"><b class="t">Lupa password atau tautan sudah kedaluwarsa?</b>Hubungi sales PERAGA Expo. Mereka akan mengirim tautan baru untuk membuat password.</div>
+
+  <h3>My Exhibitions</h3>
+  <p>Setelah masuk, Anda melihat semua pameran yang Anda ikuti. Setiap kartu menunjukkan tanggal pameran, hitung mundur (<b>Starts in 40 days</b>), nomor booth Anda, serta status kontrak dan pembayaran booth. Klik <span class="ui">Open exhibition</span> untuk membuka pameran.</p>
+  <figure><img src="img/02-home.png" alt="" /><figcaption>Daftar pameran Anda</figcaption></figure>
+</section>
+
+<!-- ============================== 2. EXHIBITION ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">2</div><div><h2>Halaman pameran dan checklist</h2><p>Satu halaman untuk kontrak, pembayaran, dan order form.</p></div></div>
+  <p>Di bagian atas ada nama pameran, tanggal, dan nomor booth Anda. Di bawahnya ada <b>checklist tiga langkah</b>. Langkah yang perlu dikerjakan sekarang diberi bingkai biru dan tulisan merah <b>Next step</b>.</p>
+  <figure><img src="img/03-exhibition.png" alt="" /><figcaption>Halaman pameran sebelum kontrak ditandatangani</figcaption></figure>
+  <p>Klik salah satu langkah untuk langsung menuju bagiannya. Langkah yang selesai diberi tanda centang hijau.</p>
+  <figure><img src="img/06-checklist.png" alt="" /><figcaption>Checklist setelah kontrak ditandatangani: langkah berikutnya adalah membayar booth</figcaption></figure>
+  <div class="note tip"><b class="t">Boleh langsung pesan layanan?</b>Boleh. Anda bisa mengisi dan mengirim order form kapan saja. Namun pesanan yang berbayar baru disetujui setelah kontrak booth ditandatangani.</div>
+</section>
+
+<!-- ============================== 3. CONTRACT ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">3</div><div><h2>Tanda tangan kontrak</h2><p>Dua bagian: data kontrak, lalu kontrak yang sudah ditandatangani.</p></div></div>
+
+  <h3>Bagian 1: Contract Details</h3>
+  <ol class="steps">
+    <li>Isi <span class="ui">PIC Name</span>, yaitu nama orang yang menandatangani kontrak untuk perusahaan Anda.</li>
+    <li>Isi <span class="ui">Tax ID (NPWP)</span> bila ada. Kolom ini boleh dikosongkan.</li>
+    <li>Isi <span class="ui">Company Address</span>, yaitu alamat perusahaan untuk kontrak.</li>
+    <li>Klik <span class="ui">Save Details</span>. Muncul pesan hijau <b>Contract details saved.</b></li>
+  </ol>
+
+  <h3>Bagian 2: Signed Contract</h3>
+  <ol class="steps">
+    <li>Tanda tangani kontrak yang dikirim sales Anda, lalu simpan sebagai PDF (maksimal 10 MB).</li>
+    <li>Di <span class="ui">Signed PDF (up to 10 MB)</span>, pilih file PDF tersebut.</li>
+    <li>Klik <span class="ui">Upload Signed Contract</span>.</li>
+  </ol>
+  <figure><img src="img/04-contract-details.png" alt="" /><figcaption>Data kontrak sudah disimpan, siap mengunggah kontrak yang ditandatangani</figcaption></figure>
+  <div class="note warn"><b class="t">Periksa dulu sebelum mengunggah</b>Setelah kontrak yang ditandatangani diunggah, kontrak menjadi final dan tidak bisa diubah lagi di portal. Bila ada yang salah, hubungi sales Anda.</div>
+  <figure><img src="img/05-contract-signed.png" alt="" /><figcaption>Kontrak berstatus Signed. Anda bisa mengunduhnya kembali kapan saja.</figcaption></figure>
+  <div class="note tip"><b class="t">Harga dari quotation</b>Bila harga booth Anda disepakati lewat quotation dari sales, kontrak juga menampilkan <b>VAT</b> (PPN), nomor <b>Quotation</b>, dan <b>Terms of payment</b>: tiap termin dengan jumlah dan tanggalnya. Total kontrak sudah termasuk PPN.</div>
+</section>
+
+<!-- ============================== 4. PAYMENTS ============================== -->
+<section style="margin-top: 22px">
+  <div class="chapter-head"><div class="num">4</div><div><h2>Pembayaran booth</h2><p>Pantau yang sudah dibayar dan sisa tagihan.</p></div></div>
+  <p>Bagian <b>Booth Payments</b> muncul setelah kontrak ditandatangani. Bayar sesuai instruksi pembayaran dari tim PERAGA Expo (transfer bank atau cara lain yang disepakati). Tim kami mencatat dan memeriksa setiap pembayaran, lalu hasilnya tampil di sini.</p>
+  <figure><img src="img/07-payments.png" alt="" /><figcaption>Booth Payments: total, sudah dibayar, dan sisa</figcaption></figure>
+  <table>
+    <tr><th>Yang tampil</th><th>Artinya</th></tr>
+    <tr><td><b>Total</b></td><td>Harga booth sesuai kontrak.</td></tr>
+    <tr><td><b>Paid</b></td><td>Jumlah yang sudah diterima dan diperiksa.</td></tr>
+    <tr><td><b>Outstanding</b></td><td>Sisa yang masih harus dibayar.</td></tr>
+    <tr><td><span class="chip c-amber">Pending</span></td><td>Pembayaran sudah dicatat dan sedang diperiksa.</td></tr>
+    <tr><td><span class="chip c-green">Verified</span></td><td>Pembayaran sudah diterima.</td></tr>
+  </table>
+  <div class="note tip"><b class="t">Sudah transfer tapi belum muncul?</b>Pembayaran tampil setelah dicatat oleh tim PERAGA Expo. Kirim bukti transfer ke sales Anda supaya cepat diproses.</div>
+</section>
+
+<!-- ============================== 5. ORDER FORMS ============================== -->
+<section style="margin-top: 22px">
+  <div class="chapter-head"><div class="num">5</div><div><h2>Order Forms: memesan layanan booth</h2><p>Listrik, furnitur, internet, badge, parkir, dan lainnya.</p></div></div>
+
+  <h3>Daftar form</h3>
+  <p>Di halaman pameran, klik <span class="ui">Open Order Forms</span>. Setiap kartu adalah satu form dengan tenggat (deadline) dan statusnya. Tenggat yang tinggal 7 hari atau kurang ditulis <b style="color: var(--accent-ink)">merah</b>.</p>
+  <ul class="dots">
+    <li>Bilah <b>Your forms</b> menunjukkan berapa form yang sudah selesai.</li>
+    <li>Pakai tombol <span class="ui">All Forms</span> <span class="ui">Not Filled</span> <span class="ui">In Progress</span> <span class="ui">Sent</span> untuk menyaring daftar.</li>
+    <li>Klik kartu untuk membuka form.</li>
+  </ul>
+  <figure><img src="img/08-forms-list.png" alt="" /><figcaption>Daftar Order Forms. Form 11 tenggatnya tinggal 5 hari, jadi ditulis merah.</figcaption></figure>
+
+  <h3>Bagian atas form</h3>
+  <p>Di atas form ada nama form, status, dan tenggatnya. Baca juga kotak <b>Notes</b>: isinya ketentuan dari panitia, misalnya soal pemasangan atau pembatalan.</p>
+  <figure><img src="img/09-form-top-crop.png" alt="" /><figcaption>Form 04 Electrical Fittings &amp; Supplies</figcaption></figure>
+</section>
+
+<section>
+  <h3>Memilih barang (Items)</h3>
+  <ol class="steps">
+    <li>Ketik jumlah di kolom <b>Quantity</b> untuk setiap barang yang Anda perlukan. Kosongkan atau isi 0 untuk barang yang tidak dipesan.</li>
+    <li><b>Amount</b> dan <b>Total</b> langsung dihitung dari harga hari ini.</li>
+    <li>Tulisan <b>Up to 10</b> berarti batas maksimal per pesanan.</li>
+    <li>Tulisan hijau <b style="color: var(--green)">1 free with your booth</b> berarti jumlah tersebut gratis untuk booth Anda. Jumlah gratis dipotong otomatis.</li>
+  </ol>
+  <figure><img src="img/10-items.png" alt="" /><figcaption>Barang dari katalog, dikelompokkan per bagian</figcaption></figure>
+  <div class="note tip"><b class="t">Harga bisa naik mendekati pameran</b>Ada tiga periode harga: Regular, Surcharge, dan Onsite. Harga dikunci pada hari Anda mengirim pesanan, jadi kirim lebih awal agar dapat harga Regular.</div>
+
+  <h3>Barang yang tidak ada di daftar (Extra Items)</h3>
+  <p>Klik <span class="ui">Add Extra Item</span>, lalu isi nama barang, ukuran, dan jumlah. Anda juga bisa menambah catatan dan gambar contoh. Harga item tambahan ditentukan oleh panitia saat memeriksa pesanan Anda.</p>
+  <figure><img src="img/11-extra.png" alt="" /><figcaption>Satu item tambahan: LED strip 5 m, 2 buah</figcaption></figure>
+</section>
+
+<section>
+  <h3>Lampiran (Attachments)</h3>
+  <p>Beberapa form meminta lampiran, misalnya <b>Fitting Location</b>: denah booth dengan titik pemasangan yang ditandai. Pilih file, lalu klik <span class="ui">Upload</span>. File yang sudah diunggah tampil sebagai tautan dan bisa dihapus selama pesanan belum dikirim.</p>
+  <figure><img src="img/12-attachments.png" alt="" /><figcaption>Denah booth sudah terlampir</figcaption></figure>
+
+  <h3>Catatan dan tombol simpan</h3>
+  <p>Di bagian bawah ada kolom <b>Remarks</b> untuk pesan ke panitia. Bilah tombol selalu menempel di bawah layar, berisi perkiraan total dan tiga tombol:</p>
+  <figure><img src="img/13-action-bar.png" alt="" /></figure>
+  <table>
+    <tr><th>Tombol</th><th>Fungsinya</th></tr>
+    <tr><td><span class="ui">Save Draft</span></td><td>Menyimpan isian tanpa mengirim. Draft hanya bisa dilihat oleh Anda, dan bisa dilanjutkan kapan saja sebelum tenggat.</td></tr>
+    <tr><td><span class="ui">Review and Send</span></td><td>Membuka ringkasan pesanan untuk diperiksa sebelum dikirim.</td></tr>
+    <tr><td><span class="ui">Delete Draft</span></td><td>Menghapus draft dan mulai dari awal.</td></tr>
+  </table>
+  <div class="note warn"><b class="t">Jangan lewat tenggat</b>Setelah tanggal tenggat, form tidak bisa dikirim lagi. Simpan draft lebih awal, lalu kirim sebelum tenggat.</div>
+</section>
+
+<section>
+  <h3>Periksa lalu kirim</h3>
+  <p>Setelah klik <span class="ui">Review and Send</span>, Anda melihat ringkasan pesanan: barang, jumlah, harga, lampiran, dan catatan. Periksa sekali lagi.</p>
+  <ol class="steps">
+    <li>Ada yang salah? Klik <span class="ui">Change Order</span> untuk kembali mengubah isian.</li>
+    <li>Sudah benar? Klik <span class="ui">Send Order</span>.</li>
+  </ol>
+  <figure><img src="img/14-review.png" alt="" /><figcaption>Halaman Review Order sebelum dikirim</figcaption></figure>
+  <p>Setelah terkirim, pesanan mendapat nomor, misalnya <b>INATEX2027-O-0001</b>, dan statusnya menjadi <span class="chip c-blue">Sent</span>. Panitia akan memeriksa pesanan dan mengonfirmasi totalnya.</p>
+  <figure><img src="img/15-sent-crop.png" alt="" /><figcaption>Pesanan terkirim dengan nomor pesanan</figcaption></figure>
+  <div class="note tip"><b class="t">Butuh barang lagi setelah mengirim?</b>Pesanan yang sudah dikirim tidak bisa diubah. Klik <span class="ui">Order More</span> untuk membuat pesanan baru di form yang sama.</div>
+</section>
+
+<!-- ============================== 6. AFTER SENDING ============================== -->
+<section style="margin-top: 22px">
+  <div class="chapter-head"><div class="num">6</div><div><h2>Setelah pesanan dikirim</h2><p>Panitia memeriksa, lalu menyetujui atau mengembalikan pesanan.</p></div></div>
+
+  <h3>Pesanan dikembalikan <span class="chip c-amber">Returned</span></h3>
+  <p>Bila ada yang perlu diubah, panitia mengembalikan pesanan dengan pesan di kotak kuning di atas form. Ubah sesuai pesan tersebut, lalu kirim lagi lewat <span class="ui">Review and Send</span>. Nomor pesanan tetap sama.</p>
+  <figure><img src="img/16-returned-crop.png" alt="" /><figcaption>Pesan dari panitia: tambahkan satu stop kontak untuk spotlight</figcaption></figure>
+
+  <h3>Pesanan disetujui <span class="chip c-green">Approved</span></h3>
+  <p>Setelah disetujui, total pesanan sudah final, termasuk harga item tambahan dari panitia. Bagian <b>Sent Orders</b> menunjukkan rincian, jumlah yang sudah dibayar, dan sisa yang harus dibayar (<b>Still to pay</b>).</p>
+  <figure><img src="img/17-approved-crop.png" alt="" /><figcaption>Pesanan disetujui dan sebagian sudah dibayar</figcaption></figure>
+  <div class="note ok"><b class="t">Pesanan berbayar menunggu kontrak</b>Bila pesanan Anda berbayar tetapi kontrak booth belum ditandatangani, pesanan menunggu dulu. Setelah kontrak ditandatangani, panitia bisa menyetujuinya.</div>
+</section>
+
+<!-- ============================== 7. QUESTIONS ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">7</div><div><h2>Form pertanyaan dan form yang tidak dibutuhkan</h2><p>Tidak semua form berisi barang.</p></div></div>
+
+  <h3>Form pertanyaan, contoh: badge dan visa</h3>
+  <p>Beberapa form berisi pertanyaan, misalnya <b>Exhibitor Badges &amp; Visa</b>. Jawab pertanyaannya, lalu tambahkan nama staf penjaga booth dengan <span class="ui">Add Badge</span>. Kolom bertanda <b style="color: var(--accent-ink)">*</b> wajib diisi. Cara menyimpan dan mengirimnya sama seperti form lain.</p>
+  <figure><img src="img/18-questions.png" alt="" /><figcaption>Dua badge staf sudah diisi</figcaption></figure>
+
+  <h3>Form yang tidak Anda perlukan</h3>
+  <p>Bila Anda tidak butuh suatu form, misalnya tidak menyewa furnitur, centang <b>I don't require this form</b> di bagian bawah form. Statusnya menjadi <span class="chip c-gray">Not Required</span> dan form itu dihitung selesai. Hapus centang bila Anda berubah pikiran.</p>
+  <figure><img src="img/19-not-required.png" alt="" /></figure>
+
+  <h3>Pantau semua form</h3>
+  <figure><img src="img/20-forms-progress.png" alt="" /><figcaption>Dua dari empat form selesai: satu disetujui, satu tidak dibutuhkan</figcaption></figure>
+</section>
+
+<!-- ============================== 8. PHONE ============================== -->
+<section style="margin-top: 22px">
+  <div class="chapter-head"><div class="num">8</div><div><h2>Memakai portal di HP</h2><p>Semua langkah bisa dilakukan dari HP.</p></div></div>
+  <p>Buka alamat portal yang sama di browser HP. Tampilan menyesuaikan layar: kartu form tersusun ke bawah, dan setiap barang tampil dengan kolom jumlah yang mudah diisi. Tombol <span class="ui">Save Draft</span> dan <span class="ui">Review and Send</span> tetap menempel di bawah layar.</p>
+  <div class="phones">
+    <figure><img src="img/21-phone-forms.png" alt="" /><figcaption>Daftar form di HP</figcaption></figure>
+    <figure><img src="img/22-phone-form.png" alt="" /><figcaption>Mengisi form di HP</figcaption></figure>
+    <div class="note tip" style="width: 62mm; align-self: center;"><b class="t">Mengunggah file dari HP</b>Kontrak dan denah bisa diunggah dari HP. Pastikan filenya PDF, JPG, atau PNG dan ukurannya tidak melebihi batas yang tertulis di bawah kolom unggah.</div>
+  </div>
+</section>
+
+<!-- ============================== 9. STATUS + FAQ ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">9</div><div><h2>Arti status dan pertanyaan umum</h2></div></div>
+
+  <h3>Status form dan pesanan</h3>
+  <table>
+    <tr><th>Status</th><th>Artinya</th></tr>
+    <tr><td><span class="chip c-gray">Not Filled</span></td><td>Form belum diisi.</td></tr>
+    <tr><td><span class="chip c-amber">In Progress</span></td><td>Ada draft yang belum dikirim.</td></tr>
+    <tr><td><span class="chip c-blue">Sent</span></td><td>Pesanan terkirim dan sedang diperiksa panitia.</td></tr>
+    <tr><td><span class="chip c-amber">Returned</span></td><td>Panitia meminta perubahan. Baca pesannya, ubah, lalu kirim lagi.</td></tr>
+    <tr><td><span class="chip c-green">Approved</span></td><td>Pesanan disetujui. Totalnya sudah final.</td></tr>
+    <tr><td><span class="chip c-gray">Not Required</span></td><td>Anda menandai form ini tidak dibutuhkan.</td></tr>
+    <tr><td><span class="chip c-gray">Cancelled</span></td><td>Pesanan dibatalkan oleh panitia.</td></tr>
+  </table>
+
+  <h3>Status kontrak dan pembayaran</h3>
+  <table>
+    <tr><th>Status</th><th>Artinya</th></tr>
+    <tr><td><span class="chip c-gray">Draft</span></td><td>Kontrak belum ditandatangani.</td></tr>
+    <tr><td><span class="chip c-green">Signed</span></td><td>Kontrak yang sudah ditandatangani sudah diterima.</td></tr>
+    <tr><td><span class="chip c-gray">Unpaid</span></td><td>Belum ada pembayaran yang diterima.</td></tr>
+    <tr><td><span class="chip c-amber">Partially Paid</span></td><td>Sebagian sudah dibayar, masih ada sisa.</td></tr>
+    <tr><td><span class="chip c-green">Paid</span></td><td>Lunas.</td></tr>
+    <tr><td><span class="chip c-amber">Pending</span> <span class="chip c-green">Verified</span> <span class="chip c-red">Rejected</span></td><td>Satu pembayaran sedang diperiksa, sudah diterima, atau ditolak (misalnya salah rekening). Bila ditolak, hubungi sales Anda.</td></tr>
+  </table>
+
+  <h3>Pertanyaan umum</h3>
+  <div class="grid2">
+    <div class="card"><h3>Apakah draft saya hilang kalau keluar dari portal?</h3><p>Tidak. Draft tersimpan setelah Anda klik <span class="ui">Save Draft</span>. Perubahan yang belum disimpan memang hilang, jadi simpan secara berkala.</p></div>
+    <div class="card"><h3>Bisakah mengubah pesanan yang sudah dikirim?</h3><p>Tidak bisa diubah sendiri. Hubungi sales untuk meminta pesanan dikembalikan, atau buat pesanan baru dengan <span class="ui">Order More</span>.</p></div>
+    <div class="card"><h3>Kenapa total akhir berbeda dari perkiraan?</h3><p>Perkiraan belum termasuk harga item tambahan. Harganya ditentukan panitia, dan total final tampil setelah pesanan disetujui.</p></div>
+    <div class="card"><h3>Satu perusahaan ikut beberapa pameran?</h3><p>Cukup satu akun. Semua pameran Anda tampil di <b>My Exhibitions</b>.</p></div>
+  </div>
+
+  <div class="note tip" style="margin-top: 16px"><b class="t">Butuh bantuan?</b>Untuk pertanyaan soal booth, kontrak, pembayaran, atau pesanan, hubungi sales PERAGA Expo yang menangani perusahaan Anda.</div>
+</section>
+
+</body>
+</html>

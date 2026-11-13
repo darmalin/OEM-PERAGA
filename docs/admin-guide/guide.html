@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>Panduan Admin Exhibitor PERAGA Expo</title>
+<style>
+  @font-face { font-family: "Jakarta"; src: url("../exhibitor-guide/fonts/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; }
+  @font-face { font-family: "Inter"; src: url("../exhibitor-guide/fonts/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+
+  /* Same palette as the portal (frontend/apps/exhibitor/src/styles.css), so the guide and the
+     screens it shows read as one product. */
+  :root {
+    --page: #f4f5fb; --ink: #1b1c3d; --muted: #4a4d70; --label: #5b5e80; --line: #e1e3f0;
+    --primary: #2f318b; --primary-soft: #eceefb; --hero-muted: #c7c9ee;
+    --accent: #e62129; --accent-ink: #c4161f; --accent-soft: #fdecec;
+    --green: #17663b; --green-bg: #e3f4e9; --amber: #7a4f00; --amber-bg: #fff2d6; --blue-bg: #eceefb; --gray-bg: #eef0f6;
+  }
+  @page { size: A4; margin: 16mm 16mm 18mm; }
+  @page :first { margin: 0; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Inter", sans-serif; font-size: 10.5pt; line-height: 1.55; color: var(--ink); }
+  h1, h2, h3 { font-family: "Jakarta", sans-serif; margin: 0; line-height: 1.2; }
+  p { margin: 0 0 8px; }
+  b, strong { font-weight: 650; }
+
+  /* --- cover ---------------------------------------------------------------------------------- */
+  .cover { height: 297mm; display: flex; flex-direction: column; background: var(--primary); color: #fff; padding: 22mm 20mm 18mm; page-break-after: always; }
+  .cover .logo { align-self: flex-start; background: #fff; border-radius: 14px; padding: 12px 18px; }
+  .cover .logo img { height: 34px; display: block; }
+  .cover .kicker { margin-top: 34mm; font-weight: 600; color: var(--hero-muted); font-size: 12pt; }
+  .cover h1 { font-size: 38pt; font-weight: 800; margin-top: 6px; letter-spacing: -0.5px; }
+  .cover .lede { font-size: 13pt; color: #fff; max-width: 135mm; margin-top: 14px; line-height: 1.5; }
+  .cover .tag { margin-top: 18mm; display: inline-flex; flex-direction: column; align-items: center; background: #fff; color: var(--primary); border-radius: 14px; padding: 10px 22px 14px; position: relative; align-self: flex-start; }
+  .cover .tag::before { content: ""; position: absolute; top: -6px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+  .cover .tag small { font-size: 9pt; font-weight: 600; color: var(--label); }
+  .cover .tag span { font-family: "Jakarta"; font-weight: 800; font-size: 26pt; line-height: 1; }
+  .cover .route { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cover .route div { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; }
+  .cover .route b { display: block; font-family: "Jakarta"; font-size: 12pt; }
+  .cover .route span { color: var(--hero-muted); font-size: 9.5pt; }
+  .cover .route i { font-style: normal; display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: #fff; color: var(--primary); font-weight: 700; align-items: center; justify-content: center; font-size: 10pt; margin-bottom: 6px; }
+  .cover .foot { margin-top: 10mm; color: var(--hero-muted); font-size: 9pt; }
+
+  /* --- body ------------------------------------------------------------------------------------ */
+  .chapter { break-before: page; }
+  .chapter-head { break-after: avoid; break-inside: avoid; display: flex; align-items: center; gap: 14px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-soft); }
+  .chapter-head .num { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--primary); color: #fff; font-family: "Jakarta"; font-weight: 800; font-size: 18pt; display: flex; align-items: center; justify-content: center; }
+  .chapter-head h2 { font-size: 20pt; font-weight: 800; }
+  .chapter-head p { margin: 2px 0 0; color: var(--muted); }
+  h3 { font-size: 13pt; font-weight: 700; margin: 18px 0 6px; break-after: avoid; }
+  .muted { color: var(--muted); }
+
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 8px 0 12px; }
+  ol.steps li { counter-increment: s; position: relative; padding-left: 34px; margin-bottom: 8px; break-inside: avoid; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+  ul.dots { padding-left: 18px; margin: 6px 0 10px; }
+  ul.dots li { margin-bottom: 4px; }
+
+  /* A button or label exactly as it is written on screen. */
+  .ui { display: inline-block; font-weight: 650; color: var(--primary); background: var(--primary-soft); border-radius: 6px; padding: 0 6px; font-size: 9.5pt; line-height: 1.6; white-space: nowrap; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 9px; font-size: 9pt; font-weight: 650; white-space: nowrap; }
+  .chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .c-gray { background: var(--gray-bg); color: var(--muted); } .c-blue { background: var(--blue-bg); color: var(--primary); }
+  .c-green { background: var(--green-bg); color: var(--green); } .c-amber { background: var(--amber-bg); color: var(--amber); }
+  .c-red { background: var(--accent-soft); color: var(--accent-ink); }
+
+  figure { margin: 10px 0 14px; break-inside: avoid; }
+  figure img { display: block; max-width: 100%; max-height: 118mm; margin: 0 auto; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 10px rgba(47,49,139,0.08); }
+  figure.narrow img { max-height: 80mm; }
+  figcaption { font-size: 9pt; color: var(--label); margin-top: 6px; text-align: center; }
+    .phones { display: flex; gap: 22px; justify-content: center; }
+  .phones figure { width: 62mm; margin: 6px 0; } .phones img { max-height: 88mm; } .phones figure { width: 46mm; }
+
+  .note { break-inside: avoid; border-radius: 12px; padding: 10px 14px; margin: 10px 0 14px; font-size: 10pt; }
+  .note b.t { display: block; font-family: "Jakarta"; font-size: 10.5pt; margin-bottom: 2px; }
+  .tip { background: var(--primary-soft); } .tip b.t { color: var(--primary); }
+  .warn { background: var(--accent-soft); } .warn b.t { color: var(--accent-ink); }
+  .ok { background: var(--green-bg); } .ok b.t { color: var(--green); }
+
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 10pt; break-inside: avoid; }
+  th { text-align: left; font-size: 9pt; color: var(--label); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { width: 34%; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; break-inside: avoid; }
+  .card h3 { margin-top: 0; font-size: 11.5pt; }
+  .toc { margin-top: 6px; }
+  .toc div { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .toc i { font-style: normal; width: 26px; height: 26px; flex: none; border-radius: 8px; background: var(--primary-soft); color: var(--primary); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .toc span { color: var(--muted); font-size: 9.5pt; display: block; }
+</style>
+<style>
+  /* Admin guide extras on top of the exhibitor guide's styles. */
+  .flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0 14px; }
+  .flow div { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; font-size: 9.5pt; break-inside: avoid; }
+  .flow b { display: block; font-family: "Jakarta"; font-size: 10pt; color: var(--primary); }
+  .flow i { font-style: normal; color: var(--label); font-size: 8.5pt; display: block; margin-bottom: 2px; }
+  .who { font-size: 8.5pt; font-weight: 650; color: var(--label); }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<section class="cover">
+  <div class="logo"><img src="../exhibitor-guide/img/peraga-expo-logo.png" alt="PERAGA Expo" /></div>
+  <div class="kicker">Untuk tim PERAGA Expo</div>
+  <h1>Panduan Admin Exhibitor</h1>
+  <p class="lede">Mengelola exhibitor dari aplikasi admin: booth, lead sampai jadi exhibitor, quotation, kontrak dan pembayaran booth, order form, serta pemeriksaan dan pembayaran pesanan layanan.</p>
+  <div class="tag"><small>Menu</small><span style="font-size: 18pt">Exhibitors</span></div>
+  <div class="route">
+    <div><i>1</i><b>Siapkan</b><span>Tanggal harga di edisi, booth, dan order form</span></div>
+    <div><i>2</i><b>Jual dan undang</b><span>Lead, booth, quotation, lalu Convert dan kirim link portal</span></div>
+    <div><i>3</i><b>Periksa dan tagih</b><span>Kontrak, pembayaran booth, review pesanan, pembayaran pesanan</span></div>
+  </div>
+  <div class="foot">Pasangan dari "Panduan Portal Exhibitor". Contoh memakai INATEX 2027 dengan exhibitor PT Maju Tekstil Nusantara dan PT Nusantara Fabrics.</div>
+</section>
+
+<!-- ============================== 0 ============================== -->
+<section>
+  <div class="chapter-head"><div class="num">0</div><div><h2>Sebelum mulai</h2><p>Alur besar, siapa mengerjakan apa, dan cara memilih edisi.</p></div></div>
+
+  <h3>Alur dari lead sampai pesanan lunas</h3>
+  <div class="flow">
+    <div><i>Admin</i><b>Siapkan edisi</b>Tanggal harga, booth, order form</div>
+    <div><i>Sales</i><b>Lead</b>Catat perusahaan yang tertarik</div>
+    <div><i>Sales</i><b>Quotation</b>Buat penawaran, kirim PDF, Accept</div>
+    <div><i>Sales</i><b>Opportunity + booth</b>Tahan booth di harga yang disepakati</div>
+    <div><i>Sales</i><b>Convert</b>Kontrak dibuat, kirim link portal</div>
+    <div><i>Exhibitor</i><b>Tanda tangan kontrak</b>Lewat portal</div>
+    <div><i>Keuangan</i><b>Pembayaran booth</b>Catat dan verifikasi</div>
+    <div><i>Exhibitor</i><b>Kirim pesanan</b>Lewat order form di portal</div>
+    <div><i>Admin</i><b>Review dan tagih</b>Approve, catat pembayaran pesanan</div>
+  </div>
+
+  <h3>Siapa bisa apa</h3>
+  <table>
+    <tr><th>Pekerjaan</th><th>Siapa (izin)</th></tr>
+    <tr><td>Lead, booth untuk lead dan harganya, quotation, Convert</td><td>Sales dan admin pameran, dalam lead yang menjadi bagiannya (izin <b>exhibitor_lead.update</b>)</td></tr>
+    <tr><td>Booth, menambah booth baru saat memilih booth, Quotation Settings</td><td>Super Admin dan Exhibition Admin (izin <b>booth.manage</b>)</td></tr>
+    <tr><td>Mengatur Order Forms</td><td>Super Admin dan Exhibition Admin (izin <b>order_form.manage</b>)</td></tr>
+    <tr><td>Approve, Return, Cancel pesanan, memberi harga item tambahan</td><td>Super Admin dan Exhibition Admin (izin <b>exhibitor_order.review</b>)</td></tr>
+    <tr><td>Mencatat dan memverifikasi pembayaran</td><td>Peran yang punya izin pencatatan dan verifikasi pembayaran exhibitor</td></tr>
+  </table>
+  <p class="muted">Menu yang tidak sesuai izin Anda tidak tampil. Izin diatur Super Admin di System, Roles.</p>
+
+  <h3>Pilih edisi dulu</h3>
+  <p>Hampir semua halaman exhibitor bekerja per edisi. Pilih edisi di kotak <span class="ui">Exhibition Type</span> di kanan atas halaman, misalnya <b>INATEX2027 · INATEX 2027</b>. Pilihan ini diingat sampai Anda menggantinya.</p>
+  <div class="note warn"><b class="t">Belum ada email otomatis</b>Portal belum mengirim email notifikasi. Link undangan, pesanan yang dikembalikan, dan tagihan perlu Anda kabarkan sendiri ke exhibitor lewat chat atau email.</div>
+</section>
+
+<!-- ============================== 1 ============================== -->
+<section style="margin-top: 26px">
+  <div class="chapter-head"><div class="num">1</div><div><h2>Siapkan edisi dan booth</h2><p>Dilakukan sekali per edisi, sebelum exhibitor masuk portal.</p></div></div>
+
+  <h3>Tanggal harga dan batas pesanan</h3>
+  <p>Buka <b>Setup, Editions</b>, pilih edisi, lalu isi bagian <b>Exhibitor dates</b>:</p>
+  <ul class="dots">
+    <li><b>Price Regular / Surcharge / Onsite</b>: periode tiap harga. Harga pesanan ditentukan oleh tanggal pesanan dikirim (zona waktu edisi). Tanggal di luar semua periode memakai harga Regular.</li>
+    <li><b>Order Expired</b>: batas akhir pengiriman pesanan, dipakai bila order form tidak punya tanggal tutup sendiri.</li>
+  </ul>
+  <figure><img src="img/02-edition-dates.png" alt="" /><figcaption>Exhibitor dates pada halaman edisi</figcaption></figure>
+
+  <h3>Booth</h3>
+  <p>Menu <b>Exhibitors, Booths</b> berisi semua booth edisi ini beserta statusnya: <b>Available</b> (kosong) atau <b>Held</b> (ditahan untuk lead atau dipakai exhibitor). Klik <span class="ui">Add Booth</span> untuk menambah: isi <b>Code</b>, <b>Hall</b>, <b>Area (m²)</b>, dan <b>Price</b>. Luas booth dipakai untuk jatah barang gratis di order form.</p>
+  <figure><img src="img/c/03-booths.png" alt="" /><figcaption>Daftar booth</figcaption></figure>
+  <figure><img src="img/c/04-booth-new.png" alt="" /><figcaption>Menambah booth C02</figcaption></figure>
+
+  <h3>Quotation Settings</h3>
+  <p>Menu <b>Exhibitors, Quotation Settings</b> berisi dasar setiap quotation edisi ini. Isi sekali, sebelum sales membuat quotation:</p>
+  <ul class="dots">
+    <li><b>Quotation Code</b> dan <b>Start From</b>: nomor dibuat seperti <b>113/PNJS/IIT/XI/2026</b>. Isi Start From dengan nomor berikutnya setelah nomor yang sudah dipakai di Excel. Edisi dengan kode yang sama (misalnya INATEX dan INDO INTERTEX dengan IIT) memakai nomor yang sama berurutan.</li>
+    <li><b>Exhibition Name in the Letter</b> dan <b>When and Where</b>: kalimat pembuka surat.</li>
+    <li><b>Rates per sqm</b>: harga Raw Space dan Shell Scheme per sqm, dalam IDR dan USD. Kosongkan bila tidak dipakai.</li>
+    <li><b>Discount and VAT</b>: nama diskon bawaan, PPN 12% dengan dasar pengenaan 11/12. Quotation USD tidak memakai PPN kecuali dicentang.</li>
+    <li><b>Default Terms of Payment</b>: termin bawaan, misalnya Booking Fee 30%, First Payment 50%, Last Payment 20%.</li>
+    <li><b>Signed By</b>: nama, jabatan, dan gambar tanda tangan (PNG atau JPEG) yang dicetak di PDF.</li>
+  </ul>
+  <figure><img src="img/c/q01a-settings.png" alt="" /><figcaption>Nomor, teks surat, dan tarif per sqm</figcaption></figure>
+  <figure><img src="img/c/q01b-settings.png" alt="" /><figcaption>Diskon, PPN, termin, dan penanda tangan</figcaption></figure>
+</section>
+
+<!-- ============================== 2 ============================== -->
+<section style="margin-top: 26px">
+  <div class="chapter-head"><div class="num">2</div><div><h2>Dari lead sampai exhibitor</h2><p>Lead, Opportunity, pilih booth, lalu Convert dan undang ke portal.</p></div></div>
+
+  <h3>Daftar dan papan lead</h3>
+  <p>Menu <b>Exhibitors, Exhibitor Leads</b>. Tampilan <span class="ui">List</span> untuk mencari dan menyaring per Stage atau Lead Owner. Tampilan <span class="ui">Board</span> menunjukkan lead per tahap; kartu bisa diseret ke tahap berikutnya.</p>
+  <figure><img src="img/c/05-leads.png" alt="" /><figcaption>Daftar lead dengan tahap dan booth</figcaption></figure>
+  <figure><img src="img/c/06-board.png" alt="" /><figcaption>Papan lead per tahap</figcaption></figure>
+
+  <h3>Menambah lead</h3>
+  <ol class="steps">
+    <li>Klik <span class="ui">Add Exhibitor Lead</span>.</li>
+    <li>Isi data perusahaan: <b>Company Name</b>, <b>Contact Name</b>, <b>Email</b>, <b>Phone</b>. Email ini nanti menjadi akun portal exhibitor, jadi pastikan benar.</li>
+    <li>Isi data penjualan bila ada: kategori produk, perkiraan anggaran, booth yang diminta.</li>
+    <li>Klik <span class="ui">Save Exhibitor Lead</span>.</li>
+  </ol>
+  <figure><img src="img/c/07-lead-new.png" alt="" /><figcaption>Form lead baru</figcaption></figure>
+</section>
+
+<section>
+  <h3>Halaman lead</h3>
+  <p>Halaman lead punya tab <b>Details</b>, <b>Quotations</b>, <b>Contract</b>, <b>Payments</b>, <b>Orders</b>, dan <b>Activity</b>. Di kanan ada panel <b>Stage</b>, <b>Booth</b>, <b>Lead Owner</b>, dan <b>Record</b>.</p>
+  <figure><img src="img/c/08-lead-page.png" alt="" /><figcaption>Lead baru berstatus Lead</figcaption></figure>
+
+  <h3>Opportunity dan booth</h3>
+  <ol class="steps">
+    <li>Di panel Stage, klik <span class="ui">Mark Opportunity</span>, lalu <span class="ui">Move to Opportunity</span>.</li>
+    <li>Di panel Booth, klik <span class="ui">Choose Booth</span>.</li>
+    <li>Di kotak <b>Find a booth</b>, ketik kode atau hall. Booth kosong yang cocok muncul di daftar. Pilih dengan klik, atau dengan panah lalu Enter.</li>
+    <li>Isi <b>Agreed Price</b>: harga yang disepakati dengan perusahaan. Awalnya sama dengan harga daftar booth, dan boleh diubah.</li>
+    <li>Klik <span class="ui">Hold Booth</span>. Booth ditahan untuk lead ini dengan harga tersebut.</li>
+  </ol>
+  <figure><img src="img/c/q02-booth-search.png" alt="" /><figcaption>Mencari booth dengan mengetik "C"</figcaption></figure>
+  <p>Booth belum ada di daftar? Ketik kodenya, lalu pilih <span class="ui">Add booth “E05”</span>. Isi <b>Hall</b>, <b>Area (m²)</b>, dan harganya. Booth itu otomatis masuk menu Booths, jadi tetap tidak bisa terjual dua kali. Pilihan ini hanya muncul untuk Super Admin dan Exhibition Admin.</p>
+  <figure><img src="img/c/q03-booth-new.png" alt="" /><figcaption>Menambah booth E05 langsung dari halaman Choose Booth</figcaption></figure>
+  <h3>Mengubah harga booth</h3>
+  <p>Klik <span class="ui">Change Booth or Price</span> di panel Booth, ubah <b>Agreed Price</b>, lalu <span class="ui">Save Price</span>. Panel Booth menampilkan harga yang disepakati dan, bila berbeda, harga daftarnya. Kontrak yang masih Draft ikut berubah.</p>
+  <figure><img src="img/c/q04-booth-price.png" alt="" /><figcaption>Harga disepakati Rp 165 juta, harga daftar Rp 170 juta</figcaption></figure>
+</section>
+
+<section>
+  <h3>Convert to Exhibitor dan link undangan</h3>
+  <p>Setelah lead menjadi Opportunity dan memegang booth, tombol <span class="ui">Convert to Exhibitor</span> muncul di kanan atas.</p>
+  <figure><img src="img/c/11-convert.png" alt="" /><figcaption>Halaman konfirmasi Convert</figcaption></figure>
+  <ol class="steps">
+    <li>Klik <span class="ui">Convert to Exhibitor</span> dan konfirmasi. Lead menjadi Exhibitor, kontrak dibuat, dan akun portal disiapkan.</li>
+    <li>Klik <span class="ui">Copy Link</span> pada <b>Invitation Link</b>, lalu kirim ke email exhibitor lewat chat atau email.</li>
+  </ol>
+  <figure><img src="img/c/12-converted.png" alt="" /><figcaption>Link undangan setelah Convert</figcaption></figure>
+  <div class="note warn"><b class="t">Link hanya tampil sekali</b>Link berlaku satu kali dan kedaluwarsa dalam 7 hari. Bila hilang atau kedaluwarsa, buat link baru dari panel Exhibitor Portal.</div>
+
+  <h3>Panel Exhibitor Portal</h3>
+  <p>Di halaman exhibitor, panel ini menunjukkan status akun portal dan login terakhir.</p>
+  <ul class="dots">
+    <li><span class="ui">New Invitation Link</span>: link baru bila exhibitor belum pernah membuat password.</li>
+    <li><span class="ui">Password Reset Link</span>: bila exhibitor lupa password.</li>
+    <li><span class="ui">Disable Account</span>: menutup akses portal, misalnya karena PIC berganti.</li>
+  </ul>
+  <figure><img src="img/13-portal-account.png" alt="" /><figcaption>Akun menunggu exhibitor membuat password</figcaption></figure>
+</section>
+
+<!-- ============================== 3 ============================== -->
+<section style="margin-top: 26px">
+  <div class="chapter-head"><div class="num">3</div><div><h2>Quotation</h2><p>Penawaran harga sebelum perusahaan menjadi exhibitor, seperti Excel quotation sales.</p></div></div>
+  <p>Quotation bisa dibuat sejak tahap Lead, dari tab <b>Quotations</b> di halaman lead. Semua quotation lead itu tersimpan di tab ini sebagai riwayat.</p>
+
+  <h3>Membuat quotation</h3>
+  <ol class="steps">
+    <li>Klik <span class="ui">New Quotation</span>.</li>
+    <li><b>Recipient</b>: nama perusahaan, alamat (dua baris seperti di surat), dan <b>Attention</b> untuk "Dear, Ms. Novy,".</li>
+    <li><b>Space</b>: <b>Stand</b> (Raw Space atau Shell Scheme), <b>Currency</b>, booth (opsional: cari atau ketik kode apa saja), <b>Width</b> x <b>Length</b> dalam meter atau <b>Area</b>, dan <b>Complimentary Space</b> bila ada ruang gratis.</li>
+    <li><b>Price</b>: tarif per sqm terisi dari Quotation Settings dan boleh diubah untuk perusahaan ini. Isi <b>Discount (%)</b> dan namanya (Special Discount, Early Bird). Centang PPN bila perlu.</li>
+    <li><b>Terms of Payment</b>: termin, persen (jumlahnya harus 100%), dan tanggal.</li>
+    <li>Periksa <b>Summary</b> di kanan: setiap baris hitungan dan nomor yang akan dipakai. Summary berubah setiap kali isian diubah.</li>
+    <li>Klik <span class="ui">Create Quotation</span>. Nomor diberikan saat ini.</li>
+  </ol>
+  <figure><img src="img/c/q05-new.png" alt="" /><figcaption>Form New Quotation dengan Summary di kanan</figcaption></figure>
+  <div class="note tip"><b class="t">Cara menghitung</b>Ruang dihitung lebar x panjang dikurangi complimentary space. Diskon adalah persen dari biaya raw space, juga untuk shell scheme. PPN 12% dihitung dari 11/12 biaya setelah diskon, sama seperti Excel. Termin terakhir menyerap selisih pembulatan.</div>
+</section>
+
+<section>
+  <h3>Halaman quotation dan PDF</h3>
+  <p>Setelah dibuat, halaman quotation menunjukkan hitungan dan data surat. Tombolnya:</p>
+  <ul class="dots">
+    <li><span class="ui">Download PDF</span>: quotation dengan kop PT. Peraga Nusantara Jaya Sakti dan tanda tangan, siap dikirim ke perusahaan lewat email atau chat.</li>
+    <li><span class="ui">Revise</span>: membuat quotation baru dari isian yang sama. Quotation baru mendapat nomor baru; yang lama menjadi <span class="chip c-gray">Superseded</span>.</li>
+    <li><span class="ui">Cancel Quotation</span>: menarik quotation dengan alasan. Tetap tercatat di riwayat.</li>
+    <li><span class="ui">Accept</span>: perusahaan setuju. Lihat bagian berikut.</li>
+  </ul>
+  <figure><img src="img/c/q06-detail.png" alt="" /><figcaption>Quotation 117/PNJS/IIT/XI/2026</figcaption></figure>
+  <figure class="narrow"><img src="img/q10-pdf.png" alt="" style="max-height: 150mm" /><figcaption>PDF yang diunduh</figcaption></figure>
+</section>
+
+<section>
+  <h3>Accept</h3>
+  <p>Klik <span class="ui">Accept</span>. Halaman konfirmasi menjelaskan apa yang akan berubah sebelum Anda klik <span class="ui">Accept Quotation</span>:</p>
+  <ul class="dots">
+    <li>Lead menahan booth dari quotation (bila sudah Opportunity) dengan harga quotation sebelum diskon dan PPN. Bila lead masih Lead, harga itu dipakai saat booth dipilih nanti.</li>
+    <li>Kontrak (yang dibuat saat Convert, atau yang masih Draft) memakai harga, diskon, PPN, dan termin quotation.</li>
+    <li>Hanya satu quotation yang bisa Accepted per lead. Menerima yang lain membuat yang lama Superseded.</li>
+  </ul>
+  <figure><img src="img/c/q07-accept.png" alt="" /><figcaption>Konfirmasi Accept</figcaption></figure>
+  <figure><img src="img/c/q08-history.png" alt="" /><figcaption>Tab Quotations: quotation diterima, booth E05 ditahan di harga quotation</figcaption></figure>
+</section>
+
+<section style="margin-top: 26px">
+  <div class="chapter-head"><div class="num">4</div><div><h2>Kontrak dan pembayaran booth</h2><p>Tab Contract dan Payments di halaman exhibitor.</p></div></div>
+
+  <h3>Kontrak</h3>
+  <p>Exhibitor mengisi data PIC dan mengunggah kontrak yang sudah ditandatangani dari portal. Statusnya berubah menjadi <span class="chip c-green">Signed</span>. Di tab <b>Contract</b>, Anda bisa:</p>
+  <ul class="dots">
+    <li>Mengubah <b>Booth Price</b>, <b>Discount</b>, dan data kontrak selama kontrak masih Draft. Harga yang disepakati di lead ikut berubah.</li>
+    <li><span class="ui">Download Signed PDF</span>: mengunduh kontrak yang diunggah exhibitor.</li>
+    <li><span class="ui">Reopen Contract</span>: membuka kembali kontrak yang sudah Signed bila ada yang salah. Isi <b>Reason</b>; exhibitor bisa mengunggah ulang.</li>
+  </ul>
+  <figure><img src="img/c/14-contract.png" alt="" /><figcaption>Kontrak yang sudah ditandatangani</figcaption></figure>
+  <p>Bila ada quotation yang diterima, kontrak menampilkan <b>VAT</b>, nomor <b>Quotation</b>, dan termin pembayarannya. Total kontrak sudah termasuk PPN, dan pembayaran dihitung terhadap total itu. Mengubah harga atau diskon menghitung ulang PPN.</p>
+  <figure><img src="img/c/q09-contract-vat.png" alt="" /><figcaption>Kontrak Draft dengan PPN dan termin dari quotation</figcaption></figure>
+
+  <h3>Pembayaran booth</h3>
+  <p>Tab <b>Payments</b> menunjukkan <b>Contract Total</b>, yang sudah <b>Verified</b>, yang masih <b>Pending</b>, dan <b>Outstanding</b>. Pembayaran baru bisa dicatat setelah kontrak Signed.</p>
+  <figure><img src="img/c/15-payments.png" alt="" /><figcaption>Tab Payments: cicilan pertama sudah diverifikasi</figcaption></figure>
+</section>
+
+<section>
+  <ol class="steps">
+    <li>Klik <span class="ui">Record Payment</span>.</li>
+    <li>Isi <b>Amount</b>, <b>Paid On</b>, <b>Method</b>, dan <b>Reference</b> (misalnya nomor transfer atau "Installment 2"). Jumlah tidak boleh melebihi sisa tagihan.</li>
+    <li>Klik <span class="ui">Record Payment</span>. Pembayaran tercatat <span class="chip c-amber">Pending</span>.</li>
+  </ol>
+  <figure><img src="img/c/16-payment-new.png" alt="" /><figcaption>Mencatat cicilan kedua</figcaption></figure>
+  <h3>Verifikasi</h3>
+  <p>Cocokkan dengan mutasi bank, lampirkan bukti di bagian <b>Proof</b> bila ada, lalu klik <span class="ui">Verify Payment</span>. Bila tidak sesuai, isi <b>Notes</b> dan klik <span class="ui">Reject</span>. Jumlah yang ditolak bisa dicatat ulang.</p>
+  <figure><img src="img/c/17-payment-review.png" alt="" /><figcaption>Halaman pembayaran dengan tombol Verify Payment dan Reject</figcaption></figure>
+  <div class="note tip"><b class="t">Yang dilihat exhibitor</b>Exhibitor melihat setiap pembayaran dan statusnya di portal, tetapi tidak melihat catatan internal Anda.</div>
+</section>
+
+<!-- ============================== 4 ============================== -->
+<section style="margin-top: 26px">
+  <div class="chapter-head"><div class="num">5</div><div><h2>Mengatur Order Forms</h2><p>Form layanan yang diisi exhibitor: listrik, furnitur, badge, internet, parkir.</p></div></div>
+  <p>Menu <b>Exhibitors, Order Forms</b> berisi form edisi ini dengan status <span class="chip c-green">Published</span> atau belum, isi form, dan tenggatnya. Exhibitor hanya melihat form yang Published.</p>
+  <figure><img src="img/c/18-forms.png" alt="" /><figcaption>Daftar order form INATEX 2027</figcaption></figure>
+
+  <h3>Menambah form</h3>
+  <ol class="steps">
+    <li>Klik <span class="ui">Add Form</span>.</li>
+    <li>Isi <b>Form Number</b> (misalnya 12) dan <b>Title</b>.</li>
+    <li>Di <b>What the Exhibitor Fills In</b>, pilih isinya: <b>Catalog of items with prices</b>, item tambahan dengan harga dari panitia, <b>Questions</b> (badge, visa, katalog pameran, dan lainnya), dan <b>Attachments</b> (logo, gambar produk, lokasi pemasangan, dan lainnya).</li>
+    <li>Isi <b>Deadline</b>. <b>Closes On</b> adalah hari terakhir pesanan bisa dikirim; bila kosong, dipakai Order Expired edisi.</li>
+    <li>Tulis ketentuan di <b>Notes and Terms</b>. Teks ini tampil sebagai Notes di portal.</li>
+    <li>Klik <span class="ui">Save Form</span>. Form belum Published sampai Anda mencentangnya di Settings.</li>
+  </ol>
+  <figure><img src="img/c/19-form-new.png" alt="" /><figcaption>Form baru 12 Parking Pass</figcaption></figure>
+</section>
+
+<section>
+  <h3>Mengisi katalog</h3>
+  <p>Di tab <b>Catalog</b>, klik <span class="ui">Add Item</span>. Isi <b>Code</b>, <b>Name</b>, <b>Section</b> (pengelompokan di portal), <b>Size</b>, <b>Unit</b>, dan tiga harga: <b>Regular</b>, <b>Surcharge</b>, <b>Onsite</b>. <b>Most per Order</b> membatasi jumlah per pesanan. Item bisa diberi gambar setelah disimpan.</p>
+  <figure><img src="img/c/20-item-new.png" alt="" /><figcaption>Item baru dengan tiga harga</figcaption></figure>
+  <h3>Impor dari Excel</h3>
+  <p>Untuk katalog panjang, klik <span class="ui">Import from Excel</span>, lalu <span class="ui">Download Template</span>. Isi template, pilih file di <b>Catalog (.xlsx)</b>, dan klik <span class="ui">Import</span>. Item dengan kode yang sudah ada akan diperbarui. Bila ada baris yang salah, tidak ada yang disimpan dan barisnya ditunjukkan.</p>
+  <figure><img src="img/c/21-import.png" alt="" /><figcaption>Halaman Import Catalog</figcaption></figure>
+</section>
+
+<section>
+  <h3>Katalog dan jatah gratis</h3>
+  <figure><img src="img/c/22-catalog.png" alt="" /><figcaption>Katalog Form 04 dengan tiga item</figcaption></figure>
+  <p>Buka sebuah item untuk mengatur <b>Free by Booth Size</b>: jumlah gratis sesuai luas booth. Contoh: Power socket gratis 1 untuk semua booth (mulai 0 m²). Jatah gratis berlaku sekali per exhibitor, dihitung dari semua pesanannya.</p>
+  <figure><img src="img/23-free.png" alt="" /><figcaption>Jatah gratis menurut luas booth</figcaption></figure>
+
+  <h3>Publish</h3>
+  <p>Di tab <b>Settings</b>, centang <b>Published to the exhibitor portal</b>, lalu <span class="ui">Save Form</span>. Form hanya bisa Published bila ada yang bisa diisi (katalog, pertanyaan, atau lampiran). Untuk form pertanyaan, pilihan jawaban (misalnya kategori produk) diatur di bagian <b>Choices</b> pada tab yang sama.</p>
+  <figure><img src="img/c/24-settings.png" alt="" /><figcaption>Tab Settings Form 04</figcaption></figure>
+</section>
+
+<section>
+  <h3>Salin dari edisi lain</h3>
+  <p>Klik <span class="ui">Copy from Edition</span> di daftar form untuk menyalin form beserta katalog, harga, dan gambarnya dari edisi sebelumnya. Hasil salinan belum Published dan tanggalnya dikosongkan. Periksa harga dan tanggal sebelum Publish.</p>
+  <figure><img src="img/c/25-copy.png" alt="" /><figcaption>Copy Order Forms</figcaption></figure>
+</section>
+
+<!-- ============================== 5 ============================== -->
+<section style="margin-top: 26px">
+  <div class="chapter-head"><div class="num">6</div><div><h2>Memeriksa pesanan</h2><p>Menu Orders: pesanan yang dikirim exhibitor dari portal.</p></div></div>
+  <p>Menu <b>Exhibitors, Orders</b> terbuka dengan pesanan <span class="chip c-blue">Waiting for Review</span>. Draft exhibitor tidak tampil di sini. Tanda di kolom Status membantu menentukan yang perlu dikerjakan:</p>
+  <table>
+    <tr><th>Tanda</th><th>Artinya</th></tr>
+    <tr><td><span class="chip c-amber">1 to price</span></td><td>Ada item tambahan yang belum diberi harga.</td></tr>
+    <tr><td><span class="chip c-gray">Contract not signed</span></td><td>Pesanan berbayar menunggu kontrak booth ditandatangani.</td></tr>
+    <tr><td><b>Booth changed</b></td><td>Booth exhibitor berbeda dari booth saat pesanan dikirim. Periksa sebelum approve.</td></tr>
+  </table>
+  <figure><img src="img/c/26-orders.png" alt="" /><figcaption>Antrean pesanan</figcaption></figure>
+
+  <h3>Halaman pesanan</h3>
+  <p>Klik nomor pesanan. Anda melihat item, jumlah, harga (sudah dikunci saat dikirim), jumlah gratis, jawaban, lampiran, dan catatan exhibitor.</p>
+  <ol class="steps">
+    <li>Untuk item tambahan, isi <b>Unit price</b> lalu klik <span class="ui">Set Price</span>. Total langsung diperbarui.</li>
+    <li>Bila ada yang perlu diubah exhibitor, klik <span class="ui">Return to Exhibitor</span> dan tulis apa yang harus diubah. Pesanan kembali ke exhibitor dengan nomor yang sama.</li>
+    <li>Bila semua benar, klik <span class="ui">Approve</span>. Tombol ini aktif bila semua item tambahan sudah diberi harga dan, untuk pesanan berbayar, kontrak sudah Signed.</li>
+  </ol>
+  <figure><img src="img/c/27-order.png" alt="" /><figcaption>Pesanan dengan item tambahan yang belum diberi harga</figcaption></figure>
+</section>
+
+<section>
+  <figure><img src="img/c/28-return.png" alt="" /><figcaption>Mengembalikan pesanan dengan alasan yang dibaca exhibitor</figcaption></figure>
+  <div class="note tip"><b class="t">Harga yang sudah diberi tetap tersimpan</b>Bila exhibitor mengirim ulang pesanan tanpa mengubah item tambahan itu, harga dari Anda tetap dipakai.</div>
+  <p><span class="ui">Cancel Order</span> membatalkan pesanan dengan alasan. Pesanan yang punya pembayaran Pending atau Verified tidak bisa dibatalkan; tolak dulu pembayarannya.</p>
+
+  <h3>Pesanan disetujui</h3>
+  <p>Setelah <span class="chip c-green">Approved</span>, total pesanan final dan bagian <b>Payments</b> muncul: Order Total, Verified, Pending, dan Outstanding.</p>
+  <figure><img src="img/c/29-approved.png" alt="" /><figcaption>Pesanan disetujui, belum dibayar</figcaption></figure>
+</section>
+
+<!-- ============================== 6 ============================== -->
+<section style="margin-top: 26px">
+  <div class="chapter-head"><div class="num">7</div><div><h2>Pembayaran pesanan dan laporan</h2><p>Sama seperti pembayaran booth, tetapi per pesanan.</p></div></div>
+  <ol class="steps">
+    <li>Di halaman pesanan yang Approved, klik <span class="ui">Record Payment</span>.</li>
+    <li>Isi <b>Amount</b>, <b>Paid On</b>, <b>Method</b>, <b>Reference</b>, lalu <span class="ui">Record Payment</span>.</li>
+    <li>Periksa dengan mutasi bank, lalu <span class="ui">Verify Payment</span> atau <span class="ui">Reject</span> dengan catatan.</li>
+  </ol>
+  <figure><img src="img/c/30-order-payment.png" alt="" /><figcaption>Mencatat pembayaran pesanan</figcaption></figure>
+  <div class="note tip"><b class="t">Terpisah dari pembayaran booth</b>Pembayaran pesanan tidak pernah tercampur dengan pembayaran kontrak booth. Total kontrak dan total pesanan dihitung sendiri-sendiri.</div>
+
+  <h3>Status pembayaran di antrean</h3>
+  <p>Saring Status ke <b>Approved</b> untuk melihat pesanan yang perlu ditagih: <span class="chip c-gray">Unpaid</span>, <span class="chip c-amber">Partially Paid</span>, atau <span class="chip c-green">Paid</span>.</p>
+  <figure><img src="img/c/31-orders-approved.png" alt="" /><figcaption>Pesanan Approved dengan status pembayarannya</figcaption></figure>
+</section>
+
+<section>
+  <h3>Export ke Excel</h3>
+  <p>Pilih satu form di filter <b>Form</b>, lalu klik <span class="ui">Export Form 04</span> (nomor mengikuti form). File berisi pesanan form itu sesuai filter Status yang dipilih, cocok untuk dikirim ke vendor listrik, furnitur, atau percetakan badge.</p>
+
+  <h3>Progres per exhibitor</h3>
+  <p>Tab <b>Orders</b> di halaman exhibitor menunjukkan progres setiap form (<b>Forms: 2 of 4 done</b>) dan semua pesanan yang dikirim, beserta status dan pembayarannya. Halaman <b>Overview</b> juga punya baris <b>Service orders</b>: pesanan yang menunggu review (<b>Waiting for review</b>), yang sudah dibayar (<b>Paid (verified)</b>), dan sisa tagihan (<b>Outstanding</b>).</p>
+  <figure><img src="img/c/32-lead-orders.png" alt="" /><figcaption>Tab Orders PT Maju Tekstil Nusantara</figcaption></figure>
+</section>
+
+<!-- ============================== 7 ============================== -->
+<section style="margin-top: 26px">
+  <div class="chapter-head"><div class="num">8</div><div><h2>Aturan penting dan pertanyaan umum</h2></div></div>
+  <table>
+    <tr><th>Aturan</th><th>Penjelasan</th></tr>
+    <tr><td>Harga dikunci saat dikirim</td><td>Harga, periode harga, booth, dan luas booth disimpan saat exhibitor mengirim pesanan. Mengubah katalog tidak mengubah pesanan yang sudah dikirim.</td></tr>
+    <tr><td>Satu pesanan terbuka per form</td><td>Exhibitor hanya punya satu draft per form. Pesanan yang terkirim tidak berubah; tambahan menjadi pesanan baru (Order More).</td></tr>
+    <tr><td>Nomor pesanan</td><td>Format <b>INATEX2027-O-0001</b>, diberikan saat pertama kali dikirim. Pesanan yang dikembalikan tetap memakai nomornya.</td></tr>
+    <tr><td>Approve menunggu kontrak</td><td>Pesanan berbayar baru bisa disetujui setelah kontrak booth Signed. Pesanan gratis bisa langsung disetujui.</td></tr>
+    <tr><td>Tenggat</td><td>Setelah tanggal tutup, exhibitor tidak bisa mengirim pesanan. Untuk pengecualian, ubah tanggal di Settings form.</td></tr>
+    <tr><td>Tanpa pajak (order form)</td><td>Harga katalog order form adalah harga final, tanpa PPN tambahan.</td></tr>
+    <tr><td>Quotation tidak diubah</td><td>Quotation yang sudah dibuat tidak bisa diedit; PDF-nya selalu sama. Perubahan dibuat dengan Revise (nomor baru). Mengubah Quotation Settings tidak mengubah quotation lama.</td></tr>
+    <tr><td>Nomor quotation</td><td>Berurutan per kode per tahun, mulai dari Start From. Preview tidak memakai nomor; nomor dipakai saat Create.</td></tr>
+  </table>
+
+  <h3>Pertanyaan umum</h3>
+  <div class="grid2">
+    <div class="card"><h3>Exhibitor tidak menerima link undangan?</h3><p>Portal belum mengirim email. Buka panel Exhibitor Portal di halaman exhibitor, klik <span class="ui">New Invitation Link</span>, dan kirim link itu sendiri.</p></div>
+    <div class="card"><h3>Exhibitor salah pesan setelah mengirim?</h3><p>Bila belum disetujui, klik <span class="ui">Return to Exhibitor</span> dengan penjelasan. Bila sudah disetujui, batalkan dengan <span class="ui">Cancel Order</span> dan minta pesanan baru.</p></div>
+    <div class="card"><h3>Kenapa tombol Approve abu-abu?</h3><p>Ada item tambahan tanpa harga, atau pesanan berbayar dan kontrak booth belum Signed. Lihat tanda kuning di atas halaman pesanan.</p></div>
+    <div class="card"><h3>Tombol New Quotation tidak ada?</h3><p>Quotation Settings edisi ini belum diisi, atau lead berstatus Lost. Minta Exhibition Admin mengisi Quotation Settings.</p></div>
+    <div class="card"><h3>Kontrak sudah Signed, harga salah?</h3><p>Klik <span class="ui">Reopen Contract</span> dengan alasan, ubah harganya, lalu minta exhibitor mengunggah ulang kontrak.</p></div>
+    <div class="card"><h3>Form tidak muncul di portal?</h3><p>Pastikan form sudah Published, punya isi (katalog, pertanyaan, atau lampiran), dan lead sudah di-Convert menjadi Exhibitor.</p></div>
+  </div>
+</section>
+
+</body>
+</html>

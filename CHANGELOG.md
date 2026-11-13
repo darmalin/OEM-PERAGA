@@ -49,6 +49,10 @@ Accepting a quotation, Phase 4 of docs/EXHIBITOR_QUOTATIONS.md (migration 0037).
   total includes VAT and payments count against it. Changing the price or discount of such a Draft
   recomputes the VAT. Shown on the desk's Contract tab and in the portal. Older contracts: no VAT.
 
+Docs: FEATURES/14-exhibitor-quotations.md, known gaps F12 to F15 and W21, W22, and two PDF user guides
+in Bahasa Indonesia with screenshots (docs/GUIDES.md): Panduan Portal Exhibitor (for exhibitors) and
+Panduan Admin Exhibitor (for staff, with the booth search and quotation chapter).
+
 Exhibitor order forms, Phases 1 to 7 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
 Exhibitors → Order Forms, permission `order_form.manage`); exhibitors fill and send them in the portal;
 staff review them (menu Exhibitors → Orders, permission `exhibitor_order.review`).

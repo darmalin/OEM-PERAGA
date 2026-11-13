@@ -49,6 +49,12 @@ Amounts are rounded to 2 decimals, half up.
 | Q9 | Accepting a quotation sets the lead's booth price; at Convert the contract takes the quotation's price, discount, VAT, and payment terms. |
 | Q10 | No e-mail: staff download the PDF and send it themselves. |
 
+## Status
+
+All five phases built on 2026-11-13: booth search and agreed price (5fc0537), settings and API
+(ac9dc36), screens and PDF (259b39f), accept and contract VAT (f31bf37), docs and the admin guide
+chapter. Summary: [FEATURES/14-exhibitor-quotations.md](../FEATURES/14-exhibitor-quotations.md).
+
 ## Phases
 
 1. **Booth picker and price.** Search combobox on Choose Booth (code or hall), "Add booth" for a code

@@ -30,6 +30,7 @@ Moved in by the owner (2026-11-09, FEATURES/13): the exhibitor order forms (the 
 | 11 | [11-exhibitor-portal.md](11-exhibitor-portal.md) | owner request 2026-11-03 (outside §1.2) | done (backend, desk pages, exhibitor portal) |
 | 12 | [12-campaign-links.md](12-campaign-links.md) | owner request 2026-10-26 | done (backend, admin UI, public form) |
 | 13 | [13-exhibitor-order-forms.md](13-exhibitor-order-forms.md) | owner request 2026-11-09 (outside §1.2) | done (setup, portal, review, questions, free quantities, payments) |
+| 14 | [14-exhibitor-quotations.md](14-exhibitor-quotations.md) | owner request 2026-11-13 (outside §1.2) | done (booth search and agreed price, quotations with PDF, accept into the contract) |
 
 ## Milestones (§15)
 
