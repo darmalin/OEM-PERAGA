@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 
 import { can, useMe } from "@/lib/auth";
 import { handleFormError } from "@/lib/forms";
-import { formatDateTime, formatMoney } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { Button } from "@/ui/button";
 import { Field, FieldGrid, Section } from "@/ui/field";
@@ -59,10 +59,29 @@ function ContractBody({ contract: c, timezone }: { contract: Contract; timezone?
             ["Booth", c.booth_code ?? null],
             ["Booth Price", formatMoney(c.booth_price, c.currency)],
             ["Discount", formatMoney(c.discount_amount, c.currency)],
+            ...(Number(c.vat_rate) > 0
+              ? ([["VAT", `${formatMoney(c.vat_amount, c.currency)} (${Number(c.vat_rate)}% on ${c.vat_base_num}/${c.vat_base_den})`]] as [string, string][])
+              : []),
             ["Total", <span key="t" className="font-medium">{formatMoney(c.total_amount, c.currency)}</span>],
+            ...(c.quotation_number ? ([["Quotation", c.quotation_number]] as [string, string][]) : []),
             ...(signed ? ([["Signed", formatDateTime(c.signed_at, timezone)]] as [string, string][]) : []),
           ]}
         />
+        {(c.payment_terms ?? []).length > 0 ? (
+          <table className="mt-4 w-full max-w-[560px] text-[13px]">
+            <caption className="mb-1 text-left text-label">Terms of payment from the quotation</caption>
+            <tbody>
+              {(c.payment_terms ?? []).map((t) => (
+                <tr key={t.label} className="border-b border-line last:border-0">
+                  <td className="py-1.5 pr-3">{t.label}</td>
+                  <td className="py-1.5 pr-3 text-right tabular">{Number(t.percent)}%</td>
+                  <td className="py-1.5 pr-3 text-right tabular">{formatMoney(t.amount, c.currency)}</td>
+                  <td className="py-1.5 tabular">{t.due_on ? formatDate(t.due_on) : ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
       </Section>
       {signed ? <SignedCopy contract={c} /> : can(me, "exhibitor_lead.update") ? (
         <>
@@ -112,7 +131,7 @@ function ContractForm({ contract: c }: { contract: Contract }) {
           <Field label="Booth Price" required help={`In ${c.currency}. The price agreed with the exhibitor; it can change until the contract is signed.`} error={errors.booth_price?.message}>
             {(p) => <Input {...p} inputMode="decimal" {...form.register("booth_price", { required: "Enter the booth price.", pattern: { value: /^\d+(\.\d{1,2})?$/, message: "Enter an amount, e.g. 45000000." } })} />}
           </Field>
-          <Field label="Discount" help={`In ${c.currency}. The total is the booth price minus the discount.`} error={errors.discount_amount?.message}>
+          <Field label="Discount" help={`In ${c.currency}. The total is the booth price minus the discount${Number(c.vat_rate) > 0 ? ", plus VAT" : ""}.`} error={errors.discount_amount?.message}>
             {(p) => <Input {...p} inputMode="decimal" {...form.register("discount_amount", { pattern: { value: /^\d+(\.\d{1,2})?$/, message: "Enter an amount, e.g. 2500000." } })} />}
           </Field>
           <Field label="Company Address" className="md:col-span-2 lg:col-span-3" help="Required before signing." error={errors.company_address?.message}>

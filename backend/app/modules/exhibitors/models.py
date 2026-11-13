@@ -1,6 +1,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import (
     Boolean,
@@ -17,6 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, Timestamps, UUIDPk, Versioned
@@ -236,8 +238,28 @@ class ExhibitorContract(UUIDPk, Timestamps, Versioned, Base):
     # Copied from the booth when the contract is created; later booth price edits do not apply.
     booth_price: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     discount_amount: Mapped[Decimal] = mapped_column(MONEY, nullable=False, default=Decimal(0))
+    # VAT from an accepted quotation (migration 0037): vat_rate % of (price - discount) x num/den.
+    # 0 means no VAT, as for contracts made before quotations.
+    vat_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), nullable=False, default=Decimal(0), server_default="0"
+    )
+    vat_base_num: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=11, server_default="11"
+    )
+    vat_base_den: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=12, server_default="12"
+    )
+    vat_amount: Mapped[Decimal] = mapped_column(
+        MONEY, nullable=False, default=Decimal(0), server_default="0"
+    )
+    # booth_price - discount_amount + vat_amount
     total_amount: Mapped[Decimal | None] = mapped_column(MONEY)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    # [{"label", "percent", "due_on", "amount"}] from the accepted quotation; shown, not enforced.
+    payment_terms: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    quotation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("exhibitor_quotations.id"))
     status: Mapped[str] = mapped_column(String(10), nullable=False, default=ContractStatus.DRAFT)
     signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Storage object key of the signed PDF (BACKEND_RULES/security-permissions.md "Uploads").

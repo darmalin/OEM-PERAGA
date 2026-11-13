@@ -39,6 +39,16 @@ Quotation screens and PDF, Phase 3 of docs/EXHIBITOR_QUOTATIONS.md. New dependen
   before **Create Quotation**. On a quotation: **Download PDF** (PNJS letterhead, laid out like the
   Excel sheet), **Revise**, **Cancel Quotation**.
 
+Accepting a quotation, Phase 4 of docs/EXHIBITOR_QUOTATIONS.md (migration 0037).
+
+- **Accept** on an issued quotation (a confirmation page says what changes). One accepted quotation per
+  lead; accepting another supersedes it. The lead holds the quotation's booth when it can (Opportunity
+  or Exhibitor) at the quoted price before discount and VAT; a booth held later takes that price too.
+- **Contract**: VAT and terms of payment. The contract made at Convert, or a Draft contract when the
+  quotation is accepted, takes the quotation's price, discount, VAT (on its tax base), and terms; the
+  total includes VAT and payments count against it. Changing the price or discount of such a Draft
+  recomputes the VAT. Shown on the desk's Contract tab and in the portal. Older contracts: no VAT.
+
 Exhibitor order forms, Phases 1 to 7 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
 Exhibitors → Order Forms, permission `order_form.manage`); exhibitors fill and send them in the portal;
 staff review them (menu Exhibitors → Orders, permission `exhibitor_order.review`).

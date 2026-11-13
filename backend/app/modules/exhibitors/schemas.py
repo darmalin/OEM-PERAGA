@@ -244,6 +244,15 @@ class ContractReopenIn(BaseModel):
     version: int
 
 
+class ContractTerm(BaseModel):
+    """A payment term from the accepted quotation."""
+
+    label: str
+    percent: Decimal
+    due_on: date | None = None
+    amount: Decimal
+
+
 class ContractOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -256,8 +265,15 @@ class ContractOut(BaseModel):
     tax_id: str | None
     booth_price: Decimal
     discount_amount: Decimal
+    vat_rate: Decimal = Decimal(0)
+    vat_base_num: int = 11
+    vat_base_den: int = 12
+    vat_amount: Decimal = Decimal(0)
     total_amount: Decimal | None
     currency: str
+    payment_terms: list[ContractTerm] = Field(default_factory=list)
+    quotation_id: uuid.UUID | None = None
+    quotation_number: str | None = None
     status: str
     signed_at: datetime | None
     signed_file_name: str | None

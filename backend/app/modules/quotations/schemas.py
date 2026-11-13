@@ -207,3 +207,9 @@ class QuotationCancelIn(BaseModel):
 
     reason: str = Field(min_length=1, max_length=1000)
     version: int
+
+
+class QuotationAcceptIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: int

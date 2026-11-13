@@ -121,6 +121,7 @@ import { Route as AppOrderFormsFormIdItemsItemIdRouteImport } from './routes/app
 import { Route as AppOrderFormsFormIdItemsNewRouteImport } from './routes/app/order-forms/$formId/items/new'
 import { Route as SystemUsersUserIdRolesNewRouteImport } from './routes/system/users/$userId/roles/new'
 import { Route as AppExhibitorLeadsLeadIdQuotationsQuotationIdIndexRouteImport } from './routes/app/exhibitor-leads/$leadId/quotations/$quotationId/index'
+import { Route as AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRouteImport } from './routes/app/exhibitor-leads/$leadId/quotations/$quotationId/accept'
 import { Route as AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRouteImport } from './routes/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel'
 
 const IndexRoute = IndexRouteImport.update({
@@ -718,6 +719,12 @@ const AppExhibitorLeadsLeadIdQuotationsQuotationIdIndexRoute =
     path: '/exhibitor-leads/$leadId/quotations/$quotationId/',
     getParentRoute: () => AppRoute,
   } as any)
+const AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRoute =
+  AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRouteImport.update({
+    id: '/exhibitor-leads/$leadId/quotations/$quotationId/accept',
+    path: '/exhibitor-leads/$leadId/quotations/$quotationId/accept',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRoute =
   AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRouteImport.update({
     id: '/exhibitor-leads/$leadId/quotations/$quotationId/cancel',
@@ -837,6 +844,7 @@ export interface FileRoutesByFullPath {
   '/app/order-forms/$formId/items/$itemId': typeof AppOrderFormsFormIdItemsItemIdRoute
   '/app/order-forms/$formId/items/new': typeof AppOrderFormsFormIdItemsNewRoute
   '/system/users/$userId/roles/new': typeof SystemUsersUserIdRolesNewRoute
+  '/app/exhibitor-leads/$leadId/quotations/$quotationId/accept': typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRoute
   '/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel': typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRoute
   '/app/exhibitor-leads/$leadId/quotations/$quotationId/': typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdIndexRoute
 }
@@ -950,6 +958,7 @@ export interface FileRoutesByTo {
   '/app/order-forms/$formId/items/$itemId': typeof AppOrderFormsFormIdItemsItemIdRoute
   '/app/order-forms/$formId/items/new': typeof AppOrderFormsFormIdItemsNewRoute
   '/system/users/$userId/roles/new': typeof SystemUsersUserIdRolesNewRoute
+  '/app/exhibitor-leads/$leadId/quotations/$quotationId/accept': typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRoute
   '/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel': typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRoute
   '/app/exhibitor-leads/$leadId/quotations/$quotationId': typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdIndexRoute
 }
@@ -1066,6 +1075,7 @@ export interface FileRoutesById {
   '/app/order-forms/$formId/items/$itemId': typeof AppOrderFormsFormIdItemsItemIdRoute
   '/app/order-forms/$formId/items/new': typeof AppOrderFormsFormIdItemsNewRoute
   '/system/users/$userId/roles/new': typeof SystemUsersUserIdRolesNewRoute
+  '/app/exhibitor-leads/$leadId/quotations/$quotationId/accept': typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRoute
   '/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel': typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRoute
   '/app/exhibitor-leads/$leadId/quotations/$quotationId/': typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdIndexRoute
 }
@@ -1183,6 +1193,7 @@ export interface FileRouteTypes {
     | '/app/order-forms/$formId/items/$itemId'
     | '/app/order-forms/$formId/items/new'
     | '/system/users/$userId/roles/new'
+    | '/app/exhibitor-leads/$leadId/quotations/$quotationId/accept'
     | '/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel'
     | '/app/exhibitor-leads/$leadId/quotations/$quotationId/'
   fileRoutesByTo: FileRoutesByTo
@@ -1296,6 +1307,7 @@ export interface FileRouteTypes {
     | '/app/order-forms/$formId/items/$itemId'
     | '/app/order-forms/$formId/items/new'
     | '/system/users/$userId/roles/new'
+    | '/app/exhibitor-leads/$leadId/quotations/$quotationId/accept'
     | '/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel'
     | '/app/exhibitor-leads/$leadId/quotations/$quotationId'
   id:
@@ -1411,6 +1423,7 @@ export interface FileRouteTypes {
     | '/app/order-forms/$formId/items/$itemId'
     | '/app/order-forms/$formId/items/new'
     | '/system/users/$userId/roles/new'
+    | '/app/exhibitor-leads/$leadId/quotations/$quotationId/accept'
     | '/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel'
     | '/app/exhibitor-leads/$leadId/quotations/$quotationId/'
   fileRoutesById: FileRoutesById
@@ -2210,6 +2223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/exhibitor-leads/$leadId/quotations/$quotationId/accept': {
+      id: '/app/exhibitor-leads/$leadId/quotations/$quotationId/accept'
+      path: '/exhibitor-leads/$leadId/quotations/$quotationId/accept'
+      fullPath: '/app/exhibitor-leads/$leadId/quotations/$quotationId/accept'
+      preLoaderRoute: typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel': {
       id: '/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel'
       path: '/exhibitor-leads/$leadId/quotations/$quotationId/cancel'
@@ -2307,6 +2327,7 @@ interface AppRouteChildren {
   AppExhibitorOrdersOrderIdPaymentsNewRoute: typeof AppExhibitorOrdersOrderIdPaymentsNewRoute
   AppOrderFormsFormIdItemsItemIdRoute: typeof AppOrderFormsFormIdItemsItemIdRoute
   AppOrderFormsFormIdItemsNewRoute: typeof AppOrderFormsFormIdItemsNewRoute
+  AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRoute: typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRoute
   AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRoute: typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRoute
   AppExhibitorLeadsLeadIdQuotationsQuotationIdIndexRoute: typeof AppExhibitorLeadsLeadIdQuotationsQuotationIdIndexRoute
 }
@@ -2408,6 +2429,8 @@ const AppRouteChildren: AppRouteChildren = {
     AppExhibitorOrdersOrderIdPaymentsNewRoute,
   AppOrderFormsFormIdItemsItemIdRoute: AppOrderFormsFormIdItemsItemIdRoute,
   AppOrderFormsFormIdItemsNewRoute: AppOrderFormsFormIdItemsNewRoute,
+  AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRoute:
+    AppExhibitorLeadsLeadIdQuotationsQuotationIdAcceptRoute,
   AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRoute:
     AppExhibitorLeadsLeadIdQuotationsQuotationIdCancelRoute,
   AppExhibitorLeadsLeadIdQuotationsQuotationIdIndexRoute:

@@ -1,7 +1,7 @@
 import { downloadFile } from "@ems/api";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Ban, Download, PencilLine } from "lucide-react";
+import { Ban, Check, Download, PencilLine } from "lucide-react";
 import { useState } from "react";
 
 import { exhibitorLeadQuery } from "@/features/exhibitors/queries";
@@ -54,6 +54,7 @@ function QuotationPage() {
               <>
                 <Button asChild variant="ghost"><Link to="/app/exhibitor-leads/$leadId/quotations/$quotationId/cancel" params={{ leadId, quotationId }}><Ban aria-hidden />Cancel Quotation</Link></Button>
                 <Button asChild><Link to="/app/exhibitor-leads/$leadId/quotations/new" params={{ leadId }} search={{ replaces: d.id }}><PencilLine aria-hidden />Revise</Link></Button>
+                <Button asChild><Link to="/app/exhibitor-leads/$leadId/quotations/$quotationId/accept" params={{ leadId, quotationId }}><Check aria-hidden />Accept</Link></Button>
               </>
             ) : null}
             <Button variant="primary" loading={busy} onClick={() => void download()}><Download aria-hidden />Download PDF</Button>
@@ -62,6 +63,9 @@ function QuotationPage() {
       />
       {d.status === "SUPERSEDED" && d.replaced_by_number ? (
         <p className="rounded-[8px] bg-[var(--gray-bg)] px-4 py-3 text-[13px] text-[var(--gray-fg)]">Replaced by quotation {d.replaced_by_number}.</p>
+      ) : null}
+      {d.status === "ACCEPTED" ? (
+        <p className="rounded-[8px] bg-[var(--green-bg)] px-4 py-3 text-[13px] text-[var(--green-fg)]">Accepted {formatDateTime(d.accepted_at)}. The contract takes this price, discount, VAT, and terms.</p>
       ) : null}
       {d.status === "CANCELLED" ? (
         <p className="rounded-[8px] bg-[var(--gray-bg)] px-4 py-3 text-[13px] text-[var(--gray-fg)]">Cancelled {formatDateTime(d.cancelled_at)}: {d.cancel_reason}</p>

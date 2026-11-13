@@ -21,6 +21,7 @@ from app.core.storage import get_storage, new_object_key
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitions.models import Edition
 from app.modules.exhibitors import repository as exhibitors_repo
+from app.modules.exhibitors import service as exhibitors_service
 from app.modules.exhibitors.models import ExhibitorLead
 from app.modules.exhibitors.rules import SalesStage
 from app.modules.identity.models import User
@@ -36,6 +37,7 @@ from app.modules.quotations.rules import (
     quotation_number,
 )
 from app.modules.quotations.schemas import (
+    QuotationAcceptIn,
     QuotationCancelIn,
     QuotationIn,
     QuotationOut,
@@ -554,6 +556,37 @@ async def cancel(
     await session.flush()
     await session.refresh(q)
     await _record(session, q, "cancel", before)
+    return await _out(session, q)
+
+
+async def accept(
+    session: AsyncSession, ctx: AuthContext, quotation_id: uuid.UUID, data: QuotationAcceptIn
+) -> QuotationOut:
+    """The company agreed. The lead takes the quotation's booth and price; the contract (now, if
+    Draft, or at Convert) takes its price, discount, VAT, and terms. One accepted per lead."""
+    q = await _visible(session, ctx, quotation_id, WRITE, for_update=True)
+    check_version(q.version, data.version)
+    await exhibitions_service.ensure_writable(session, q.edition_id)
+    if q.status != QuotationStatus.ISSUED:
+        raise Conflict("Only an issued quotation can be accepted.", code="QUOTATION_NOT_ISSUED")
+    lead = await _lead(session, ctx, q.exhibitor_lead_id, WRITE, for_update=True)
+    _check_stage(lead)
+    previous = await exhibitors_service.accepted_quotation(session, lead.id)
+    actor = current_actor_id()
+    if previous is not None:
+        before = audit.snapshot(previous, AUDIT_FIELDS)
+        previous.status = QuotationStatus.SUPERSEDED
+        previous.updated_by = actor
+        await session.flush()
+        await _record(session, previous, "supersede", before)
+    before = audit.snapshot(q, AUDIT_FIELDS)
+    q.status = QuotationStatus.ACCEPTED
+    q.accepted_at = datetime.now(UTC)
+    q.updated_by = actor
+    await session.flush()
+    await exhibitors_service.apply_accepted_quotation(session, lead, q)
+    await session.refresh(q)
+    await _record(session, q, "accept", before)
     return await _out(session, q)
 
 

@@ -8,6 +8,7 @@ from app.core.authorization import AuthContext, require
 from app.core.db import get_session
 from app.modules.quotations import service
 from app.modules.quotations.schemas import (
+    QuotationAcceptIn,
     QuotationCancelIn,
     QuotationIn,
     QuotationOut,
@@ -112,3 +113,10 @@ async def quotation_pdf(
             "Cache-Control": "private, no-store",
         },
     )
+
+
+@router.post("/quotations/{quotation_id}/accept", response_model=QuotationOut)
+async def accept_quotation(
+    quotation_id: uuid.UUID, data: QuotationAcceptIn, session: Session, ctx: AuthContext = Write
+) -> QuotationOut:
+    return await service.accept(session, ctx, quotation_id, data)

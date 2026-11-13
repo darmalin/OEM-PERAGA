@@ -7,6 +7,7 @@ from pathlib import PurePosixPath
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
@@ -72,6 +73,8 @@ from app.modules.exhibitors.schemas import (
     StageCount,
 )
 from app.modules.identity import service as identity_service
+from app.modules.quotations.models import ExhibitorQuotation
+from app.modules.quotations.rules import QuotationStatus, money
 from app.modules.visitors.rules import (
     NormalizationError,
     clean_text,
@@ -423,7 +426,10 @@ async def assign_booth(
     elif booth.id == lead.booth_id and lead.booth_price is not None:
         price = lead.booth_price
     else:
-        price = booth.price
+        # An accepted quotation for this booth (or for no booth in particular) sets the price.
+        accepted = await accepted_quotation(session, lead.id)
+        quoted = accepted is not None and accepted.booth_id in (None, booth.id)
+        price = accepted.gross_amount if quoted and accepted else booth.price
     changes: dict[str, Any] = {"booth_id": target, "booth_price": price}
     if target != lead.booth_id:
         changes["booth_assigned_at"] = datetime.now(UTC) if target else None
@@ -433,6 +439,85 @@ async def assign_booth(
     return await _out(session, lead)
 
 
+def _retotal(contract: ExhibitorContract) -> None:
+    """Total = price - discount + VAT, the VAT (if any) on the quotation's tax base."""
+    cost = contract.booth_price - contract.discount_amount
+    contract.vat_amount = money(
+        cost
+        * Decimal(contract.vat_base_num)
+        / Decimal(contract.vat_base_den)
+        * contract.vat_rate
+        / Decimal(100)
+    )
+    contract.total_amount = cost + contract.vat_amount
+
+
+async def accepted_quotation(
+    session: AsyncSession, lead_id: uuid.UUID
+) -> ExhibitorQuotation | None:
+    return await session.scalar(
+        select(ExhibitorQuotation).where(
+            ExhibitorQuotation.exhibitor_lead_id == lead_id,
+            ExhibitorQuotation.status == QuotationStatus.ACCEPTED,
+        )
+    )
+
+
+def _take_quotation(contract: ExhibitorContract, q: ExhibitorQuotation) -> None:
+    contract.booth_price = q.gross_amount
+    contract.discount_amount = q.discount_amount
+    contract.vat_rate = q.vat_rate
+    contract.vat_base_num = q.vat_base_num
+    contract.vat_base_den = q.vat_base_den
+    contract.currency = q.currency
+    contract.payment_terms = list(q.terms)
+    contract.quotation_id = q.id
+    _retotal(contract)
+
+
+async def apply_accepted_quotation(
+    session: AsyncSession, lead: ExhibitorLead, q: ExhibitorQuotation
+) -> None:
+    """After a quotation is accepted: the lead holds its booth (when it can hold one) at the
+    quotation's price, and a DRAFT contract takes the quotation's amounts and terms."""
+    contract = await repo.get_contract(session, lead.id, for_update=True)
+    if contract is not None and contract.status == ContractStatus.SIGNED:
+        raise Conflict("The contract is signed; reopen it first.", code="CONTRACT_SIGNED")
+    changes: dict[str, Any] = {}
+    if (
+        q.booth_id is not None
+        and q.booth_id != lead.booth_id
+        and SalesStage(lead.stage) in BOOTH_STAGES
+    ):
+        booth = await repo.get_booth(session, q.booth_id, for_update=True)
+        if booth is None or not booth.is_active:
+            raise ValidationFailed(
+                "The quotation's booth is no longer available.", code="BOOTH_INACTIVE"
+            )
+        holder = await repo.booth_holder(session, booth.id)
+        if holder is not None and holder[0] != lead.id:
+            raise BoothTaken()
+        changes |= {"booth_id": booth.id, "booth_assigned_at": datetime.now(UTC)}
+    if changes.get("booth_id") or lead.booth_id is not None:
+        changes["booth_price"] = q.gross_amount
+    if changes:
+        await _save(session, lead, changes, "quotation_accepted")
+    if contract is not None:
+        before = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
+        _take_quotation(contract, q)
+        contract.updated_by = current_actor_id()
+        await session.flush()
+        await audit.record(
+            session,
+            entity_type=CONTRACT_ENTITY,
+            entity_id=contract.id,
+            action="quotation",
+            before=before,
+            after=audit.snapshot(contract, CONTRACT_AUDIT_FIELDS),
+            edition_id=contract.edition_id,
+        )
+
+
 async def _reprice_contract(
     session: AsyncSession, contract: ExhibitorContract, price: Decimal, currency: str
 ) -> None:
@@ -440,8 +525,8 @@ async def _reprice_contract(
     before = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
     contract.booth_price = price
     contract.discount_amount = min(contract.discount_amount, price)
-    contract.total_amount = price - contract.discount_amount
     contract.currency = currency
+    _retotal(contract)
     contract.updated_by = current_actor_id()
     await session.flush()
     after = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
@@ -565,7 +650,8 @@ async def update_booth(
 CONTRACT_ENTITY = "exhibitor_contract"
 CONTRACT_AUDIT_FIELDS = (
     "contract_number", "pic_name", "company_address", "tax_id", "booth_price",
-    "discount_amount", "total_amount", "currency", "status", "signed_at", "signed_file_name",
+    "discount_amount", "vat_amount", "total_amount", "currency", "status", "signed_at",
+    "signed_file_name", "quotation_id",
 )  # fmt: skip
 ACCOUNT_ENTITY = "exhibitor_account"
 ACCOUNT_AUDIT_FIELDS = ("email", "is_active", "activated_at")
@@ -673,6 +759,10 @@ async def convert(
         created_by=actor,
         updated_by=actor,
     )
+    # An accepted quotation sets the price, discount, VAT, and terms (decision Q9).
+    accepted = await accepted_quotation(session, lead.id)
+    if accepted is not None:
+        _take_quotation(contract, accepted)
     session.add(contract)
     await session.flush()
     await audit.record(
@@ -795,6 +885,10 @@ async def _contract_out(
     out = ContractOut.model_validate(contract)
     out.company_name = lead.company_name
     out.booth_code = await repo.booth_code(session, lead.booth_id)
+    if contract.quotation_id is not None:
+        out.quotation_number = await session.scalar(
+            select(ExhibitorQuotation.number).where(ExhibitorQuotation.id == contract.quotation_id)
+        )
     return out
 
 
@@ -858,7 +952,7 @@ async def fill_contract(
         if discount > contract.booth_price:
             raise ValidationFailed(fields={"discount_amount": "Cannot exceed the booth price."})
         contract.discount_amount = discount
-        contract.total_amount = contract.booth_price - discount
+        _retotal(contract)
     contract.updated_by = current_actor_id()
     await session.flush()
     await session.refresh(contract)

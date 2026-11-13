@@ -2218,9 +2218,9 @@ export interface paths {
         };
         /** Get Signature */
         get: operations["get_signature_api_v1_editions__edition_id__quotation_settings_signature_get"];
+        put?: never;
         /** Set Signature */
-        put: operations["set_signature_api_v1_editions__edition_id__quotation_settings_signature_put"];
-        post?: never;
+        post: operations["set_signature_api_v1_editions__edition_id__quotation_settings_signature_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2238,6 +2238,23 @@ export interface paths {
         get: operations["quotation_pdf_api_v1_quotations__quotation_id__pdf_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quotation_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Quotation */
+        post: operations["accept_quotation_api_v1_quotations__quotation_id__accept_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3384,8 +3401,8 @@ export interface components {
             /** Version */
             version: number;
         };
-        /** Body_set_signature_api_v1_editions__edition_id__quotation_settings_signature_put */
-        Body_set_signature_api_v1_editions__edition_id__quotation_settings_signature_put: {
+        /** Body_set_signature_api_v1_editions__edition_id__quotation_settings_signature_post */
+        Body_set_signature_api_v1_editions__edition_id__quotation_settings_signature_post: {
             /** File */
             file: string;
             /** Version */
@@ -3917,10 +3934,36 @@ export interface components {
             booth_price: string;
             /** Discount Amount */
             discount_amount: string;
+            /**
+             * Vat Rate
+             * @default 0
+             */
+            vat_rate: string;
+            /**
+             * Vat Base Num
+             * @default 11
+             */
+            vat_base_num: number;
+            /**
+             * Vat Base Den
+             * @default 12
+             */
+            vat_base_den: number;
+            /**
+             * Vat Amount
+             * @default 0
+             */
+            vat_amount: string;
             /** Total Amount */
             total_amount: string | null;
             /** Currency */
             currency: string;
+            /** Payment Terms */
+            payment_terms?: components["schemas"]["ContractTerm"][];
+            /** Quotation Id */
+            quotation_id?: string | null;
+            /** Quotation Number */
+            quotation_number?: string | null;
             /** Status */
             status: string;
             /** Signed At */
@@ -3948,6 +3991,20 @@ export interface components {
             reason: string;
             /** Version */
             version: number;
+        };
+        /**
+         * ContractTerm
+         * @description A payment term from the accepted quotation.
+         */
+        ContractTerm: {
+            /** Label */
+            label: string;
+            /** Percent */
+            percent: string;
+            /** Due On */
+            due_on?: string | null;
+            /** Amount */
+            amount: string;
         };
         /**
          * ContractUpdateIn
@@ -7523,6 +7580,11 @@ export interface components {
          * @enum {string}
          */
         QrStatus: "NONE" | "ACTIVE" | "REVOKED";
+        /** QuotationAcceptIn */
+        QuotationAcceptIn: {
+            /** Version */
+            version: number;
+        };
         /** QuotationCancelIn */
         QuotationCancelIn: {
             /** Reason */
@@ -14429,7 +14491,7 @@ export interface operations {
             };
         };
     };
-    set_signature_api_v1_editions__edition_id__quotation_settings_signature_put: {
+    set_signature_api_v1_editions__edition_id__quotation_settings_signature_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -14440,7 +14502,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_set_signature_api_v1_editions__edition_id__quotation_settings_signature_put"];
+                "multipart/form-data": components["schemas"]["Body_set_signature_api_v1_editions__edition_id__quotation_settings_signature_post"];
             };
         };
         responses: {
@@ -14482,6 +14544,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_quotation_api_v1_quotations__quotation_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quotation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuotationAcceptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
                 };
             };
             /** @description Validation Error */

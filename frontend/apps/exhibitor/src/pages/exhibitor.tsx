@@ -109,10 +109,25 @@ function ContractPanel({
           ["Booth", c.booth_code],
           ["Booth Price", money(c.booth_price, c.currency)],
           ...(Number(c.discount_amount) > 0 ? ([["Discount", money(c.discount_amount, c.currency)]] as [string, string][]) : []),
+          ...(Number(c.vat_rate) > 0 ? ([[`VAT ${Number(c.vat_rate)}%`, money(c.vat_amount, c.currency)]] as [string, string][]) : []),
           ["Total", <span key="t" className="font-semibold">{money(c.total_amount, c.currency)}</span>],
+          ...(c.quotation_number ? ([["Quotation", c.quotation_number]] as [string, string][]) : []),
           ...(signed ? ([["Signed", date(c.signed_at)], ["PIC", c.pic_name], ["Address", c.company_address], ["Tax ID (NPWP)", c.tax_id]] as [string, string | null][]) : []),
         ]}
       />
+      {(c.payment_terms ?? []).length > 0 ? (
+        <div className="mt-5">
+          <p className="mb-2 text-[14px] font-semibold text-ink">Terms of payment</p>
+          <ul className="flex flex-col divide-y divide-line rounded-[12px] border border-line">
+            {(c.payment_terms ?? []).map((t) => (
+              <li key={t.label} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-[14px]">
+                <span className="font-medium">{t.label} <span className="font-normal text-label">{Number(t.percent)}%</span></span>
+                <span className="tabular-nums">{money(t.amount, c.currency)}{t.due_on ? <span className="text-label"> · by {date(t.due_on)}</span> : null}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {signed ? <SignedCopy leadId={leadId} /> : (
         <>
           <ContractForm leadId={leadId} contract={c} onSaved={() => onChange("Contract details saved.")} onError={onError} />
