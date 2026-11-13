@@ -79,8 +79,16 @@ EMS_URL=http://localhost:8000 EMS_EMAIL=... EMS_PASSWORD=... \
   uv run python -m scripts.seed_sample_order_forms --edition INATEX2027
 ```
 
-For staging, run it from a laptop with `EMS_URL=https://<staging domain>` (the production image does not
-carry `scripts/`). `--dry-run` lists what would be added, `--draft` keeps new
+It needs only the Python standard library. On the staging server, borrow the API image (it does not
+carry `scripts/`, so mount it), after `read -rs EMS_PASSWORD && export EMS_PASSWORD`:
+
+```bash
+docker compose run --rm --no-deps -v "$PWD/backend/scripts:/app/scripts:ro" \
+  -e EMS_URL=https://<staging domain> -e EMS_EMAIL=<desk login email> -e EMS_PASSWORD \
+  api python -m scripts.seed_sample_order_forms --edition INATEX2027 --dry-run
+```
+
+A form number already present with other questions keeps its own choices. `--dry-run` lists what would be added, `--draft` keeps new
 forms unpublished, `--images` also copies item pictures from the old portal (peragaexpo.com).
 
 ## Known gaps

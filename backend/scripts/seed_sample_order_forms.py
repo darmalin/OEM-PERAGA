@@ -17,14 +17,17 @@ old portal (peragaexpo.com); --dry-run only prints what would be added.
 """
 
 import argparse
+import json
 import os
 import sys
+import uuid
 from datetime import date, timedelta
 from decimal import Decimal
+from http.cookiejar import CookieJar
 from typing import Any
-from urllib.parse import unquote
-
-import httpx
+from urllib.error import HTTPError
+from urllib.parse import unquote, urlencode
+from urllib.request import HTTPCookieProcessor, Request, build_opener, urlopen
 
 OLD_IMAGES = "https://peragaexpo.com/adminoem/admin/content/upload_item/"
 
@@ -848,25 +851,63 @@ FORMS: list[dict[str, Any]] = [
 
 
 class Desk:
-    """A signed-in desk session: cookie plus the CSRF header on writes."""
+    """A signed-in desk session: cookie plus the CSRF header on writes. Standard library only, so it
+    runs anywhere Python does, including the production API image (no dev dependencies)."""
 
     def __init__(self, base: str, email: str, password: str) -> None:
-        self.http = httpx.Client(base_url=base.rstrip("/") + "/api/v1", timeout=30)
-        self._check(self.http.post("/auth/login", json={"email": email, "password": password}))
-        me = self._check(self.http.get("/auth/me"))
-        self.http.headers["X-CSRF-Token"] = me["csrf_token"]
+        self.base = base.rstrip("/") + "/api/v1"
+        self.http = build_opener(HTTPCookieProcessor(CookieJar()))
+        self.csrf = ""
+        self.send("POST", "/auth/login", body={"email": email, "password": password})
+        self.csrf = self.get("/auth/me")["csrf_token"]
 
-    @staticmethod
-    def _check(r: httpx.Response) -> Any:
-        if r.is_error:
-            raise SystemExit(f"{r.request.method} {r.request.url.path}: {r.status_code} {r.text}")
-        return r.json() if r.content else None
+    def request(
+        self, method: str, path: str, body: bytes | None = None, content_type: str | None = None
+    ) -> tuple[int, bytes]:
+        # The scheme is checked in main(): http or https only.
+        req = Request(self.base + path, data=body, method=method)  # noqa: S310
+        if content_type:
+            req.add_header("Content-Type", content_type)
+        if self.csrf:
+            req.add_header("X-CSRF-Token", self.csrf)
+        try:
+            with self.http.open(req, timeout=30) as r:
+                return r.status, r.read()
+        except HTTPError as e:
+            return e.code, e.read()
+
+    def _check(self, method: str, path: str, status: int, data: bytes) -> Any:
+        if status >= 400:
+            raise SystemExit(f"{method} {path}: {status} {data.decode(errors='replace')}")
+        return json.loads(data) if data else None
 
     def get(self, path: str, **params: Any) -> Any:
-        return self._check(self.http.get(path, params=params))
+        query = (
+            "?"
+            + urlencode(
+                {k: str(v).lower() if isinstance(v, bool) else v for k, v in params.items()}
+            )
+            if params
+            else ""
+        )
+        return self._check("GET", path, *self.request("GET", path + query))
 
-    def send(self, method: str, path: str, **kw: Any) -> Any:
-        return self._check(self.http.request(method, path, **kw))
+    def send(self, method: str, path: str, body: Any) -> Any:
+        data = json.dumps(body).encode()
+        return self._check(method, path, *self.request(method, path, data, "application/json"))
+
+    def upload(self, path: str, file_name: str, data: bytes, kind: str) -> int:
+        boundary = uuid.uuid4().hex
+        body = (
+            (
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="file"; filename="{file_name}"\r\n'
+                f"Content-Type: {kind}\r\n\r\n"
+            ).encode()
+            + data
+            + f"\r\n--{boundary}--\r\n".encode()
+        )
+        return self.request("POST", path, body, f"multipart/form-data; boundary={boundary}")[0]
 
 
 def deadlines(edition: dict[str, Any]) -> dict[int, date]:
@@ -882,7 +923,6 @@ def seed(desk: Desk, edition_code: str, publish: bool, images: bool, dry_run: bo
         raise SystemExit(f"edition {edition_code} not found")
     due = deadlines(edition)
     existing = {f["code"]: f for f in desk.get("/order-forms", edition_id=edition["id"])["items"]}
-    pictures = httpx.Client(timeout=30, follow_redirects=True) if images else None
 
     for n, spec in enumerate(FORMS):
         code = spec["code"]
@@ -908,7 +948,7 @@ def seed(desk: Desk, edition_code: str, publish: bool, images: bool, dry_run: bo
             print(f"{code} {spec['title']}: new form")
             if dry_run:
                 continue
-            form = desk.send("POST", "/order-forms", json=body)
+            form = desk.send("POST", "/order-forms", body=body)
         else:
             print(f"{code} {spec['title']}: already there, adding what is missing")
             if dry_run:
@@ -925,7 +965,7 @@ def seed(desk: Desk, edition_code: str, publish: bool, images: bool, dry_run: bo
             item = desk.send(
                 "POST",
                 f"/order-forms/{fid}/items",
-                json={
+                body={
                     "section": section,
                     "code": icode,
                     "name": name,
@@ -942,20 +982,24 @@ def seed(desk: Desk, edition_code: str, publish: bool, images: bool, dry_run: bo
                 desk.send(
                     "PUT",
                     f"/order-forms/{fid}/items/{item['id']}/allowances",
-                    json={"tiers": [{"min_area_sqm": a, "free_quantity": q} for a, q in tiers]},
+                    body={"tiers": [{"min_area_sqm": a, "free_quantity": q} for a, q in tiers]},
                 )
-            if pictures and picture:
-                upload_picture(desk, pictures, fid, item["id"], picture)
+            if images and picture:
+                upload_picture(desk, fid, item["id"], picture)
         if added:
             print(f"   {added} catalog items")
 
         options = spec.get("options", {})
-        if options:
+        if options and form["details_type"] != spec.get("details_type"):
+            print(
+                f"   questions differ from the old form ({form['details_type']}), choices skipped"
+            )
+        elif options:
             current = desk.get(f"/order-forms/{fid}/options")["options"]
             for kind, values in options.items():
                 if not current.get(kind):
                     desk.send(
-                        "PUT", f"/order-forms/{fid}/options", json={"kind": kind, "values": values}
+                        "PUT", f"/order-forms/{fid}/options", body={"kind": kind, "values": values}
                     )
                     print(f"   {len(values)} choices for {kind.lower().replace('_', ' ')}")
 
@@ -964,32 +1008,25 @@ def seed(desk: Desk, edition_code: str, publish: bool, images: bool, dry_run: bo
             desk.send(
                 "PATCH",
                 f"/order-forms/{fid}",
-                json={"is_published": True, "version": fresh["version"]},
+                body={"is_published": True, "version": fresh["version"]},
             )
             print("   published")
 
 
-def upload_picture(
-    desk: Desk, pictures: httpx.Client, form_id: str, item_id: str, picture: str
-) -> None:
-    r = pictures.get(OLD_IMAGES + picture)
+def upload_picture(desk: Desk, form_id: str, item_id: str, picture: str) -> None:
     name = unquote(picture)
-    kind = "image/png" if name.lower().endswith(".png") else "image/jpeg"
-    if r.is_error or not r.content:
-        print(f"   picture {name}: not found on the old portal ({r.status_code}), skipped")
+    try:
+        with urlopen(OLD_IMAGES + picture, timeout=30) as r:  # noqa: S310 - fixed https URL
+            data = r.read()
+    except (HTTPError, OSError) as e:
+        print(f"   picture {name}: not found on the old portal ({e}), skipped")
         return
-    sent = desk.http.post(
-        f"/order-forms/{form_id}/items/{item_id}/image",
-        files={
-            "file": (
-                name.rsplit(".", 1)[0] + (".png" if kind == "image/png" else ".jpg"),
-                r.content,
-                kind,
-            )
-        },
-    )
-    if sent.is_error:
-        print(f"   picture {name}: not accepted ({sent.status_code}), skipped")
+    png = data.startswith(b"\x89PNG")
+    file_name = name.rsplit(".", 1)[0] + (".png" if png else ".jpg")
+    path = f"/order-forms/{form_id}/items/{item_id}/image"
+    status = desk.upload(path, file_name, data, "image/png" if png else "image/jpeg")
+    if status >= 400:
+        print(f"   picture {name}: not accepted ({status}), skipped")
 
 
 def main() -> None:
@@ -1002,6 +1039,8 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="only print what would be added")
     args = parser.parse_args()
     base = os.environ.get("EMS_URL", "http://localhost:8000")
+    if not base.startswith(("http://", "https://")):
+        sys.exit("EMS_URL must start with http:// or https://")
     email, password = os.environ.get("EMS_EMAIL"), os.environ.get("EMS_PASSWORD")
     if not email or not password:
         sys.exit("set EMS_EMAIL and EMS_PASSWORD (a staff user with order_form.manage)")
