@@ -37,11 +37,11 @@ export const paymentsQuery = (leadId: string) =>
     queryFn: () => call(api.GET("/api/v1/exhibitor-leads/{lead_id}/payments", { params: { path: { lead_id: leadId } } })),
   });
 
-export const boothsQuery = (editionId: string, params: { available?: boolean; include_inactive?: boolean } = {}) =>
+export const boothsQuery = (editionId: string, params: { available?: boolean; include_inactive?: boolean; q?: string; page_size?: number } = {}) =>
   queryOptions({
     queryKey: ["booths", editionId, params],
     queryFn: () =>
-      call(api.GET("/api/v1/booths", { params: { query: { edition_id: editionId, page_size: 200, ...params } } })),
+      call(api.GET("/api/v1/booths", { params: { query: { edition_id: editionId, page_size: 200, ...params, q: params.q || undefined } } })),
   });
 
 export const portalAccountQuery = (leadId: string) =>

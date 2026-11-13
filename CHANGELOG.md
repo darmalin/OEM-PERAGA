@@ -5,6 +5,17 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+Booth search and agreed price, Phase 1 of docs/EXHIBITOR_QUOTATIONS.md (migration 0035).
+
+- **Choose Booth**: a search box replaces the list of radio buttons. Type a booth code or hall to find
+  a free booth; staff with `booth.manage` can type a code that is not listed and add it (hall, area,
+  price) in the same step.
+- **Agreed price**: the lead keeps its own booth price. It starts at the booth's list price and staff
+  can change it (Change Booth or Price on the lead); the lead page shows it, with the list price when
+  they differ. Convert copies the agreed price into the contract.
+- **Contract**: Booth Price is editable while the contract is Draft; the lead follows it. A signed
+  contract stays locked (Reopen Contract first).
+
 Exhibitor order forms, Phases 1 to 7 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
 Exhibitors → Order Forms, permission `order_form.manage`); exhibitors fill and send them in the portal;
 staff review them (menu Exhibitors → Orders, permission `exhibitor_order.review`).

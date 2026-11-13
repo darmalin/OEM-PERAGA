@@ -14,7 +14,7 @@ import { contractQuery, type ExhibitorLead, exhibitorLeadQuery, leadOwnersQuery,
 import { can, useMe } from "@/lib/auth";
 import { useEditionById } from "@/lib/edition";
 import { handleFormError } from "@/lib/forms";
-import { formatDateTime, relative } from "@/lib/format";
+import { formatDateTime, formatMoney, relative } from "@/lib/format";
 import { label } from "@/lib/labels";
 import { notifySuccess } from "@/lib/notify";
 import { ActivityTimeline } from "@/ui/activity";
@@ -98,14 +98,20 @@ function ExhibitorLeadDetail() {
               actions={
                 (l.stage === "OPPORTUNITY" || (exhibitor && contract.data?.status === "DRAFT")) && can(me, "exhibitor_lead.update") ? (
                   <Button asChild size="sm" variant="ghost">
-                    <Link to="/app/exhibitor-leads/$leadId/booth" params={{ leadId }}>{l.booth_id ? "Change" : "Choose Booth"}</Link>
+                    <Link to="/app/exhibitor-leads/$leadId/booth" params={{ leadId }}>{l.booth_id ? "Change Booth or Price" : "Choose Booth"}</Link>
                   </Button>
                 ) : null
               }
             />
             <div className="p-5 text-[14px]">
               {l.booth_code ? (
-                <p><span className="tabular font-medium">{l.booth_code}</span> <span className="text-[12px] text-label">since {formatDateTime(l.booth_assigned_at, tz)}</span></p>
+                <>
+                  <p><span className="tabular font-medium">{l.booth_code}</span> <span className="text-[12px] text-label">since {formatDateTime(l.booth_assigned_at, tz)}</span></p>
+                  <p className="mt-1 tabular">{formatMoney(l.booth_price, l.booth_currency ?? "")}</p>
+                  {l.booth_list_price && l.booth_price !== l.booth_list_price ? (
+                    <p className="text-[12px] text-label tabular">List price {formatMoney(l.booth_list_price, l.booth_currency ?? "")}</p>
+                  ) : null}
+                </>
               ) : (
                 <p className="text-[13px] text-label">{l.stage === "LEAD" || l.stage === "LOST" ? "Mark the lead as Opportunity to hold a booth." : "No booth yet."}</p>
               )}

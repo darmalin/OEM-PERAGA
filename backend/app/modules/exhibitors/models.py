@@ -156,6 +156,11 @@ class ExhibitorLead(UUIDPk, Timestamps, Versioned, Base):
         CheckConstraint(
             "budget_estimate IS NULL OR budget_estimate >= 0", name="budget_not_negative"
         ),
+        CheckConstraint("booth_price IS NULL OR booth_price >= 0", name="booth_price_not_negative"),
+        # A price belongs to a held booth; without one the booth's list price applies (0035).
+        CheckConstraint(
+            "booth_price IS NULL OR booth_id IS NOT NULL", name="booth_price_with_booth"
+        ),
     )
 
     edition_id: Mapped[uuid.UUID] = mapped_column(
@@ -178,6 +183,9 @@ class ExhibitorLead(UUIDPk, Timestamps, Versioned, Base):
     converted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     booth_id: Mapped[uuid.UUID | None] = mapped_column()
     booth_assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The price agreed for the held booth, in the booth's currency. Starts at the booth's list
+    # price; staff may change it. Copied into the contract at Convert.
+    booth_price: Mapped[Decimal | None] = mapped_column(MONEY)
     exhibitor_account_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("exhibitor_accounts.id"), index=True
     )

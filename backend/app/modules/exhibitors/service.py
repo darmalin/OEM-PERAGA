@@ -84,7 +84,7 @@ ENTITY = "exhibitor_lead"
 OWNER_PERMISSION = "exhibitor_lead.update"
 AUDIT_FIELDS = (
     "company_name", "contact_name", "email", "phone", "product_categories", "booth_preference",
-    "budget_estimate", "notes", "stage", "lost_reason", "booth_id", "lead_owner_id",
+    "budget_estimate", "notes", "stage", "lost_reason", "booth_id", "booth_price", "lead_owner_id",
 )  # fmt: skip
 _TEXT_FIELDS = (
     "company_name", "contact_name", "product_categories", "booth_preference", "notes",
@@ -171,7 +171,15 @@ async def _raise_if_duplicate(
 async def _out(session: AsyncSession, lead: ExhibitorLead) -> ExhibitorLeadOut:
     out = ExhibitorLeadOut.model_validate(lead)
     out.lead_owner_name = await repo.owner_name(session, lead.lead_owner_id)
-    out.booth_code = await repo.booth_code(session, lead.booth_id)
+    booth = await repo.get_booth(session, lead.booth_id) if lead.booth_id else None
+    if booth is not None:
+        out.booth_code, out.booth_list_price, out.booth_currency = (
+            booth.code,
+            booth.price,
+            booth.currency,
+        )
+        if out.booth_price is None:  # no agreed price yet: the list price applies
+            out.booth_price = booth.price
     return out
 
 
@@ -326,7 +334,7 @@ def _stage_changes(lead: ExhibitorLead, data: StageChangeIn) -> dict[str, Any]:
         changes["qualified_at"] = lead.qualified_at or datetime.now(UTC)
     else:
         # A booth is held only by an opportunity; leaving that stage releases it.
-        changes |= {"booth_id": None, "booth_assigned_at": None}
+        changes |= {"booth_id": None, "booth_assigned_at": None, "booth_price": None}
     if target is SalesStage.LOST:
         reason = clean_text(data.lost_reason)
         if reason is None:
@@ -359,26 +367,48 @@ async def activity(
 async def assign_booth(
     session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, data: BoothAssignIn
 ) -> ExhibitorLeadOut:
-    """Assign, move, or release the booth of an opportunity (or of an exhibitor, moves only)."""
+    """Hold, move, reprice, or release the booth of an opportunity (an exhibitor moves only).
+
+    A booth typed in (new_booth) is added to the booth list first, so it is still sold once.
+    The agreed price starts at the booth's list price; staff may set another one.
+    """
     scope = await _scope_for_lead(session, ctx, lead_id)
     lead = await _get(session, scope, lead_id, for_update=True)
     check_version(lead.version, data.version)
-    await exhibitions_service.ensure_writable(session, lead.edition_id)
-    if data.booth_id == lead.booth_id:
+    edition = await exhibitions_service.ensure_writable(session, lead.edition_id)
+    target = data.booth_id
+    unchanged_price = data.price is None or data.price == lead.booth_price
+    if data.new_booth is None and target == lead.booth_id and (target is None or unchanged_price):
         return await _out(session, lead)
     if SalesStage(lead.stage) not in BOOTH_STAGES:
         raise ValidationFailed(
             "Only an opportunity can hold a booth.", code="BOOTH_NEEDS_OPPORTUNITY"
         )
-    if data.booth_id is None and lead.stage == SalesStage.EXHIBITOR:
+    if target is None and data.new_booth is None and lead.stage == SalesStage.EXHIBITOR:
         raise ValidationFailed("An exhibitor keeps a booth; move it instead.")
     contract = await repo.get_contract(session, lead.id, for_update=True)
     if contract is not None and contract.status == ContractStatus.SIGNED:
         raise Conflict("The contract is signed; the booth cannot change.", code="CONTRACT_SIGNED")
     booth: Booth | None = None
-    if data.booth_id is not None:
+    if data.new_booth is not None:
+        try:
+            _require_booth_manager(ctx, lead.edition_id)
+        except NotFound as e:  # the lead is visible; only adding booths is not allowed
+            raise PermissionDenied() from e
+        actor = current_actor_id()
+        booth = Booth(
+            edition_id=lead.edition_id,
+            currency=edition.default_currency,
+            is_active=True,
+            created_by=actor,
+            updated_by=actor,
+            **_clean_booth(data.new_booth.model_dump()),
+        )
+        await _save_booth(session, booth, None)
+        target = booth.id
+    elif target is not None:
         # Locking the booth row makes two assignments of one booth wait for each other.
-        booth = await repo.get_booth(session, data.booth_id, for_update=True)
+        booth = await repo.get_booth(session, target, for_update=True)
         if booth is None or booth.edition_id != lead.edition_id:
             raise NotFound("Booth not found.")
         if not booth.is_active:
@@ -386,34 +416,44 @@ async def assign_booth(
         holder = await repo.booth_holder(session, booth.id)
         if holder is not None and holder[0] != lead.id:
             raise BoothTaken()
-    changes = {
-        "booth_id": data.booth_id,
-        "booth_assigned_at": datetime.now(UTC) if data.booth_id else None,
-    }
+    if booth is None:
+        price = None
+    elif data.price is not None:
+        price = data.price
+    elif booth.id == lead.booth_id and lead.booth_price is not None:
+        price = lead.booth_price
+    else:
+        price = booth.price
+    changes: dict[str, Any] = {"booth_id": target, "booth_price": price}
+    if target != lead.booth_id:
+        changes["booth_assigned_at"] = datetime.now(UTC) if target else None
     lead = await _save(session, lead, changes, "booth_change")
-    if contract is not None and booth is not None:
-        await _reprice_contract(session, contract, booth)
+    if contract is not None and booth is not None and price is not None:
+        await _reprice_contract(session, contract, price, booth.currency)
     return await _out(session, lead)
 
 
 async def _reprice_contract(
-    session: AsyncSession, contract: ExhibitorContract, booth: Booth
+    session: AsyncSession, contract: ExhibitorContract, price: Decimal, currency: str
 ) -> None:
-    """A DRAFT contract follows its exhibitor's booth; the discount is kept where it fits."""
+    """A DRAFT contract follows its exhibitor's booth price; the discount is kept where it fits."""
     before = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
-    contract.booth_price = booth.price
-    contract.discount_amount = min(contract.discount_amount, booth.price)
-    contract.total_amount = booth.price - contract.discount_amount
-    contract.currency = booth.currency
+    contract.booth_price = price
+    contract.discount_amount = min(contract.discount_amount, price)
+    contract.total_amount = price - contract.discount_amount
+    contract.currency = currency
     contract.updated_by = current_actor_id()
     await session.flush()
+    after = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
+    if after == before:
+        return
     await audit.record(
         session,
         entity_type=CONTRACT_ENTITY,
         entity_id=contract.id,
         action="reprice",
         before=before,
-        after=audit.snapshot(contract, CONTRACT_AUDIT_FIELDS),
+        after=after,
         edition_id=contract.edition_id,
     )
 
@@ -609,6 +649,8 @@ async def convert(
         raise ValidationFailed("Assign a booth before converting.", code="BOOTH_REQUIRED")
     booth = await repo.get_booth(session, lead.booth_id)
     assert booth is not None  # noqa: S101 - FK
+    # The agreed price; the list price only for a lead held before migration 0035 filled it.
+    price = lead.booth_price if lead.booth_price is not None else booth.price
     account, invitation = await _account_for(session, lead)
     now = datetime.now(UTC)
     lead = await _save(
@@ -623,9 +665,9 @@ async def convert(
         edition_id=lead.edition_id,
         exhibitor_lead_id=lead.id,
         contract_number=f"{edition.code}-C-{number:04d}",
-        booth_price=booth.price,
+        booth_price=price,
         discount_amount=0,
-        total_amount=booth.price,
+        total_amount=price,
         currency=booth.currency,
         status=ContractStatus.DRAFT,
         created_by=actor,
@@ -801,14 +843,18 @@ async def fill_contract(
     version: int,
     portal_account_id: uuid.UUID | None = None,
 ) -> ContractOut:
-    """Edit a DRAFT contract. A discount recomputes the total from the booth price."""
+    """Edit a DRAFT contract. A booth price or discount recomputes the total."""
     contract = await _writable_draft(session, lead, version)
     before = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
     for key in _CONTRACT_TEXT_FIELDS:
         if key in changes:
             setattr(contract, key, clean_text(changes[key]))
-    if "discount_amount" in changes:
-        discount = changes["discount_amount"] or Decimal(0)
+    if changes.get("booth_price") is not None:
+        # Staff only (ContractUpdateIn); the lead keeps the same agreed price.
+        contract.booth_price = changes["booth_price"]
+        lead.booth_price = contract.booth_price
+    if "discount_amount" in changes or changes.get("booth_price") is not None:
+        discount = changes.get("discount_amount", contract.discount_amount) or Decimal(0)
         if discount > contract.booth_price:
             raise ValidationFailed(fields={"discount_amount": "Cannot exceed the booth price."})
         contract.discount_amount = discount

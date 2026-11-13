@@ -3,11 +3,18 @@
 // signed PDF. Desk: payment with proof, Verify. Portal: Paid. Then a password reset link and
 // disabling / enabling the portal account.
 //   EMS_URL=http://localhost:5173 EMS_EMAIL=... EMS_PASSWORD=... CHROMIUM=/snap/bin/chromium node e2e/pipeline.mjs
-// The invitation link points at EMS_PUBLIC_BASE_URL/exhibitor (nginx :8080 -> `make portal`).
+// The invitation link points at EMS_PUBLIC_BASE_URL/exhibitor (nginx :8080 -> `make portal`);
+// PORTAL_URL=http://localhost:5176/exhibitor opens it on the portal dev server instead.
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright-core";
 
 const DESK = process.env.EMS_URL ?? "http://localhost:5173";
+// PORTAL_URL (optional) opens portal links on a portal dev server instead of nginx.
+const portalLink = (url) => {
+  if (!process.env.PORTAL_URL) return url;
+  const u = new URL(url);
+  return `${process.env.PORTAL_URL.replace(/\/$/, "")}${u.pathname.replace(/^\/exhibitor/, "")}${u.search}`;
+};
 const OUT = process.env.OUT ?? "e2e-out";
 mkdirSync(OUT, { recursive: true });
 const run = Date.now().toString(36);
@@ -96,7 +103,8 @@ try {
   await desk.goto(leadUrl);
 
   await desk.getByRole("link", { name: "Choose Booth" }).click();
-  await desk.getByRole("radio", { name: new RegExp(boothCode) }).check();
+  await desk.getByRole("combobox").fill(boothCode);
+  await desk.getByRole("option", { name: new RegExp(`^${boothCode}`) }).click();
   await desk.getByRole("button", { name: "Hold Booth" }).click();
   await toast(`Booth ${boothCode} held`);
   check(true, "booth held");
@@ -110,7 +118,7 @@ try {
   await shot(desk, "desk-converted");
 
   // Exhibitor side.
-  await portal.goto(invitation);
+  await portal.goto(portalLink(invitation));
   await portal.getByRole("heading", { name: "Set Your Password" }).waitFor();
   await portal.getByLabel("New Password").fill(`exhibitor-${run}-pass`);
   await portal.getByLabel("Confirm Password").fill(`exhibitor-${run}-pass`);
@@ -118,7 +126,7 @@ try {
   await portal.getByRole("heading", { name: "My Exhibitions" }).waitFor();
   check(!portal.url().includes("token="), "password set, token gone from the address bar");
 
-  await portal.getByRole("link", { name: new RegExp(company) }).click();
+  await portal.getByText("Open exhibition").first().click(); // a new account has one exhibition
   await portal.getByLabel("PIC Name").fill("E2E Signer");
   await portal.getByLabel("Company Address").fill("Jl. E2E No. 1, Jakarta");
   await portal.getByRole("button", { name: "Save Details" }).click();
@@ -175,7 +183,7 @@ try {
   const resetUrl = await resetBox.inputValue();
   const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
   phone.on("pageerror", (e) => errors.push(`phone: ${e}`));
-  await phone.goto(resetUrl);
+  await phone.goto(portalLink(resetUrl));
   await phone.getByRole("heading", { name: "Reset Your Password" }).waitFor();
   await phone.getByLabel("New Password").fill(`exhibitor-${run}-new`);
   await phone.getByLabel("Confirm Password").fill(`exhibitor-${run}-new`);

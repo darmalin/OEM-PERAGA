@@ -3,7 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.core.pagination import PageParams
 from app.modules.exhibitors.rules import PaymentMethod, PaymentState, PaymentStatus, SalesStage
@@ -64,6 +64,9 @@ class ExhibitorLeadOut(BaseModel):
     booth_id: uuid.UUID | None
     booth_code: str | None = None
     booth_assigned_at: datetime | None
+    booth_price: Decimal | None  # agreed price, in the booth's currency
+    booth_list_price: Decimal | None = None  # the booth's own price, for comparison
+    booth_currency: str | None = None
     lead_owner_id: uuid.UUID | None
     lead_owner_name: str | None = None
     created_at: datetime
@@ -84,11 +87,31 @@ class ExhibitorLeadListParams(PageParams):
     sort: SortParam = "-updated_at"
 
 
+class NewBoothIn(BaseModel):
+    """A booth typed in while choosing one; it is added to the edition's booth list."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(min_length=1, max_length=30)
+    hall: str | None = Field(default=None, max_length=100)
+    area_sqm: Decimal = Field(gt=0, max_digits=8, decimal_places=2)
+    price: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
+
+
 class BoothAssignIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    booth_id: uuid.UUID | None  # None releases the booth
+    booth_id: uuid.UUID | None = None  # None (and no new_booth) releases the booth
+    new_booth: NewBoothIn | None = None
+    # Agreed price; omitted keeps the current one, or takes the list price of a new choice.
+    price: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=2)
     version: int
+
+    @model_validator(mode="after")
+    def _one_booth(self) -> "BoothAssignIn":
+        if self.booth_id is not None and self.new_booth is not None:
+            raise ValueError("Choose a booth or add a new one, not both.")
+        return self
 
 
 # --- booths ------------------------------------------------------------------------------
@@ -208,9 +231,10 @@ class ContractFieldsIn(BaseModel):
 
 
 class ContractUpdateIn(ContractFieldsIn):
-    """Staff edit: the exhibitor's fields plus the discount."""
+    """Staff edit: the exhibitor's fields plus the booth price and the discount."""
 
     discount_amount: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=2)
+    booth_price: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=2)
 
 
 class ContractReopenIn(BaseModel):

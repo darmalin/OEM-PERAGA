@@ -22,15 +22,17 @@ interface ContractValues {
   pic_name: string;
   company_address: string;
   tax_id: string;
+  booth_price: string;
   discount_amount: string;
 }
 
-const FIELDS = ["pic_name", "company_address", "tax_id", "discount_amount"] as const;
+const FIELDS = ["pic_name", "company_address", "tax_id", "booth_price", "discount_amount"] as const;
 
 const toValues = (c: Contract): ContractValues => ({
   pic_name: c.pic_name ?? "",
   company_address: c.company_address ?? "",
   tax_id: c.tax_id ?? "",
+  booth_price: c.booth_price,
   discount_amount: c.discount_amount,
 });
 
@@ -85,10 +87,12 @@ function ContractForm({ contract: c }: { contract: Contract }) {
       const updated = await call(
         api.PATCH("/api/v1/exhibitor-leads/{lead_id}/contract", {
           params: { path: { lead_id: c.exhibitor_lead_id } },
-          body: { pic_name: v.pic_name, company_address: v.company_address, tax_id: v.tax_id, discount_amount: v.discount_amount || "0", version: c.version },
+          body: { pic_name: v.pic_name, company_address: v.company_address, tax_id: v.tax_id, booth_price: v.booth_price, discount_amount: v.discount_amount || "0", version: c.version },
         }),
       );
       queryClient.setQueryData(contractQuery(c.exhibitor_lead_id).queryKey, updated);
+      // The lead keeps the same agreed price as its Draft contract.
+      void queryClient.invalidateQueries({ queryKey: ["exhibitor-lead", c.exhibitor_lead_id], exact: true });
       notifySuccess("Contract saved", updated.contract_number ?? undefined);
     } catch (e) {
       if (e instanceof ApiError && e.code === "VERSION_CONFLICT") void queryClient.invalidateQueries({ queryKey: contractQuery(c.exhibitor_lead_id).queryKey });
@@ -104,6 +108,9 @@ function ContractForm({ contract: c }: { contract: Contract }) {
           </Field>
           <Field label="Tax ID (NPWP)" error={errors.tax_id?.message}>
             {(p) => <Input {...p} {...form.register("tax_id")} />}
+          </Field>
+          <Field label="Booth Price" required help={`In ${c.currency}. The price agreed with the exhibitor; it can change until the contract is signed.`} error={errors.booth_price?.message}>
+            {(p) => <Input {...p} inputMode="decimal" {...form.register("booth_price", { required: "Enter the booth price.", pattern: { value: /^\d+(\.\d{1,2})?$/, message: "Enter an amount, e.g. 45000000." } })} />}
           </Field>
           <Field label="Discount" help={`In ${c.currency}. The total is the booth price minus the discount.`} error={errors.discount_amount?.message}>
             {(p) => <Input {...p} inputMode="decimal" {...form.register("discount_amount", { pattern: { value: /^\d+(\.\d{1,2})?$/, message: "Enter an amount, e.g. 2500000." } })} />}

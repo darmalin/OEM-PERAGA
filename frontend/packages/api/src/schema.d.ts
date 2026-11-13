@@ -3296,7 +3296,10 @@ export interface components {
         /** BoothAssignIn */
         BoothAssignIn: {
             /** Booth Id */
-            booth_id: string | null;
+            booth_id?: string | null;
+            new_booth?: components["schemas"]["NewBoothIn"] | null;
+            /** Price */
+            price?: number | string | null;
             /** Version */
             version: number;
         };
@@ -3819,7 +3822,7 @@ export interface components {
         };
         /**
          * ContractUpdateIn
-         * @description Staff edit: the exhibitor's fields plus the discount.
+         * @description Staff edit: the exhibitor's fields plus the booth price and the discount.
          */
         ContractUpdateIn: {
             /** Pic Name */
@@ -3832,6 +3835,8 @@ export interface components {
             version: number;
             /** Discount Amount */
             discount_amount?: number | string | null;
+            /** Booth Price */
+            booth_price?: number | string | null;
         };
         /** ConvertIn */
         ConvertIn: {
@@ -5062,6 +5067,12 @@ export interface components {
             booth_code?: string | null;
             /** Booth Assigned At */
             booth_assigned_at: string | null;
+            /** Booth Price */
+            booth_price: string | null;
+            /** Booth List Price */
+            booth_list_price?: string | null;
+            /** Booth Currency */
+            booth_currency?: string | null;
             /** Lead Owner Id */
             lead_owner_id: string | null;
             /** Lead Owner Name */
@@ -6199,6 +6210,20 @@ export interface components {
         MessageOut: {
             /** Message */
             message: string;
+        };
+        /**
+         * NewBoothIn
+         * @description A booth typed in while choosing one; it is added to the edition's booth list.
+         */
+        NewBoothIn: {
+            /** Code */
+            code: string;
+            /** Hall */
+            hall?: string | null;
+            /** Area Sqm */
+            area_sqm: number | string;
+            /** Price */
+            price: number | string;
         };
         /**
          * OptionField
