@@ -1,11 +1,13 @@
 """Quotations before a lead becomes an exhibitor (Phase 2 of docs/EXHIBITOR_QUOTATIONS.md).
 The amounts are those of the sales team's Excel sheets."""
 
+import base64
 from decimal import Decimal
 from typing import Any
 
 from httpx import AsyncClient
 
+from app.core.storage import MemoryStorage
 from app.modules.exhibitions.models import Edition
 from app.modules.quotations.rules import Term, compute
 from tests.factories import RoleGrant, actor, make_edition
@@ -240,3 +242,41 @@ async def test_rules_and_access() -> None:
 
     # Out of the caller's editions: not found.
     assert (await other_admin.get(f"{LEADS}/{lead['id']}/quotations")).status_code == 404
+
+
+# 1 x 1 PNG.
+PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+)
+
+
+async def test_signature_and_pdf(storage: MemoryStorage) -> None:
+    edition, admin, lead = await setup()
+    settings = (await admin.get(url(edition))).json()
+    r = await admin.post(
+        f"{url(edition)}/signature",
+        data={"version": str(settings["version"])},
+        files={"file": ("sign.gif", b"GIF89a", "image/gif")},
+    )
+    assert r.status_code == 422
+    broken = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+    r = await admin.post(
+        f"{url(edition)}/signature",
+        data={"version": str(settings["version"])},
+        files={"file": ("sign.png", broken, "image/png")},
+    )
+    assert r.status_code == 422
+    r = await admin.post(
+        f"{url(edition)}/signature",
+        data={"version": str(settings["version"])},
+        files={"file": ("sign.png", PNG, "image/png")},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["has_signature"] is True
+    assert (await admin.get(f"{url(edition)}/signature")).content == PNG
+
+    q = (await quote(admin, lead)).json()
+    r = await admin.get(f"/api/v1/quotations/{q['id']}/pdf")
+    assert r.status_code == 200, r.text
+    assert r.content.startswith(b"%PDF-")
+    assert "Quotation 113-PNJS-IIT-VII-2026.pdf" in r.headers["content-disposition"]

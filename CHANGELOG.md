@@ -28,6 +28,17 @@ Quotations API, Phase 2 of docs/EXHIBITOR_QUOTATIONS.md (migration 0036). Screen
   the rounding remainder in the last). A revision supersedes the quotation it replaces; an issued
   quotation can be cancelled with a reason. Every quotation stays in the lead's history.
 
+Quotation screens and PDF, Phase 3 of docs/EXHIBITOR_QUOTATIONS.md. New dependency: reportlab
+(rebuild the API image); new storage bucket `quotations` (created by `migrate` on deploy).
+
+- **Exhibitors → Quotation Settings** (`booth.manage`): number, letter text, rates per sqm, discount and
+  VAT, default terms, signer, and the signature image.
+- **Lead → Quotations tab**: the history. **New Quotation**: recipient, stand type and currency, booth
+  (search, or any code typed in), width x length or area, complimentary space, rates, discount, VAT,
+  terms; the summary beside the form shows every line of the calculation and the number it would get,
+  before **Create Quotation**. On a quotation: **Download PDF** (PNJS letterhead, laid out like the
+  Excel sheet), **Revise**, **Cancel Quotation**.
+
 Exhibitor order forms, Phases 1 to 7 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
 Exhibitors → Order Forms, permission `order_form.manage`); exhibitors fill and send them in the portal;
 staff review them (menu Exhibitors → Orders, permission `exhibitor_order.review`).

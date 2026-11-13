@@ -19,6 +19,7 @@ dependencies = [
     "pydantic[email]==2.14.1",
     "python-multipart==0.0.32",
     "redis==6.4.0",
+    "reportlab==4.4.4",
     "segno==1.6.6",
     "sqlalchemy[asyncio]==2.1.5",
     "structlog==26.1.0",
@@ -62,7 +63,7 @@ plugins = ["pydantic.mypy"]
 files = ["app"]
 
 [[tool.mypy.overrides]]
-module = ["segno.*", "openpyxl.*", "phonenumbers.*", "uuid6.*"]
+module = ["segno.*", "openpyxl.*", "phonenumbers.*", "uuid6.*", "reportlab.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

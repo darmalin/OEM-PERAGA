@@ -22,12 +22,17 @@ export function BoothPicker({
   onPick,
   inputId,
   describedBy,
+  addLabel = (code: string) => `Add booth “${code}”`,
+  placeholder,
 }: {
   editionId: string;
   canAdd: boolean;
   onPick: (choice: BoothChoice) => void;
   inputId?: string;
   describedBy?: string;
+  /** Text of the option for a code not in the list. */
+  addLabel?: (code: string) => string;
+  placeholder?: string;
 }) {
   const listId = useId();
   const [text, setText] = useState("");
@@ -79,7 +84,7 @@ export function BoothPicker({
           aria-describedby={describedBy}
           aria-activedescendant={open && options[active] ? `${listId}-${active}` : undefined}
           autoComplete="off"
-          placeholder={canAdd ? "Search a booth code or hall, or type a new code" : "Search a booth code or hall"}
+          placeholder={placeholder ?? (canAdd ? "Search a booth code or hall, or type a new code" : "Search a booth code or hall")}
           value={text}
           onChange={(e) => {
             setText(e.target.value);
@@ -133,7 +138,7 @@ export function BoothPicker({
               ) : (
                 <span className="flex items-center gap-2 font-medium">
                   <Plus className="size-4" aria-hidden />
-                  Add booth “{o.code}”
+                  {addLabel(o.code)}
                 </span>
               )}
             </li>

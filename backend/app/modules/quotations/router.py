@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, Form, Response, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import AuthContext, require
@@ -74,3 +74,41 @@ async def cancel_quotation(
     quotation_id: uuid.UUID, data: QuotationCancelIn, session: Session, ctx: AuthContext = Write
 ) -> QuotationOut:
     return await service.cancel(session, ctx, quotation_id, data)
+
+
+@router.post("/editions/{edition_id}/quotation-settings/signature", response_model=SettingsOut)
+async def set_signature(
+    edition_id: uuid.UUID,
+    session: Session,
+    file: Annotated[UploadFile, File()],
+    version: Annotated[int, Form()],
+    ctx: AuthContext = ManageSettings,
+) -> SettingsOut:
+    data = await file.read(service.SIGNATURE_MAX_BYTES + 1)
+    return await service.set_signature(
+        session, ctx, edition_id, content_type=file.content_type, data=data, version=version
+    )
+
+
+@router.get("/editions/{edition_id}/quotation-settings/signature")
+async def get_signature(
+    edition_id: uuid.UUID, session: Session, ctx: AuthContext = Read
+) -> Response:
+    data = await service.signature(session, ctx, edition_id)
+    media = "image/png" if data.startswith(b"\x89PNG") else "image/jpeg"
+    return Response(data, media_type=media, headers={"Cache-Control": "private, no-store"})
+
+
+@router.get("/quotations/{quotation_id}/pdf")
+async def quotation_pdf(
+    quotation_id: uuid.UUID, session: Session, ctx: AuthContext = Read
+) -> Response:
+    data, name = await service.quotation_pdf(session, ctx, quotation_id)
+    return Response(
+        data,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            "Cache-Control": "private, no-store",
+        },
+    )

@@ -17,6 +17,7 @@ def ensure_buckets() -> None:
         s.s3_bucket_exports,
         s.s3_bucket_contracts,
         s.s3_bucket_orders,
+        s.s3_bucket_quotations,
     ):
         storage.ensure_bucket(bucket)
     print("buckets ready")

@@ -10,17 +10,21 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.core import audit
 from app.core.authorization import AuthContext, Scope
+from app.core.config import get_settings as app_settings
 from app.core.context import current_actor_id
 from app.core.errors import Conflict, NotFound, PermissionDenied, ValidationFailed, check_version
+from app.core.storage import get_storage, new_object_key
 from app.modules.exhibitions import service as exhibitions_service
 from app.modules.exhibitions.models import Edition
 from app.modules.exhibitors import repository as exhibitors_repo
 from app.modules.exhibitors.models import ExhibitorLead
 from app.modules.exhibitors.rules import SalesStage
 from app.modules.identity.models import User
+from app.modules.quotations import pdf
 from app.modules.quotations.models import ExhibitorQuotation, QuotationCounter, QuotationSettings
 from app.modules.quotations.rules import (
     DEFAULT_SHELL_INCLUDES,
@@ -551,3 +555,84 @@ async def cancel(
     await session.refresh(q)
     await _record(session, q, "cancel", before)
     return await _out(session, q)
+
+
+# --- signature and PDF (Phase 3) ---------------------------------------------------------
+
+_IMAGES = {"image/png": b"\x89PNG\r\n\x1a\n", "image/jpeg": b"\xff\xd8\xff"}
+SIGNATURE_MAX_BYTES = 2 * 1024 * 1024
+
+
+async def set_signature(
+    session: AsyncSession,
+    ctx: AuthContext,
+    edition_id: uuid.UUID,
+    *,
+    content_type: str | None,
+    data: bytes,
+    version: int,
+) -> SettingsOut:
+    """The signer's signature, a PNG or JPEG. New quotations print it; made ones keep theirs."""
+    _require_settings_manager(ctx, edition_id)
+    edition = await exhibitions_service.ensure_writable(session, edition_id)
+    row = await _settings_row(session, edition_id, for_update=True)
+    if row is None:
+        raise ValidationFailed("Save the settings first.", code="QUOTATION_SETTINGS_MISSING")
+    check_version(row.version, version)
+    magic = _IMAGES.get(content_type or "")
+    if magic is None or not data.startswith(magic):
+        raise ValidationFailed(fields={"file": "Only PNG or JPEG images are accepted."})
+    if len(data) > SIGNATURE_MAX_BYTES:
+        raise ValidationFailed(fields={"file": "File is too large."}, code="FILE_TOO_LARGE")
+    if not pdf.readable_image(data):
+        raise ValidationFailed(fields={"file": "The image cannot be read."})
+    key = new_object_key(".png" if content_type == "image/png" else ".jpg")
+    assert content_type is not None  # noqa: S101 - checked above
+    await run_in_threadpool(
+        get_storage().put, app_settings().s3_bucket_quotations, key, data, content_type
+    )
+    # The old image stays: quotations made with it still point at it.
+    row.signature_key = key
+    row.updated_by = current_actor_id()
+    await session.flush()
+    await session.refresh(row)
+    await audit.record(
+        session,
+        entity_type=SETTINGS_ENTITY,
+        entity_id=row.id,
+        action="signature",
+        after={"signature_key": key},
+        edition_id=edition_id,
+    )
+    return await _settings_out(session, edition, row)
+
+
+async def _image(key: str | None) -> bytes | None:
+    if key is None:
+        return None
+    try:
+        return await run_in_threadpool(get_storage().get, app_settings().s3_bucket_quotations, key)
+    except FileNotFoundError:
+        return None
+
+
+async def signature(session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID) -> bytes:
+    _scope(ctx, edition_id, READ)
+    row = await _settings_row(session, edition_id)
+    data = await _image(row.signature_key if row else None)
+    if data is None:
+        raise NotFound("No signature image.")
+    return data
+
+
+async def quotation_pdf(
+    session: AsyncSession, ctx: AuthContext, quotation_id: uuid.UUID
+) -> tuple[bytes, str]:
+    """(PDF bytes, download name). Rendered from what the quotation stored, so it never changes."""
+    q = await _visible(session, ctx, quotation_id, READ)
+    edition = await exhibitions_service.get_edition_by_id(session, q.edition_id)
+    assert edition is not None  # noqa: S101 - FK
+    sign = await _image((q.letter or {}).get("signature_key"))
+    data = await run_in_threadpool(pdf.render, q, edition.name, sign)
+    name = "Quotation " + q.number.replace("/", "-") + ".pdf"
+    return data, name

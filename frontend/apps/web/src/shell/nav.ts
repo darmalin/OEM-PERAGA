@@ -8,6 +8,7 @@ import {
   DoorOpen,
   FileDown,
   FileUp,
+  FileText,
   Handshake,
   Gauge,
   HeartPulse,
@@ -84,6 +85,7 @@ export const PANELS: PanelDef[] = [
           { label: "Booths", to: "/app/booths", icon: LayoutGrid, perms: ["booth.manage", "exhibitor_lead.read"] },
           { label: "Orders", to: "/app/exhibitor-orders", icon: PackageCheck, perms: ["exhibitor_lead.read"] },
           { label: "Order Forms", to: "/app/order-forms", icon: ClipboardPen, perms: ["order_form.manage"] },
+          { label: "Quotation Settings", to: "/app/quotation-settings", icon: FileText, perms: ["booth.manage"] },
         ],
       },
       {

@@ -2209,6 +2209,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/editions/{edition_id}/quotation-settings/signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Signature */
+        get: operations["get_signature_api_v1_editions__edition_id__quotation_settings_signature_get"];
+        /** Set Signature */
+        put: operations["set_signature_api_v1_editions__edition_id__quotation_settings_signature_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quotation_id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quotation Pdf */
+        get: operations["quotation_pdf_api_v1_quotations__quotation_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/visitor-registrations": {
         parameters: {
             query?: never;
@@ -3344,6 +3379,13 @@ export interface components {
         };
         /** Body_set_item_image_api_v1_order_forms__form_id__items__item_id__image_post */
         Body_set_item_image_api_v1_order_forms__form_id__items__item_id__image_post: {
+            /** File */
+            file: string;
+            /** Version */
+            version: number;
+        };
+        /** Body_set_signature_api_v1_editions__edition_id__quotation_settings_signature_put */
+        Body_set_signature_api_v1_editions__edition_id__quotation_settings_signature_put: {
             /** File */
             file: string;
             /** Version */
@@ -14343,6 +14385,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_signature_api_v1_editions__edition_id__quotation_settings_signature_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_signature_api_v1_editions__edition_id__quotation_settings_signature_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_set_signature_api_v1_editions__edition_id__quotation_settings_signature_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quotation_pdf_api_v1_quotations__quotation_id__pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quotation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

@@ -103,6 +103,8 @@ const LABELS: Record<string, Record<string, string>> = {
   },
   sales_stage: { LEAD: "Lead", OPPORTUNITY: "Opportunity", EXHIBITOR: "Exhibitor", LOST: "Lost" },
   contract_status: { DRAFT: "Draft", SIGNED: "Signed" },
+  quotation_status: { ISSUED: "Issued", SUPERSEDED: "Superseded", ACCEPTED: "Accepted", CANCELLED: "Cancelled" },
+  stand_type: { RAW: "Raw Space", SHELL: "Shell Scheme" },
   payment_status: { PENDING: "Pending", VERIFIED: "Verified", REJECTED: "Rejected" },
   payment_method: { BANK_TRANSFER: "Bank Transfer", CASH: "Cash", OTHER: "Other" },
   payment_state: { UNPAID: "Unpaid", PARTIAL: "Partially Paid", PAID: "Paid" },
