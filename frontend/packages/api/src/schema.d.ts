@@ -2122,6 +2122,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/editions/{edition_id}/quotation-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_v1_editions__edition_id__quotation_settings_get"];
+        /** Save Settings */
+        put: operations["save_settings_api_v1_editions__edition_id__quotation_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/quotations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Quotations */
+        get: operations["list_quotations_api_v1_exhibitor_leads__lead_id__quotations_get"];
+        put?: never;
+        /** Create Quotation */
+        post: operations["create_quotation_api_v1_exhibitor_leads__lead_id__quotations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/quotations/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Quotation */
+        post: operations["preview_quotation_api_v1_exhibitor_leads__lead_id__quotations_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quotation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Quotation */
+        get: operations["get_quotation_api_v1_quotations__quotation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quotation_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Quotation */
+        post: operations["cancel_quotation_api_v1_quotations__quotation_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/visitor-registrations": {
         parameters: {
             query?: never;
@@ -7394,6 +7481,249 @@ export interface components {
          * @enum {string}
          */
         QrStatus: "NONE" | "ACTIVE" | "REVOKED";
+        /** QuotationCancelIn */
+        QuotationCancelIn: {
+            /** Reason */
+            reason: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * QuotationIn
+         * @description What staff fill in. Omitted values come from the settings and the lead.
+         */
+        QuotationIn: {
+            stand_type: components["schemas"]["StandType"];
+            /** Currency */
+            currency?: string | null;
+            /** Booth Id */
+            booth_id?: string | null;
+            /** Booth Code */
+            booth_code?: string | null;
+            /** Width M */
+            width_m?: number | string | null;
+            /** Length M */
+            length_m?: number | string | null;
+            /** Area Sqm */
+            area_sqm?: number | string | null;
+            /**
+             * Complimentary Sqm
+             * @default 0
+             */
+            complimentary_sqm: number | string;
+            /** Stand Rate */
+            stand_rate?: number | string | null;
+            /** Raw Rate */
+            raw_rate?: number | string | null;
+            /** Discount Label */
+            discount_label?: string | null;
+            /**
+             * Discount Percent
+             * @default 0
+             */
+            discount_percent: number | string;
+            /** Vat */
+            vat?: boolean | null;
+            /** Terms */
+            terms?: components["schemas"]["TermIn-Input"][] | null;
+            /** Issued On */
+            issued_on?: string | null;
+            /** Recipient Company */
+            recipient_company?: string | null;
+            /** Recipient Address */
+            recipient_address?: string | null;
+            /** Attention */
+            attention?: string | null;
+            /** Includes */
+            includes?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Replaces Id */
+            replaces_id?: string | null;
+        };
+        /** QuotationOut */
+        QuotationOut: {
+            /** Number */
+            number: string;
+            /**
+             * Issued On
+             * Format: date
+             */
+            issued_on: string;
+            /** Recipient Company */
+            recipient_company: string;
+            /** Recipient Address */
+            recipient_address: string | null;
+            /** Attention */
+            attention: string | null;
+            stand_type: components["schemas"]["StandType"];
+            /** Currency */
+            currency: string;
+            /** Booth Code */
+            booth_code: string | null;
+            /** Width M */
+            width_m: string | null;
+            /** Length M */
+            length_m: string | null;
+            /** Area Sqm */
+            area_sqm: string;
+            /** Complimentary Sqm */
+            complimentary_sqm: string;
+            /** Charged Sqm */
+            charged_sqm: string;
+            /** Stand Rate */
+            stand_rate: string;
+            /** Raw Rate */
+            raw_rate: string;
+            /** Discount Label */
+            discount_label: string | null;
+            /** Discount Percent */
+            discount_percent: string;
+            /** Vat Rate */
+            vat_rate: string;
+            /** Vat Base Num */
+            vat_base_num: number;
+            /** Vat Base Den */
+            vat_base_den: number;
+            /** Gross Amount */
+            gross_amount: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** Cost Amount */
+            cost_amount: string;
+            /** Vat Amount */
+            vat_amount: string;
+            /** Total Amount */
+            total_amount: string;
+            /** Terms */
+            terms: components["schemas"]["TermOut"][];
+            /** Includes */
+            includes: string | null;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /**
+             * Exhibitor Lead Id
+             * Format: uuid
+             */
+            exhibitor_lead_id: string;
+            status: components["schemas"]["QuotationStatus"];
+            /** Booth Id */
+            booth_id: string | null;
+            /** Replaces Id */
+            replaces_id: string | null;
+            /** Replaced By Number */
+            replaced_by_number?: string | null;
+            /** Accepted At */
+            accepted_at: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Created By Name */
+            created_by_name?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * QuotationPreviewOut
+         * @description The summary shown before Create: every amount, nothing saved, no number taken.
+         */
+        QuotationPreviewOut: {
+            /** Number */
+            number: string;
+            /**
+             * Issued On
+             * Format: date
+             */
+            issued_on: string;
+            /** Recipient Company */
+            recipient_company: string;
+            /** Recipient Address */
+            recipient_address: string | null;
+            /** Attention */
+            attention: string | null;
+            stand_type: components["schemas"]["StandType"];
+            /** Currency */
+            currency: string;
+            /** Booth Code */
+            booth_code: string | null;
+            /** Width M */
+            width_m: string | null;
+            /** Length M */
+            length_m: string | null;
+            /** Area Sqm */
+            area_sqm: string;
+            /** Complimentary Sqm */
+            complimentary_sqm: string;
+            /** Charged Sqm */
+            charged_sqm: string;
+            /** Stand Rate */
+            stand_rate: string;
+            /** Raw Rate */
+            raw_rate: string;
+            /** Discount Label */
+            discount_label: string | null;
+            /** Discount Percent */
+            discount_percent: string;
+            /** Vat Rate */
+            vat_rate: string;
+            /** Vat Base Num */
+            vat_base_num: number;
+            /** Vat Base Den */
+            vat_base_den: number;
+            /** Gross Amount */
+            gross_amount: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** Cost Amount */
+            cost_amount: string;
+            /** Vat Amount */
+            vat_amount: string;
+            /** Total Amount */
+            total_amount: string;
+            /** Terms */
+            terms: components["schemas"]["TermOut"][];
+            /** Includes */
+            includes: string | null;
+            /** Notes */
+            notes: string | null;
+        };
+        /**
+         * QuotationStatus
+         * @enum {string}
+         */
+        QuotationStatus: "ISSUED" | "SUPERSEDED" | "ACCEPTED" | "CANCELLED";
+        /** Rate */
+        "Rate-Input": {
+            /** Currency */
+            currency: string;
+            stand_type: components["schemas"]["StandType"];
+            /** Rate */
+            rate: number | string;
+        };
+        /** Rate */
+        "Rate-Output": {
+            /** Currency */
+            currency: string;
+            stand_type: components["schemas"]["StandType"];
+            /** Rate */
+            rate: string;
+        };
         /**
          * RegistrationChannel
          * @enum {string}
@@ -7814,6 +8144,114 @@ export interface components {
          * @enum {string}
          */
         ScopeType: "EDITION" | "TEAM" | "OWNED" | "GATE";
+        /** SettingsIn */
+        SettingsIn: {
+            /** Code */
+            code: string;
+            /**
+             * Company Code
+             * @default PNJS
+             */
+            company_code: string;
+            /**
+             * Start Number
+             * @default 1
+             */
+            start_number: number;
+            /**
+             * Place
+             * @default Jakarta
+             */
+            place: string;
+            /** Letter Name */
+            letter_name?: string | null;
+            /** Event Text */
+            event_text?: string | null;
+            /** Rates */
+            rates?: components["schemas"]["Rate-Input"][];
+            /** Shell Includes */
+            shell_includes?: string | null;
+            /**
+             * Discount Label
+             * @default Special Discount
+             */
+            discount_label: string;
+            /**
+             * Vat Rate
+             * @default 12
+             */
+            vat_rate: number | string;
+            /**
+             * Vat Base Num
+             * @default 11
+             */
+            vat_base_num: number;
+            /**
+             * Vat Base Den
+             * @default 12
+             */
+            vat_base_den: number;
+            /** Terms */
+            terms?: components["schemas"]["TermIn-Input"][];
+            /** Signer Name */
+            signer_name?: string | null;
+            /** Signer Title */
+            signer_title?: string | null;
+            /** Version */
+            version?: number | null;
+        };
+        /** SettingsOut */
+        SettingsOut: {
+            /**
+             * Exists
+             * @default true
+             */
+            exists: boolean;
+            /**
+             * Edition Id
+             * Format: uuid
+             */
+            edition_id: string;
+            /** Code */
+            code: string | null;
+            /** Company Code */
+            company_code: string;
+            /** Start Number */
+            start_number: number;
+            /** Next Number */
+            next_number?: number | null;
+            /** Place */
+            place: string;
+            /** Letter Name */
+            letter_name: string | null;
+            /** Event Text */
+            event_text: string | null;
+            /** Rates */
+            rates: components["schemas"]["Rate-Output"][];
+            /** Shell Includes */
+            shell_includes: string | null;
+            /** Discount Label */
+            discount_label: string;
+            /** Vat Rate */
+            vat_rate: string;
+            /** Vat Base Num */
+            vat_base_num: number;
+            /** Vat Base Den */
+            vat_base_den: number;
+            /** Terms */
+            terms: components["schemas"]["TermIn-Output"][];
+            /** Signer Name */
+            signer_name: string | null;
+            /** Signer Title */
+            signer_title: string | null;
+            /**
+             * Has Signature
+             * @default false
+             */
+            has_signature: boolean;
+            /** Version */
+            version?: number | null;
+        };
         /**
          * SmtpSecurity
          * @enum {string}
@@ -7951,6 +8389,11 @@ export interface components {
             /** Count */
             count: number;
         };
+        /**
+         * StandType
+         * @enum {string}
+         */
+        StandType: "RAW" | "SHELL";
         /** SyncIn */
         SyncIn: {
             /** Items */
@@ -8060,6 +8503,35 @@ export interface components {
          * @enum {string}
          */
         TelemarketingStatus: "NEW" | "ANSWER" | "NO_ANSWER" | "RECONTACTED" | "RETRY_NO_ANSWER";
+        /** TermIn */
+        "TermIn-Input": {
+            /** Label */
+            label: string;
+            /** Percent */
+            percent: number | string;
+            /** Due On */
+            due_on?: string | null;
+        };
+        /** TermIn */
+        "TermIn-Output": {
+            /** Label */
+            label: string;
+            /** Percent */
+            percent: string;
+            /** Due On */
+            due_on?: string | null;
+        };
+        /** TermOut */
+        TermOut: {
+            /** Label */
+            label: string;
+            /** Percent */
+            percent: string;
+            /** Due On */
+            due_on: string | null;
+            /** Amount */
+            amount: string;
+        };
         /** TestEmailAccepted */
         TestEmailAccepted: {
             /**
@@ -13638,6 +14110,239 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadOrdersOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_api_v1_editions__edition_id__quotation_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_settings_api_v1_editions__edition_id__quotation_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_quotations_api_v1_exhibitor_leads__lead_id__quotations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_quotation_api_v1_exhibitor_leads__lead_id__quotations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuotationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_quotation_api_v1_exhibitor_leads__lead_id__quotations_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuotationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationPreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_quotation_api_v1_quotations__quotation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quotation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_quotation_api_v1_quotations__quotation_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quotation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuotationCancelIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
                 };
             };
             /** @description Validation Error */

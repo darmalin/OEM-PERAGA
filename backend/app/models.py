@@ -43,6 +43,7 @@ from app.modules.orders.models import (
     OrderFormItem,
     OrderFormOption,
 )
+from app.modules.quotations.models import ExhibitorQuotation, QuotationCounter, QuotationSettings
 from app.modules.registrations.models import (
     EmailTemplate,
     QrCredential,
@@ -91,6 +92,7 @@ __all__ = [
     "ExhibitorOrderFile",
     "ExhibitorOrderLine",
     "ExhibitorPayment",
+    "ExhibitorQuotation",
     "ExportJob",
     "FollowupReminder",
     "Gate",
@@ -108,6 +110,8 @@ __all__ = [
     "PasswordResetToken",
     "Permission",
     "QrCredential",
+    "QuotationCounter",
+    "QuotationSettings",
     "Role",
     "RolePermission",
     "RoundRobinCursor",

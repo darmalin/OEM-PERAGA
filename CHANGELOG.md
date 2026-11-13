@@ -16,6 +16,18 @@ Booth search and agreed price, Phase 1 of docs/EXHIBITOR_QUOTATIONS.md (migratio
 - **Contract**: Booth Price is editable while the contract is Draft; the lead follows it. A signed
   contract stays locked (Reopen Contract first).
 
+Quotations API, Phase 2 of docs/EXHIBITOR_QUOTATIONS.md (migration 0036). Screens follow in Phase 3.
+
+- **Quotation settings** per edition (`booth.manage`): quotation code and starting number, company code,
+  place, letter name and event line, rates per sqm by currency and stand type (raw space, shell
+  scheme), shell scheme inclusions, discount label, VAT (12% of an 11/12 base), payment terms, signer.
+- **Quotations** for a lead (`exhibitor_lead.update`, any stage but Lost): preview without taking a
+  number, then create. Numbers like `113/PNJS/IIT/VII/2026` run per code and year from the starting
+  number, shared by editions with the same code. The amounts follow the sales team's Excel sheet
+  (area minus complimentary space, discount as a share of the raw space cost, VAT for IDR, terms with
+  the rounding remainder in the last). A revision supersedes the quotation it replaces; an issued
+  quotation can be cancelled with a reason. Every quotation stays in the lead's history.
+
 Exhibitor order forms, Phases 1 to 7 of docs/EXHIBITOR_ORDER_FORMS.md. Staff set up the forms (menu
 Exhibitors → Order Forms, permission `order_form.manage`); exhibitors fill and send them in the portal;
 staff review them (menu Exhibitors → Orders, permission `exhibitor_order.review`).

@@ -14,6 +14,7 @@ from app.modules.identity import router as identity
 from app.modules.importexport import router as importexport
 from app.modules.mail import router as mail
 from app.modules.orders import router as orders
+from app.modules.quotations import router as quotations
 from app.modules.registrations import router as registrations
 from app.modules.reporting import router as reporting
 from app.modules.telemarketing import router as telemarketing
@@ -38,6 +39,7 @@ def build_api_router() -> APIRouter:
     router.include_router(orders.portal_router)
     router.include_router(orders.orders_router)
     router.include_router(orders.lead_orders_router)
+    router.include_router(quotations.router)
     router.include_router(registrations.router)
     router.include_router(mail.router)
     router.include_router(campaigns.router)
