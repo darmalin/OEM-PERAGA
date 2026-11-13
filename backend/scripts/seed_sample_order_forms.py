@@ -920,7 +920,11 @@ def seed(desk: Desk, edition_code: str, publish: bool, images: bool, dry_run: bo
     editions = desk.get("/editions", page_size=500)["items"]
     edition = next((e for e in editions if e["code"] == edition_code), None)
     if edition is None:
-        raise SystemExit(f"edition {edition_code} not found")
+        listed = "\n".join(
+            f"  {e['code']:<20} {e['name']} ({e['start_date']})"
+            for e in sorted(editions, key=lambda e: e["start_date"])
+        )
+        raise SystemExit(f"edition {edition_code} not found. Editions you can see:\n{listed}")
     due = deadlines(edition)
     existing = {f["code"]: f for f in desk.get("/order-forms", edition_id=edition["id"])["items"]}
 
