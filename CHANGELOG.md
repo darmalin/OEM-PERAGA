@@ -5,6 +5,13 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+Sample order forms from the old portal.
+
+- `backend/scripts/seed_sample_order_forms.py` loads the old portal's fourteen exhibitor forms into one
+  edition through the desk API: titles, notes, 72 catalog items with their old prices, choices
+  (contractors, forwarders, product categories), and free badges and parking passes by booth area.
+  Running it again adds only what is missing. See FEATURES/13-exhibitor-order-forms.md.
+
 Booth search and agreed price, Phase 1 of docs/EXHIBITOR_QUOTATIONS.md (migration 0035).
 
 - **Choose Booth**: a search box replaces the list of radio buttons. Type a booth code or hall to find

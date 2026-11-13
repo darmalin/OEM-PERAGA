@@ -64,6 +64,25 @@ extra items, a code-defined question set, attachments, or a mix.
 Migrations 0030 to 0034. Tests: `tests/test_order_*.py`. E2E: `make e2e-order-forms` (desk setup) and
 `make e2e-portal-orders` (portal and desk review, needs `make portal`).
 
+## Sample forms
+
+`backend/scripts/seed_sample_order_forms.py` fills an edition with the old portal's fourteen forms
+(titles, notes, 72 catalog items at the old prices, choices, free badges and parking passes), so the
+client sees familiar forms before the new price list arrives. It goes through the desk API as a staff
+user with `order_form.manage`; a form number already in the edition is kept and only its missing items
+are added. Deadlines: forms 01 to 03 four weeks before the show, the rest three weeks; check them in
+Settings afterwards. Form 10 (seminar) is priced in USD.
+
+```bash
+cd backend
+EMS_URL=http://localhost:8000 EMS_EMAIL=... EMS_PASSWORD=... \
+  uv run python -m scripts.seed_sample_order_forms --edition INATEX2027
+```
+
+For staging, run it from a laptop with `EMS_URL=https://<staging domain>` (the production image does not
+carry `scripts/`). `--dry-run` lists what would be added, `--draft` keeps new
+forms unpublished, `--images` also copies item pictures from the old portal (peragaexpo.com).
+
 ## Known gaps
 
 In `BACKEND_RULES/known-gaps.md` (B3, F9 to F11) and `FRONTEND_RULES/known-gaps.md` (W18 to W20). The
