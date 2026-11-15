@@ -8,18 +8,18 @@
   @font-face { font-family: "Inter"; src: url("fonts/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
 
   /* Same palette as the portal (frontend/apps/exhibitor/src/styles.css), so the guide and the
-     screens it shows read as one product. */
+     screens it shows read as one product: INATEX red, near-black text, light grey. */
   :root {
-    --page: #f4f5fb; --ink: #1b1c3d; --muted: #4a4d70; --label: #5b5e80; --line: #e1e3f0;
-    --primary: #2f318b; --primary-soft: #eceefb; --hero-muted: #c7c9ee;
-    --accent: #e62129; --accent-ink: #c4161f; --accent-soft: #fdecec;
-    --green: #17663b; --green-bg: #e3f4e9; --amber: #7a4f00; --amber-bg: #fff2d6; --blue-bg: #eceefb; --gray-bg: #eef0f6;
+    --page: #f9fafb; --ink: #181818; --muted: #4b5563; --label: #6b7280; --line: #e5e7eb;
+    --primary: #b80f0a; --primary-soft: #fee2e2; --hero-muted: #fde2e1;
+    --accent: #b80f0a; --accent-ink: #b80f0a; --accent-soft: #fee2e2;
+    --green: #15803d; --green-bg: #dcfce7; --amber: #9a3412; --amber-bg: #ffedd5; --blue: #1d4ed8; --blue-bg: #dbeafe; --gray-bg: #f3f4f6;
   }
   @page { size: A4; margin: 16mm 16mm 18mm; }
   @page :first { margin: 0; }
   * { box-sizing: border-box; }
   html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { margin: 0; font-family: "Inter", sans-serif; font-size: 10.5pt; line-height: 1.55; color: var(--ink); }
+  body { margin: 0; font-family: "Jakarta", sans-serif; font-size: 10.5pt; line-height: 1.55; color: var(--ink); }
   h1, h2, h3 { font-family: "Jakarta", sans-serif; margin: 0; line-height: 1.2; }
   p { margin: 0 0 8px; }
   b, strong { font-weight: 650; }
@@ -61,12 +61,12 @@
   .ui { display: inline-block; font-weight: 650; color: var(--primary); background: var(--primary-soft); border-radius: 6px; padding: 0 6px; font-size: 9.5pt; line-height: 1.6; white-space: nowrap; }
   .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 9px; font-size: 9pt; font-weight: 650; white-space: nowrap; }
   .chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-  .c-gray { background: var(--gray-bg); color: var(--muted); } .c-blue { background: var(--blue-bg); color: var(--primary); }
+  .c-gray { background: var(--gray-bg); color: var(--muted); } .c-blue { background: var(--blue-bg); color: var(--blue); }
   .c-green { background: var(--green-bg); color: var(--green); } .c-amber { background: var(--amber-bg); color: var(--amber); }
   .c-red { background: var(--accent-soft); color: var(--accent-ink); }
 
   figure { margin: 10px 0 14px; break-inside: avoid; }
-  figure img { display: block; max-width: 100%; max-height: 92mm; margin: 0 auto; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 10px rgba(47,49,139,0.08); }
+  figure img { display: block; max-width: 100%; max-height: 92mm; margin: 0 auto; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
   figure.narrow img { max-height: 80mm; }
   figcaption { font-size: 9pt; color: var(--label); margin-top: 6px; text-align: center; }
     .phones { display: flex; gap: 22px; justify-content: center; }
@@ -132,7 +132,7 @@
   <h3>Isi panduan</h3>
   <div class="toc">
     <div><i>1</i><p><b>Masuk ke portal</b><span>Membuat password dari email undangan, lalu masuk setiap kali</span></p></div>
-    <div><i>2</i><p><b>Halaman pameran dan checklist</b><span>Tiga langkah yang perlu Anda selesaikan</span></p></div>
+    <div><i>2</i><p><b>Halaman pameran (Home)</b><span>Menu, ringkasan pameran, dan langkah berikutnya</span></p></div>
     <div><i>3</i><p><b>Tanda tangan kontrak</b><span>Isi data PIC dan unggah kontrak yang sudah ditandatangani</span></p></div>
     <div><i>4</i><p><b>Pembayaran booth</b><span>Membaca total, yang sudah dibayar, dan sisa tagihan</span></p></div>
     <div><i>5</i><p><b>Order Forms: memesan layanan booth</b><span>Memilih barang, item tambahan, lampiran, simpan dan kirim</span></p></div>
@@ -163,17 +163,23 @@
   <div class="note tip"><b class="t">Lupa password atau tautan sudah kedaluwarsa?</b>Hubungi sales PERAGA Expo. Mereka akan mengirim tautan baru untuk membuat password.</div>
 
   <h3>My Exhibitions</h3>
-  <p>Setelah masuk, Anda melihat semua pameran yang Anda ikuti. Setiap kartu menunjukkan tanggal pameran, hitung mundur (<b>Starts in 40 days</b>), nomor booth Anda, serta status kontrak dan pembayaran booth. Klik <span class="ui">Open exhibition</span> untuk membuka pameran.</p>
+  <p>Setelah masuk, Anda melihat semua pameran yang Anda ikuti. Setiap kartu menunjukkan logo dan tanggal pameran, hitung mundur (<b>Starts in 40 days</b>), nomor booth Anda, dan status kontrak. Klik kartu untuk membuka pameran.</p>
   <figure><img src="img/02-home.png" alt="" /><figcaption>Daftar pameran Anda</figcaption></figure>
 </section>
 
 <!-- ============================== 2. EXHIBITION ============================== -->
 <section class="chapter">
-  <div class="chapter-head"><div class="num">2</div><div><h2>Halaman pameran dan checklist</h2><p>Satu halaman untuk kontrak, pembayaran, dan order form.</p></div></div>
-  <p>Di bagian atas ada nama pameran, tanggal, dan nomor booth Anda. Di bawahnya ada <b>checklist tiga langkah</b>. Langkah yang perlu dikerjakan sekarang diberi bingkai biru dan tulisan merah <b>Next step</b>.</p>
-  <figure><img src="img/03-exhibition.png" alt="" /><figcaption>Halaman pameran sebelum kontrak ditandatangani</figcaption></figure>
-  <p>Klik salah satu langkah untuk langsung menuju bagiannya. Langkah yang selesai diberi tanda centang hijau.</p>
-  <figure><img src="img/06-checklist.png" alt="" /><figcaption>Checklist setelah kontrak ditandatangani: langkah berikutnya adalah membayar booth</figcaption></figure>
+  <div class="chapter-head"><div class="num">2</div><div><h2>Halaman pameran (Home)</h2><p>Ringkasan pameran Anda dan menu ke semua bagian portal.</p></div></div>
+  <p>Portal memakai warna dan logo pameran Anda, misalnya merah untuk INATEX dan hijau untuk Indo Intertex. Di bagian atas ada menu:</p>
+  <ul class="dots">
+    <li><span class="ui">Home</span>: halaman ini.</li>
+    <li><span class="ui">Contract &amp; Payments</span>: tanda tangan kontrak dan pembayaran booth (bab 3 dan 4).</li>
+    <li><span class="ui">Order Forms</span>: memesan layanan booth (bab 5).</li>
+    <li>Ikon orang di kanan atas: email akun Anda dan tombol <span class="ui">Sign Out</span> untuk keluar.</li>
+  </ul>
+  <p>Di Home ada banner pameran, kotak <b>Welcome</b> dengan nomor booth dan langkah berikutnya (<b style="color: var(--accent-ink)">Next step</b>), tautan ke <b>Contract</b> dan <b>Booth Payments</b> beserta statusnya, kotak <b>Order Forms</b> (berapa form yang belum diisi, sedang diisi, dan sudah dikirim), serta tanggal pameran.</p>
+  <figure><img src="img/03-exhibition.png" alt="" /><figcaption>Home sebelum kontrak ditandatangani</figcaption></figure>
+  <figure><img src="img/06-checklist.png" alt="" /><figcaption>Home setelah kontrak ditandatangani dan sebagian dibayar</figcaption></figure>
   <div class="note tip"><b class="t">Boleh langsung pesan layanan?</b>Boleh. Anda bisa mengisi dan mengirim order form kapan saja. Namun pesanan yang berbayar baru disetujui setelah kontrak booth ditandatangani.</div>
 </section>
 
@@ -181,6 +187,7 @@
 <section class="chapter">
   <div class="chapter-head"><div class="num">3</div><div><h2>Tanda tangan kontrak</h2><p>Dua bagian: data kontrak, lalu kontrak yang sudah ditandatangani.</p></div></div>
 
+  <p>Klik menu <span class="ui">Contract &amp; Payments</span>, atau tautan <b>Contract</b> di Home.</p>
   <h3>Bagian 1: Contract Details</h3>
   <ol class="steps">
     <li>Isi <span class="ui">PIC Name</span>, yaitu nama orang yang menandatangani kontrak untuk perusahaan Anda.</li>
@@ -222,16 +229,16 @@
   <div class="chapter-head"><div class="num">5</div><div><h2>Order Forms: memesan layanan booth</h2><p>Listrik, furnitur, internet, badge, parkir, dan lainnya.</p></div></div>
 
   <h3>Daftar form</h3>
-  <p>Di halaman pameran, klik <span class="ui">Open Order Forms</span>. Setiap kartu adalah satu form dengan tenggat (deadline) dan statusnya. Tenggat yang tinggal 7 hari atau kurang ditulis <b style="color: var(--accent-ink)">merah</b>.</p>
+  <p>Klik menu <span class="ui">Order Forms</span>. Setiap baris adalah satu form dengan tanggal tenggat (<b>Deadline Date</b>), sisa waktu (<b>Time Left</b>), dan statusnya.</p>
   <ul class="dots">
-    <li>Bilah <b>Your forms</b> menunjukkan berapa form yang sudah selesai.</li>
-    <li>Pakai tombol <span class="ui">All Forms</span> <span class="ui">Not Filled</span> <span class="ui">In Progress</span> <span class="ui">Sent</span> untuk menyaring daftar.</li>
-    <li>Klik kartu untuk membuka form.</li>
+    <li>Bilah di kanan atas (misalnya <b>2 / 4</b>) menunjukkan berapa form yang sudah selesai.</li>
+    <li>Cari form dengan kolom pencarian, atau saring dengan <span class="ui">All Forms</span> <span class="ui">Not Filled</span> <span class="ui">In Progress</span> <span class="ui">Sent</span>.</li>
+    <li>Klik <span class="ui">Start Form</span>, <span class="ui">Continue Form</span>, atau <span class="ui">View Form</span> untuk membuka form. Tombol di kanan pencarian mengganti tampilan daftar dan kartu.</li>
   </ul>
-  <figure><img src="img/08-forms-list.png" alt="" /><figcaption>Daftar Order Forms. Form 11 tenggatnya tinggal 5 hari, jadi ditulis merah.</figcaption></figure>
+  <figure><img src="img/08-forms-list.png" alt="" /><figcaption>Daftar Order Forms</figcaption></figure>
 
   <h3>Bagian atas form</h3>
-  <p>Di atas form ada nama form, status, dan tenggatnya. Baca juga kotak <b>Notes</b>: isinya ketentuan dari panitia, misalnya soal pemasangan atau pembatalan.</p>
+  <p>Di atas form ada nama dan nomor form serta statusnya. Kotak merah di kanan atas menunjukkan tanggal tenggat dan sisa waktunya. Di sebelah kiri ada daftar semua form: klik untuk pindah form, dan tanda centang hijau berarti form itu sudah selesai. Baca juga kotak <b>Notes</b>: isinya ketentuan dari panitia, misalnya soal pemasangan atau pembatalan.</p>
   <figure><img src="img/09-form-top-crop.png" alt="" /><figcaption>Form 04 Electrical Fittings &amp; Supplies</figcaption></figure>
 </section>
 
@@ -314,7 +321,7 @@
 <!-- ============================== 8. PHONE ============================== -->
 <section style="margin-top: 22px">
   <div class="chapter-head"><div class="num">8</div><div><h2>Memakai portal di HP</h2><p>Semua langkah bisa dilakukan dari HP.</p></div></div>
-  <p>Buka alamat portal yang sama di browser HP. Tampilan menyesuaikan layar: kartu form tersusun ke bawah, dan setiap barang tampil dengan kolom jumlah yang mudah diisi. Tombol <span class="ui">Save Draft</span> dan <span class="ui">Review and Send</span> tetap menempel di bawah layar.</p>
+  <p>Buka alamat portal yang sama di browser HP. Tampilan menyesuaikan layar: menu ada di tombol ☰ di kanan atas, form tampil sebagai kartu yang tersusun ke bawah, dan setiap barang tampil dengan kolom jumlah yang mudah diisi. Tombol <span class="ui">Save Draft</span> dan <span class="ui">Review and Send</span> tetap menempel di bawah layar.</p>
   <div class="phones">
     <figure><img src="img/21-phone-forms.png" alt="" /><figcaption>Daftar form di HP</figcaption></figure>
     <figure><img src="img/22-phone-form.png" alt="" /><figcaption>Mengisi form di HP</figcaption></figure>

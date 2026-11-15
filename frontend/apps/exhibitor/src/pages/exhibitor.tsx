@@ -1,17 +1,17 @@
 import { api, ApiError, call, downloadFile, type Schemas, upload } from "@ems/api";
-import { Check, ChevronLeft, Download, FileUp } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { CalendarDays, ChevronRight, CircleCheck, Download, FileUp, House, NotebookPen, ClipboardList } from "lucide-react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 
-import { date, type ExhibitorRecord, href, label, messageOf, money, navigate, showCountdown } from "../lib";
-import { BoothTag, Button, Facts, Field, Input, Notice, Panel, Progress, Status, Textarea } from "../ui";
+import { brandOf, date, dayParts, type ExhibitorRecord, formCounts, href, label, messageOf, money, navigate, showCountdown } from "../lib";
+import { Button, Facts, Field, Input, Notice, PageBody, PageHead, Panel, Progress, Status, Textarea } from "../ui";
 
 type Contract = Schemas["ContractOut"];
 type Payments = Schemas["PortalPaymentsOut"];
 type Forms = Schemas["PortalOrderFormsOut"];
 type Loaded = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; contract: Contract; payments: Payments; forms: Forms | null };
 
-export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord; onSignedOut: () => void }) {
-  const id = record.exhibitor_lead_id;
+/** Contract, payments, and order forms of one exhibitor, with a 401 handing the session back. */
+function useExhibitor(id: string, onSignedOut: () => void) {
   const [state, setState] = useState<Loaded>({ kind: "loading" });
   // Confirmation of the last change; the contract panel remounts with the new version.
   const [flash, setFlash] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
       Promise.all([
         call(api.GET("/api/v1/portal/exhibitors/{lead_id}/contract", path)),
         call(api.GET("/api/v1/portal/exhibitors/{lead_id}/payments", path)),
-        // The checklist still shows without the order forms if they fail to load.
+        // The home still shows without the order forms if they fail to load.
         call(api.GET("/api/v1/portal/exhibitors/{lead_id}/order-forms", path)).catch(() => null),
       ])
         .then(([contract, payments, forms]) => {
@@ -45,45 +45,172 @@ export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord
   );
 
   useEffect(() => load(), [load]);
+  return { state, flash, load, failed };
+}
 
+function link(to: string) {
+  return { href: href(to), onClick: (e: { preventDefault: () => void }) => { e.preventDefault(); navigate(to); } };
+}
+
+/**
+ * The exhibition home, laid out as the old manual's: the show banner, a welcome with the next
+ * step, links to the contract and payments, the order forms at a glance, and the show date.
+ */
+export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord; onSignedOut: () => void }) {
+  const id = record.exhibitor_lead_id;
+  const { state, load } = useExhibitor(id, onSignedOut);
+  const brand = brandOf(record);
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <a href={href("/")} onClick={(e) => { e.preventDefault(); navigate("/"); }} className="mb-3 inline-flex items-center gap-1 rounded-[6px] text-[14px] font-semibold text-primary hover:underline">
-          <ChevronLeft className="size-4" aria-hidden />My Exhibitions
-        </a>
-        <Hero record={record} />
-      </div>
+    <PageBody>
+      {brand.banner ? (
+        <img src={brand.banner} alt={`${record.edition_name}, ${date(record.edition_start_date)} to ${date(record.edition_end_date)}`} width={1024} height={100}
+          className="aspect-[1024/100] w-full rounded-[12px] object-cover max-sm:aspect-[1024/180] max-sm:object-left" />
+      ) : (
+        <div className="flex flex-wrap items-end justify-between gap-3 rounded-[12px] bg-primary px-7 py-6 text-on-primary max-sm:px-5">
+          <p className="text-[26px] leading-tight font-extrabold max-sm:text-[22px]">{record.edition_name}</p>
+          <p className="text-[15px] font-semibold">{date(record.edition_start_date)} to {date(record.edition_end_date)}{record.venue_name ? ` · ${record.venue_name}` : ""}</p>
+        </div>
+      )}
       {state.kind === "loading" ? (
         <p role="status" className="py-10 text-center text-label">Loading</p>
       ) : state.kind === "error" ? (
         <div className="flex flex-col items-start gap-3"><Notice>{state.message}</Notice><Button onClick={() => load()}>Retry</Button></div>
       ) : (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,3.5fr)_minmax(150px,1.2fr)]">
+          <div className="flex flex-col gap-6">
+            <Welcome record={record} contract={state.contract} payments={state.payments} forms={state.forms} />
+            <section aria-label="Contract and payments" className="flex flex-col gap-6 rounded-[12px] border border-line bg-bg px-6 py-6 max-sm:px-4">
+              <HomeLink to={`/e/${id}/contract`} title="Contract" aside={<Status value={state.contract.status} />}>
+                {state.contract.status === "SIGNED"
+                  ? `Contract ${state.contract.contract_number ?? ""} is signed. Download your copy or see the terms of payment.`
+                  : "Fill in who signs for your company, then upload the signed contract as a PDF."}
+              </HomeLink>
+              <HomeLink to={`/e/${id}/contract#payments`} title="Booth Payments" aside={state.contract.status === "SIGNED" ? <Status value={state.payments.payment_state} /> : null}>
+                {state.contract.status === "SIGNED"
+                  ? `${money(state.payments.outstanding_amount, state.payments.currency)} still to pay of ${money(state.payments.total_amount, state.payments.currency)}.`
+                  : "Your payments show here once the contract is signed."}
+              </HomeLink>
+            </section>
+          </div>
+          <FormsCard leadId={id} forms={state.forms} />
+          <ShowDate record={record} />
+        </div>
+      )}
+    </PageBody>
+  );
+}
+
+function Welcome({ record, contract, payments, forms }: { record: ExhibitorRecord; contract: Contract; payments: Payments; forms: Forms | null }) {
+  const signed = contract.status === "SIGNED";
+  const counts = formCounts(forms?.forms ?? []);
+  const total = forms?.forms.length ?? 0;
+  const next = !signed
+    ? "Next step: sign your booth contract."
+    : payments.payment_state !== "PAID"
+      ? "Next step: pay your booth."
+      : total > counts.done
+        ? "Next step: fill in your order forms."
+        : "You are all set. See you at the show!";
+  return (
+    <section className="rounded-[12px] border border-line bg-bg px-6 py-6 max-sm:px-4">
+      <House className="size-6 text-ink" aria-hidden />
+      <h1 className="mt-3 text-[20px] font-bold text-ink">Welcome, {record.company_name}</h1>
+      <p className="mt-2 text-[15px] text-muted">Booth: <span className="font-semibold text-ink">{record.booth_code ?? "not assigned yet"}</span></p>
+      <p className="mt-3 text-[14px] text-label">We made every effort to keep your pre-show work simple. This manual guides you through your contract, payments, and the services for your booth.</p>
+      <p className="mt-3 text-[14px] font-semibold text-primary">{next}</p>
+    </section>
+  );
+}
+
+function HomeLink({ to, title, aside, children }: { to: string; title: string; aside?: ReactNode; children: ReactNode }) {
+  return (
+    <a {...link(to)} className="group flex flex-col gap-2 rounded-[8px]">
+      <span className="flex items-center justify-between gap-3">
+        <span className="flex flex-wrap items-center gap-3">
+          <span className="text-[19px] font-bold text-primary group-hover:underline">{title}</span>
+          {aside}
+        </span>
+        <ChevronRight className="size-5 shrink-0 text-ink" aria-hidden />
+      </span>
+      <span className="text-[15px] text-muted">{children}</span>
+    </a>
+  );
+}
+
+/** The old home's Order Forms card: progress, then how many are not filled, in progress, sent. */
+function FormsCard({ leadId, forms }: { leadId: string; forms: Forms | null }) {
+  const list = forms?.forms ?? [];
+  const counts = formCounts(list);
+  const rows: [string, number, ReactNode, string][] = [
+    ["Not Filled", counts.notFilled, <ClipboardList key="n" className="size-4" aria-hidden />, "var(--red-fg)"],
+    ["In Progress", counts.inProgress, <NotebookPen key="p" className="size-4" aria-hidden />, "#c2410c"],
+    ["Sent", counts.sent, <CircleCheck key="s" className="size-4" aria-hidden />, "var(--green-fg)"],
+  ];
+  return (
+    <section className="rounded-[12px] border border-line bg-bg px-6 py-6 max-sm:px-4">
+      <a {...link(`/e/${leadId}/forms`)} className="group flex items-center justify-between gap-3 rounded-[8px]">
+        <h2 className="text-[19px] font-bold text-primary group-hover:underline">Order Forms</h2>
+        <ChevronRight className="size-5 text-ink" aria-hidden />
+      </a>
+      {list.length === 0 ? (
+        <p className="mt-4 text-[14px] text-muted">The organizer has not published any order forms yet.</p>
+      ) : (
         <>
-          <Checklist leadId={id} contract={state.contract} payments={state.payments} forms={state.forms} />
-          <ContractPanel
-            key={state.contract.version}
-            leadId={id}
-            contract={state.contract}
-            flash={flash}
-            onChange={load}
-            onError={failed}
-          />
-          <PaymentsPanel payments={state.payments} signed={state.contract.status === "SIGNED"} />
-          <Panel title="Order Forms" id="order-forms">
-            <div className="flex flex-col gap-4">
-              {state.forms && state.forms.forms.length ? (
-                <Progress done={doneForms(state.forms)} total={state.forms.forms.length} label="Forms done" />
-              ) : null}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-[15px] text-muted">Order electricity, furniture, internet, badges, and other services for your booth.</p>
-                <Button variant="primary" onClick={() => navigate(`/e/${id}/forms`)}>Open Order Forms</Button>
-              </div>
-            </div>
-          </Panel>
+          <div className="mt-4"><Progress done={counts.done} total={list.length} label="Order forms done" /></div>
+          <ul className="mt-4 divide-y divide-line">
+            {rows.map(([text, n, icon, color]) => (
+              <li key={text} className="flex items-center justify-between gap-3 py-3.5">
+                <span className="flex items-center gap-3 text-[15px]">
+                  <span className="flex size-7 items-center justify-center rounded-full text-white" style={{ background: color }}>{icon}</span>
+                  {text}
+                </span>
+                <span className="text-[16px] font-bold tabular-nums">{n}</span>
+              </li>
+            ))}
+          </ul>
         </>
       )}
-    </div>
+    </section>
+  );
+}
+
+function ShowDate({ record }: { record: ExhibitorRecord }) {
+  const start = dayParts(record.edition_start_date);
+  const when = showCountdown(record.edition_start_date, record.edition_end_date);
+  return (
+    <section aria-label="Show date" className="rounded-[12px] border border-line bg-bg px-5 py-6 text-center">
+      <p className="flex items-center justify-center gap-2 text-[14px] text-muted"><CalendarDays className="size-4" aria-hidden />Expo date</p>
+      <p className="mt-2 text-[22px] leading-none font-bold text-primary">{start.day}</p>
+      <p className="mt-1.5 text-[20px] font-semibold text-ink">{start.month}</p>
+      <p className="mt-4 border-t border-line pt-4 text-[14px] text-muted">{when.text}</p>
+    </section>
+  );
+}
+
+/** Contract and booth payments, on their own page as in the old manual's menu. */
+export function ContractPage({ record, onSignedOut }: { record: ExhibitorRecord; onSignedOut: () => void }) {
+  const id = record.exhibitor_lead_id;
+  const { state, flash, load, failed } = useExhibitor(id, onSignedOut);
+  // "#payments" from the home card: scroll once the panels are there.
+  useEffect(() => {
+    if (state.kind === "ready" && location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start" });
+  }, [state.kind]);
+  return (
+    <>
+      <PageHead title="Contract & Payments" subtitle={`${record.company_name} · Booth ${record.booth_code ?? "not assigned yet"} · ${record.edition_name}`} />
+      <PageBody className="max-w-[1080px]">
+        {state.kind === "loading" ? (
+          <p role="status" className="py-10 text-center text-label">Loading</p>
+        ) : state.kind === "error" ? (
+          <div className="flex flex-col items-start gap-3"><Notice>{state.message}</Notice><Button onClick={() => load()}>Retry</Button></div>
+        ) : (
+          <>
+            <ContractPanel key={state.contract.version} leadId={id} contract={state.contract} flash={flash} onChange={load} onError={failed} />
+            <PaymentsPanel payments={state.payments} signed={state.contract.status === "SIGNED"} />
+          </>
+        )}
+      </PageBody>
+    </>
   );
 }
 
@@ -280,99 +407,5 @@ function PaymentsPanel({ payments: p, signed }: { payments: Payments; signed: bo
         </>
       )}
     </Panel>
-  );
-}
-
-function doneForms(forms: Forms): number {
-  return forms.forms.filter((f) => f.progress === "SUBMITTED" || f.progress === "APPROVED" || f.progress === "NOT_REQUIRED").length;
-}
-
-/** The exhibition at a glance: which show, when, and the booth (the identity motif). */
-function Hero({ record }: { record: ExhibitorRecord }) {
-  const when = showCountdown(record.edition_start_date, record.edition_end_date);
-  return (
-    <div className="flex items-start justify-between gap-5 rounded-[20px] bg-primary px-7 py-7 text-on-primary max-sm:px-5 max-sm:py-5">
-      <div className="min-w-0">
-        <p className="text-[14px] font-semibold text-hero-muted">{record.company_name}</p>
-        <h1 className="mt-1 text-[30px] leading-tight font-extrabold max-sm:text-[24px]">{record.edition_name}</h1>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[14px]">
-          <span className="font-semibold">{date(record.edition_start_date)} to {date(record.edition_end_date)}</span>
-          <span className={when.live ? "rounded-full bg-accent px-3 py-1 text-[13px] font-bold" : "rounded-full bg-bg/15 px-3 py-1 text-[13px] font-semibold"}>{when.text}</span>
-        </div>
-      </div>
-      <BoothTag code={record.booth_code} inverse />
-    </div>
-  );
-}
-
-type Step = { n: number; title: string; status: string; done: boolean; note: string; to: () => void };
-
-/**
- * What the exhibitor has to do, in the real order: sign the contract, pay the booth, then order
- * services. Each step reads its own status; the next open step is the one highlighted.
- */
-function Checklist({ leadId, contract, payments, forms }: { leadId: string; contract: Contract; payments: Payments; forms: Forms | null }) {
-  const signed = contract.status === "SIGNED";
-  const paid = signed && payments.payment_state === "PAID";
-  const total = forms?.forms.length ?? 0;
-  const done = forms ? doneForms(forms) : 0;
-  const jump = (id: string) => () => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  const steps: Step[] = [
-    { n: 1, title: "Sign the contract", status: signed ? "Signed" : "To do", done: signed, note: signed ? `Signed ${date(contract.signed_at)}` : "Fill in the details and upload the signed PDF", to: jump("contract") },
-    {
-      n: 2,
-      title: "Pay the booth",
-      status: paid ? "Paid" : signed ? label(payments.payment_state) : "After signing",
-      done: paid,
-      note: signed ? `${money(payments.outstanding_amount, payments.currency)} still due` : "Opens once the contract is signed",
-      to: jump("payments"),
-    },
-    {
-      n: 3,
-      title: "Order booth services",
-      status: total ? `${done} of ${total}` : "None yet",
-      done: total > 0 && done === total,
-      note: total ? "Power, furniture, internet, badges and more" : "The organizer has not published forms yet",
-      to: () => navigate(`/e/${leadId}/forms`),
-    },
-  ];
-  const next = steps.find((s) => !s.done)?.n;
-  return (
-    <section aria-label="Your checklist" className="grid gap-3 md:grid-cols-3">
-      {steps.map((s) => {
-        const current = s.n === next;
-        return (
-          <button
-            key={s.n}
-            type="button"
-            onClick={s.to}
-            className={
-              current
-                ? "flex flex-col gap-2 rounded-[16px] border-2 border-primary bg-bg px-5 py-4 text-left transition-colors hover:bg-primary-soft"
-                : "flex flex-col gap-2 rounded-[16px] border border-line bg-bg px-5 py-4 text-left transition-colors hover:border-primary/40"
-            }
-          >
-            <span className="flex items-center justify-between gap-3">
-              <span
-                className={
-                  s.done
-                    ? "flex size-8 items-center justify-center rounded-full bg-[var(--green-bg)] text-[var(--green-fg)]"
-                    : current
-                      ? "flex size-8 items-center justify-center rounded-full bg-primary font-display text-[15px] font-bold text-on-primary"
-                      : "flex size-8 items-center justify-center rounded-full bg-primary-soft font-display text-[15px] font-bold text-primary"
-                }
-              >
-                {s.done ? <Check className="size-[18px]" aria-label="Done" /> : s.n}
-              </span>
-              <span className={s.done ? "text-[13px] font-semibold text-[var(--green-fg)]" : current ? "text-[13px] font-bold text-accent-ink" : "text-[13px] font-semibold text-label"}>
-                {current ? "Next step" : s.status}
-              </span>
-            </span>
-            <span className="font-display text-[17px] font-bold text-ink">{s.title}</span>
-            <span className="text-[14px] text-muted">{s.note}</span>
-          </button>
-        );
-      })}
-    </section>
   );
 }

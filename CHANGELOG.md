@@ -5,6 +5,23 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+Exhibitor portal restyled after the old Online Exhibitor Manual (owner request 2026-11-15).
+
+- **Look**: white menu bar with the show's logo and Home, Contract & Payments, Order Forms (a menu
+  button on phones; the account menu holds Sign Out), page titles on a white band, white cards with
+  grey title bars, dark footer, Plus Jakarta Sans throughout. Sign In and Set Your Password show a
+  show-floor photo behind a frosted card with the INATEX and Indo Intertex logos.
+- **Colour per show**: INATEX red (also the default), Indo Intertex green, picked from the
+  exhibition's code or name. The portal's `/auth/me` now returns each exhibitor's
+  `exhibition_code`, `exhibition_name`, and `venue_name`.
+- **Home** of an exhibition: banner, welcome with the next step, contract and payment status, order
+  forms not filled / in progress / sent, and the show date. Contract and payments moved to their
+  own page (`/e/{id}/contract`).
+- **Order Forms**: a table (form, deadline, time left, status, Start / Continue / View Form) with
+  search, filters, and a list or grid view; cards on phones. A form page has the deadline tile, a
+  sidebar of every form, and catalog tables with a coloured head.
+- Exhibitor guide (PDF) rebuilt with the new screens.
+
 Sample order forms from the old portal.
 
 - `backend/scripts/seed_sample_order_forms.py` loads the old portal's fourteen exhibitor forms into one

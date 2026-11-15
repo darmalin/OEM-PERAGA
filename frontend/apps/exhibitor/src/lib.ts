@@ -44,17 +44,64 @@ export function exhibitorIdOf(route: string): string | null {
 
 export type ExhibitorRoute =
   | { page: "exhibitor"; id: string }
+  | { page: "contract"; id: string }
   | { page: "forms"; id: string }
   | { page: "form"; id: string; code: string }
   | { page: "review"; id: string; code: string };
 
-/** "/e/{id}", "/e/{id}/forms", "/e/{id}/forms/{code}", "/e/{id}/forms/{code}/review". */
+/** "/e/{id}", "/e/{id}/contract", "/e/{id}/forms", "/e/{id}/forms/{code}", "/e/{id}/forms/{code}/review". */
 export function exhibitorRouteOf(route: string): ExhibitorRoute | null {
-  const m = /^\/e\/([0-9a-f-]{36})(?:\/forms(?:\/([0-9]{2}[a-z]?)(\/review)?)?)?\/?$/.exec(route);
+  const m = /^\/e\/([0-9a-f-]{36})(?:\/(contract)|\/forms(?:\/([0-9]{2}[a-z]?)(\/review)?)?)?\/?$/.exec(route);
   if (!m?.[1]) return null;
-  const [, id, code, review] = m;
+  const [, id, contract, code, review] = m;
+  if (contract) return { page: "contract", id };
   if (code) return review ? { page: "review", id, code } : { page: "form", id, code };
   return route.replace(/\/$/, "").endsWith("/forms") ? { page: "forms", id } : { page: "exhibitor", id };
+}
+
+export type Theme = "peraga" | "inatex" | "indo-intertex";
+
+export interface Brand {
+  theme: Theme;
+  /** The show's logo in the header; PERAGA Expo's when the show has none. */
+  logo: { src: string; alt: string; width: number; height: number };
+  /** Wide banner on the exhibition home, when the show has one. */
+  banner: string | null;
+}
+
+const ASSET = `${import.meta.env.BASE_URL}brand/`;
+const PERAGA_LOGO = { src: `${import.meta.env.BASE_URL}peraga-expo-logo.png`, alt: "PERAGA Expo", width: 165, height: 29 };
+
+/**
+ * Each show keeps its own colour and logo, as in the old exhibitor manual: INATEX red, Indo Intertex
+ * green. Matched on the exhibition's code or name, so a new edition of the same show needs no setup.
+ */
+export function brandOf(record: Pick<ExhibitorRecord, "exhibition_code" | "exhibition_name"> | null | undefined): Brand {
+  const key = `${record?.exhibition_code ?? ""} ${record?.exhibition_name ?? ""}`.toLowerCase();
+  if (/inatex/.test(key)) {
+    return { theme: "inatex", logo: { src: `${ASSET}inatex-logo.png`, alt: "INATEX", width: 122, height: 32 }, banner: `${ASSET}inatex-banner.jpg` };
+  }
+  if (/intertex|\biit\b/.test(key)) {
+    return { theme: "indo-intertex", logo: { src: `${ASSET}indo-intertex-logo.png`, alt: "Indo Intertex", width: 125, height: 32 }, banner: null };
+  }
+  return { theme: "peraga", logo: PERAGA_LOGO, banner: null };
+}
+
+/** Counts of the order forms by where the exhibitor stands, for the home card and the list. */
+export function formCounts(forms: { progress: string }[]): { notFilled: number; inProgress: number; sent: number; done: number } {
+  const count = (...values: string[]) => forms.filter((f) => values.includes(f.progress)).length;
+  return {
+    notFilled: count("NOT_STARTED"),
+    inProgress: count("IN_PROGRESS"),
+    sent: count("SUBMITTED", "APPROVED"),
+    done: count("SUBMITTED", "APPROVED", "NOT_REQUIRED"),
+  };
+}
+
+/** "15 APR" style parts of a calendar date, for the date tiles. */
+export function dayParts(value: string): { day: string; month: string } {
+  const d = new Date(`${value}T00:00:00`);
+  return { day: String(d.getDate()), month: d.toLocaleString("en", { month: "short" }).toUpperCase() };
 }
 
 const LABELS: Record<string, string> = {
@@ -116,6 +163,12 @@ export function date(value: string | null | undefined): string {
   const d = new Date(value.length === 10 ? `${value}T00:00:00` : value);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+}
+
+/** "23 September 2026", as the old manual writes deadlines. Calendar days. */
+export function longDate(value: string | null | undefined): string {
+  if (!value) return "";
+  return new Date(`${value}T00:00:00`).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 }
 
 /** Message for a failed call; field errors are shown under their fields instead. */

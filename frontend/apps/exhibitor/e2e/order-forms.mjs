@@ -103,10 +103,10 @@ try {
   await portal.getByLabel("New Password", { exact: false }).first().fill("e2e-portal-Password-1");
   await portal.getByLabel("Confirm Password", { exact: false }).fill("e2e-portal-Password-1");
   await portal.getByRole("button", { name: /Set Password/ }).click();
-  await portal.getByText(edition.code).first().click();
-  await portal.getByRole("button", { name: "Open Order Forms" }).click();
-  await portal.getByRole("heading", { name: "Order Forms" }).waitFor();
-  await portal.getByText("0 of 2 done").waitFor();
+  await portal.getByRole("main").getByRole("link").first().click();
+  await portal.getByRole("link", { name: "Order Forms" }).first().click();
+  await portal.getByRole("heading", { name: "Order Forms", level: 1 }).waitFor();
+  await portal.getByText("0 / 2").first().waitFor();
   await shot("01-forms");
   check(true, "Order Forms list opens from the exhibition page");
 
@@ -245,7 +245,7 @@ try {
   check(true, "portal: the exhibitor sees the order approved and paid");
 
   await portal.getByRole("link", { name: "Order Forms" }).first().click();
-  await portal.getByText("2 of 2 done").waitFor();
+  await portal.getByText("2 / 2").first().waitFor();
   await portal.setViewportSize({ width: 390, height: 844 });
   await shot("05-forms-mobile");
   check(

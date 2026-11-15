@@ -1,9 +1,10 @@
 import { api, ApiError, call, downloadFile, type Schemas, upload } from "@ems/api";
-import { Armchair, BookOpen, CalendarClock, Car, ChevronLeft, ChevronRight, ClipboardList, Download, Droplets, Factory, Hammer, IdCard, ImageUp, type LucideIcon, Megaphone, Plug, Plus, Presentation, Send, Share2, Trash2, Truck, Wifi, Wind } from "lucide-react";
+import { cn } from "@ems/ui/cn";
+import { Armchair, BookOpen, CalendarClock, Car, Check, ChevronLeft, ChevronRight, ClipboardList, Download, Droplets, Eye, Factory, Hammer, IdCard, ImageUp, LayoutGrid, List, type LucideIcon, Megaphone, Plug, Plus, Presentation, Search, Send, Share2, Trash2, Truck, Wifi, Wind } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { date, daysUntil, type ExhibitorRecord, href, label, messageOf, money, navigate, timeLeft } from "../lib";
-import { Button, Facts, Field, Input, Notice, Panel, Progress, Status, Textarea } from "../ui";
+import { date, dayParts, daysUntil, type ExhibitorRecord, formCounts, href, label, longDate, messageOf, money, navigate, timeLeft } from "../lib";
+import { Band, Button, Field, Input, Notice, PageBody, PageHead, Panel, Progress, ReadonlyRows, Status, Textarea } from "../ui";
 import { type Answers, answerRows, cleanAnswers, DETAILS_TITLES, type DetailsType, Questions } from "./questions";
 
 type FormsList = Schemas["PortalOrderFormsOut"];
@@ -117,11 +118,43 @@ const FILTERS = [
 ] as const;
 type Filter = (typeof FILTERS)[number][0];
 
-function matches(f: FormRow, filter: Filter): boolean {
+function matches(f: FormRow, filter: Filter, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (q && !`${f.code} ${f.title}`.toLowerCase().includes(q)) return false;
   if (filter === "todo") return f.progress === "NOT_STARTED";
   if (filter === "progress") return f.progress === "IN_PROGRESS";
   if (filter === "sent") return f.progress === "SUBMITTED" || f.progress === "APPROVED";
   return true;
+}
+
+// Solid status pills, as the old list ("Not Filled" in red). White text on each: 4.8:1 or more.
+const PROGRESS_PILL: Record<string, string> = {
+  NOT_STARTED: "#dc2626",
+  IN_PROGRESS: "#c2410c",
+  SUBMITTED: "#1d4ed8",
+  APPROVED: "#15803d",
+  NOT_REQUIRED: "#4b5563",
+};
+
+function ProgressPill({ value }: { value: string }) {
+  return (
+    <span className="inline-flex h-6 items-center rounded-full px-2.5 text-[12px] font-bold whitespace-nowrap text-white" style={{ background: PROGRESS_PILL[value] ?? "#4b5563" }}>
+      {label(value)}
+    </span>
+  );
+}
+
+function actionOf(progress: string): string {
+  return progress === "NOT_STARTED" ? "Start Form" : progress === "IN_PROGRESS" ? "Continue Form" : "View Form";
+}
+
+/** The form number in a small grey disc, as the old list and sidebar. */
+function FormNo({ code, active }: { code: string; active?: boolean }) {
+  return (
+    <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white", active ? "bg-primary" : "bg-[#9ca3af]")}>
+      {code.replace(/^0/, "")}
+    </span>
+  );
 }
 
 export function OrderFormsPage({ record, onSignedOut }: { record: ExhibitorRecord; onSignedOut: () => void }) {
@@ -129,71 +162,113 @@ export function OrderFormsPage({ record, onSignedOut }: { record: ExhibitorRecor
   const fetcher = useCallback(() => call(api.GET("/api/v1/portal/exhibitors/{lead_id}/order-forms", { params: { path: { lead_id: id } } })), [id]);
   const [state, reload] = useLoad<FormsList>(fetcher, onSignedOut);
   const [filter, setFilter] = useState<Filter>("all");
+  const [query, setQuery] = useState("");
+  const [view, setView] = useState<"list" | "grid">("list");
+  const forms = state.kind === "ready" ? state.data.forms : [];
+  const counts = formCounts(forms);
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <Back to={`/e/${id}`}>{record.edition_name}</Back>
-        <h1 className="text-[30px] leading-tight font-extrabold text-ink max-sm:text-[26px]">Order Forms</h1>
-        <p className="mt-1 text-[15px] text-muted">Services for booth {record.booth_code ?? ""}: electricity, furniture, internet, badges, and more. Open a form, fill it in, and send it before its deadline.</p>
-      </div>
-      {state.kind === "loading" ? <Loading /> : state.kind === "error" ? <Failed message={state.message} onRetry={() => void reload()} /> : (
-        <>
-          {periodNotice(state.data.price_period)}
-          <FormsPanel forms={state.data.forms} leadId={id} filter={filter} onFilter={setFilter} />
-        </>
-      )}
-    </div>
+    <>
+      <PageHead
+        title="Order Forms"
+        subtitle={`Order forms and task checklist for your booth ${record.booth_code ?? ""} setup. Fill each form and send it before its deadline.`}
+        aside={forms.length ? <div className="w-[260px] max-sm:w-full"><Progress done={counts.done} total={forms.length} label="Order forms done" /></div> : null}
+      />
+      <PageBody>
+        {state.kind === "loading" ? <Loading /> : state.kind === "error" ? <Failed message={state.message} onRetry={() => void reload()} /> : forms.length === 0 ? (
+          <Panel><p className="text-[15px] text-muted">The organizer has not published any order forms yet. They appear here once they are ready.</p></Panel>
+        ) : (
+          <>
+            {periodNotice(state.data.price_period)}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative min-w-[240px] flex-1">
+                <Search className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-label" aria-hidden />
+                <Input type="search" aria-label="Search forms" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search forms by title or number" className="pl-10" />
+              </div>
+              <div role="group" aria-label="Show" className="flex flex-wrap gap-2">
+                {FILTERS.map(([value, text]) => (
+                  <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}
+                    className={cn("h-11 rounded-[8px] border px-4 text-[14px] font-medium", filter === value ? "border-primary bg-primary text-on-primary" : "border-line-strong bg-bg text-ink hover:border-primary/50")}>
+                    {text}
+                  </button>
+                ))}
+              </div>
+              <div role="group" aria-label="Layout" className="flex overflow-hidden rounded-[8px] border border-line-strong max-md:hidden">
+                {([["list", List, "List view"], ["grid", LayoutGrid, "Grid view"]] as const).map(([v, Icon, text]) => (
+                  <button key={v} type="button" aria-pressed={view === v} aria-label={text} onClick={() => setView(v)}
+                    className={cn("flex size-11 items-center justify-center", view === v ? "bg-primary text-on-primary" : "bg-bg text-ink hover:text-primary")}>
+                    <Icon className="size-5" aria-hidden />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <FormsView forms={forms.filter((f) => matches(f, filter, query))} leadId={id} view={view} />
+          </>
+        )}
+      </PageBody>
+    </>
+  );
+}
+
+function FormsView({ forms, leadId, view }: { forms: FormRow[]; leadId: string; view: "list" | "grid" }) {
+  if (forms.length === 0) return <p className="rounded-[12px] border border-line bg-bg px-6 py-8 text-center text-[15px] text-muted">No forms match. Clear the search or choose another filter.</p>;
+  const open = (code: string) => `/e/${leadId}/forms/${code}`;
+  const go = (code: string) => (e: { preventDefault: () => void }) => { e.preventDefault(); navigate(open(code)); };
+  return (
+    <>
+      {view === "list" ? (
+        <div className="overflow-hidden rounded-[12px] border border-line bg-bg max-md:hidden">
+          <table className="w-full text-[14px]">
+            <caption className="sr-only">Order forms</caption>
+            <thead className="bg-secondary text-left text-white">
+              <tr>
+                {["Form Name", "Deadline Date", "Time Left", "Form Status", "Action"].map((h) => <th key={h} scope="col" className="px-4 py-3.5 font-semibold">{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {forms.map((f) => (
+                <tr key={f.code} className="border-t border-line hover:bg-hover">
+                  <td className="px-4 py-3"><span className="flex items-center gap-3"><FormNo code={f.code} /><span className="font-medium">{f.title}</span></span></td>
+                  <td className="px-4 py-3 text-muted">{f.deadline_on ? longDate(f.deadline_on) : "No deadline"}</td>
+                  <td className="px-4 py-3 text-muted">{f.is_closed ? "Closed" : timeLeft(f.deadline_on) || "Open"}</td>
+                  <td className="px-4 py-3"><ProgressPill value={f.progress} /></td>
+                  <td className="px-4 py-3">
+                    <a href={href(open(f.code))} onClick={go(f.code)} className="inline-flex items-center gap-2 rounded-[6px] font-medium text-ink hover:text-primary hover:underline">
+                      <Eye className="size-4" aria-hidden />{actionOf(f.progress)}<span className="sr-only">: {f.title}</span>
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      {/* Cards: the grid view, and the list on phones where the table would not fit. */}
+      <ul className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-3", view === "list" && "md:hidden")}>
+        {forms.map((f) => {
+          const pending = !PROGRESS_DONE.has(f.progress);
+          return (
+            <li key={f.code}>
+              <a href={href(open(f.code))} onClick={go(f.code)} className="flex h-full flex-col gap-3 rounded-[12px] border border-line bg-bg px-5 py-4 transition-colors hover:border-line-strong">
+                <span className="flex items-start justify-between gap-3">
+                  <FormIcon code={f.code} />
+                  <ProgressPill value={f.progress} />
+                </span>
+                <span className="flex flex-col gap-1">
+                  <span className="text-[13px] font-semibold text-label">Form {f.code}</span>
+                  <span className="text-[16px] leading-snug font-bold text-ink">{f.title}</span>
+                </span>
+                <Deadline f={f} open={pending} />
+                <span className="mt-auto flex items-center gap-2 text-[14px] font-semibold text-primary"><Eye className="size-4" aria-hidden />{actionOf(f.progress)}</span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }
 
 const PROGRESS_DONE = new Set(["SUBMITTED", "APPROVED", "NOT_REQUIRED"]);
-
-function FormsPanel({ forms, leadId, filter, onFilter }: { forms: FormRow[]; leadId: string; filter: Filter; onFilter: (f: Filter) => void }) {
-  const done = forms.filter((f) => PROGRESS_DONE.has(f.progress)).length;
-  const shown = forms.filter((f) => matches(f, filter));
-  if (forms.length === 0) {
-    return <Panel><p className="text-[15px] text-muted">The organizer has not published any order forms yet. They appear here once they are ready.</p></Panel>;
-  }
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="rounded-[16px] border border-line bg-bg px-6 py-5 max-sm:px-4">
-        <Progress done={done} total={forms.length} label="Your forms" />
-        <div role="group" aria-label="Show" className="mt-4 flex flex-wrap gap-2">
-          {FILTERS.map(([value, text]) => (
-            <button key={value} type="button" aria-pressed={filter === value} onClick={() => onFilter(value)}
-              className={filter === value ? "h-9 rounded-full bg-primary px-4 text-[14px] font-semibold text-on-primary" : "h-9 rounded-full border border-line-strong bg-bg px-4 text-[14px] font-semibold text-primary hover:bg-primary-soft"}>
-              {text}
-            </button>
-          ))}
-        </div>
-      </div>
-      {shown.length === 0 ? <p className="rounded-[16px] border border-line bg-bg px-6 py-8 text-center text-[15px] text-muted">No forms here. Choose another filter above.</p> : (
-        <ul className="grid gap-3 md:grid-cols-2">
-          {shown.map((f) => {
-            const open = !PROGRESS_DONE.has(f.progress);
-            return (
-              <li key={f.code}>
-                <a href={href(`/e/${leadId}/forms/${f.code}`)} onClick={(e) => { e.preventDefault(); navigate(`/e/${leadId}/forms/${f.code}`); }}
-                  className="flex h-full items-start gap-4 rounded-[16px] border border-line bg-bg px-5 py-4 transition-colors hover:border-primary/40 hover:bg-primary-soft/40">
-                  <FormIcon code={f.code} />
-                  <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <span className="text-[13px] font-semibold text-label">Form {f.code}</span>
-                    <span className="font-display text-[16px] leading-snug font-bold text-ink">{f.title}</span>
-                    <Deadline f={f} open={open} />
-                  </span>
-                  <span className="flex shrink-0 flex-col items-end gap-2">
-                    <Status value={f.progress} />
-                    <ChevronRight className="size-5 text-label" aria-hidden />
-                  </span>
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 // --- form --------------------------------------------------------------------------------
 
@@ -231,18 +306,69 @@ export function OrderFormPage({ record, code, onSignedOut }: { record: Exhibitor
   const id = record.exhibitor_lead_id;
   const fetcher = useCallback(() => call(api.GET("/api/v1/portal/exhibitors/{lead_id}/order-forms/{code}", { params: { path: { lead_id: id, code } } })), [id, code]);
   const [state, reload] = useLoad<Detail>(fetcher, onSignedOut);
+  // The sidebar of every form; the page works without it if it fails to load.
+  const [forms, setForms] = useState<FormRow[]>([]);
+  useEffect(() => {
+    call(api.GET("/api/v1/portal/exhibitors/{lead_id}/order-forms", { params: { path: { lead_id: id } } }))
+      .then((r) => setForms(r.forms))
+      .catch(() => setForms([]));
+  }, [id, state]);
+  if (state.kind === "loading") return <PageBody><Loading /></PageBody>;
+  if (state.kind === "error") return <PageBody><Back to={`/e/${id}/forms`}>Order Forms</Back><Failed message={state.message} onRetry={() => void reload()} /></PageBody>;
   return (
-    <div className="flex flex-col gap-6">
-      {state.kind === "loading" ? <Loading /> : state.kind === "error" ? (
-        <><Back to={`/e/${id}/forms`}>Order Forms</Back><Failed message={state.message} onRetry={() => void reload()} /></>
-      ) : (
-        <FormEditor key={`${state.data.open_order?.id ?? "new"}-${state.data.open_order?.version ?? 0}-${state.data.sent_orders.length}-${String(state.data.not_required)}`} leadId={id} detail={state.data} onReload={reload} onSignedOut={onSignedOut} />
-      )}
+    <FormEditor key={`${state.data.open_order?.id ?? "new"}-${state.data.open_order?.version ?? 0}-${state.data.sent_orders.length}-${String(state.data.not_required)}`} leadId={id} detail={state.data} forms={forms} onReload={reload} onSignedOut={onSignedOut} />
+  );
+}
+
+/** Red deadline tile at the top right of a form, as the old manual's. */
+function DeadlineBadge({ f }: { f: { deadline_on?: string | null; is_closed: boolean; closes_on?: string | null } }) {
+  const when = f.is_closed ? f.closes_on : f.deadline_on;
+  if (!when) return null;
+  const { day, month } = dayParts(when);
+  return (
+    <div className="flex items-center gap-4 rounded-[10px] bg-primary py-2 pr-6 pl-2 text-on-primary shadow-[0_6px_16px_rgb(0_0_0/0.15)]">
+      <span className="flex size-12 flex-col items-center justify-center rounded-[8px] bg-bg leading-none">
+        <span className="text-[10px] font-semibold text-primary">{month}</span>
+        <span className="mt-0.5 text-[20px] font-bold text-ink">{day}</span>
+      </span>
+      <span>
+        <span className="block text-[16px] font-bold">{f.is_closed ? "Closed" : "Deadline"}</span>
+        <span className="block text-[13px]">{f.is_closed ? date(when) : timeLeft(when)}</span>
+      </span>
     </div>
   );
 }
 
-function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: string; detail: Detail; onReload: () => Promise<void>; onSignedOut: () => void }) {
+/** Every form on the left, as the old manual: the open one marked, sent ones ticked. */
+function FormsSidebar({ leadId, forms, current }: { leadId: string; forms: FormRow[]; current: string }) {
+  if (forms.length === 0) return null;
+  return (
+    <nav aria-label="Order forms" className="self-start rounded-[12px] border border-line bg-bg py-4 max-lg:hidden lg:sticky lg:top-[90px]">
+      <p className="px-4 pb-2 text-[17px] font-semibold text-muted">Order Forms</p>
+      <ul className="max-h-[calc(100dvh-170px)] overflow-y-auto">
+        {forms.map((f) => {
+          const active = f.code === current;
+          const to = `/e/${leadId}/forms/${f.code}`;
+          return (
+            <li key={f.code}>
+              <a href={href(to)} onClick={(e) => { e.preventDefault(); navigate(to); }} aria-current={active ? "page" : undefined}
+                className={cn("flex items-start gap-3 border-r-2 px-4 py-2.5", active ? "border-primary bg-primary-soft" : "border-transparent hover:bg-hover")}>
+                <FormNo code={f.code} active={active} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] leading-snug font-medium text-ink">{f.title}</span>
+                  <span className="block text-[12px] text-label">{f.deadline_on ? longDate(f.deadline_on) : "No deadline"}</span>
+                </span>
+                {PROGRESS_DONE.has(f.progress) ? <Check className="mt-0.5 size-4 shrink-0 text-[var(--green-fg)]" aria-label={label(f.progress)} /> : null}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadId: string; detail: Detail; forms: FormRow[]; onReload: () => Promise<void>; onSignedOut: () => void }) {
   const open = d.open_order ?? null;
   const saved = useMemo(() => draftOf(open), [open]);
   const [draft, setDraft] = useState<Draft>(saved);
@@ -344,31 +470,24 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
 
   return (
     <>
-      <div>
-        <Back to={`/e/${leadId}/forms`}>Order Forms</Back>
-        <div className="flex items-start gap-4">
-          <FormIcon code={d.code} size="lg" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold text-label">Form {d.code}</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-[28px] leading-tight font-extrabold text-ink max-sm:text-[22px]">{d.title}</h1>
-              <Status value={d.progress} />
-            </div>
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
-              <Deadline f={d} open={editable} />
-              {d.secondary_deadline_label && d.secondary_deadline_on ? <span className="text-[13px] text-label">{d.secondary_deadline_label} {date(d.secondary_deadline_on)}</span> : null}
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHead
+        title={d.title}
+        subtitle={<span className="flex flex-wrap items-center gap-x-3 gap-y-1">Order form no. <b className="text-muted">{d.code.replace(/^0/, "")}</b><Status value={d.progress} />{d.secondary_deadline_label && d.secondary_deadline_on ? <span>{d.secondary_deadline_label} {longDate(d.secondary_deadline_on)}</span> : null}</span>}
+        aside={<DeadlineBadge f={d} />}
+      >
+        <Back to={`/e/${leadId}/forms`}>All Order Forms</Back>
+      </PageHead>
+      <PageBody className="lg:grid lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start">
+      <FormsSidebar leadId={leadId} forms={forms} current={d.code} />
+      <div className="flex min-w-0 flex-col gap-6">
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
       {d.is_closed ? <Notice tone="amber">This form closed on {date(d.closes_on)}. Contact the organizer if you still need something.</Notice> : periodNotice(d.price_period)}
       {open?.status === "RETURNED" ? (
         <Notice tone="amber">The organizer sent order {open.order_number} back: {open.review_notes}. Change it below and send it again.</Notice>
       ) : null}
 
-      <Panel title="Company">
-        <Facts items={[["Company", d.company_name], ["Booth", d.booth_code]]} />
+      <Panel title="Company Information">
+        <ReadonlyRows items={[["Company Name", d.company_name], ["Stand No", d.booth_code]]} />
       </Panel>
       {d.instructions ? <Panel title="Notes"><p className="text-[14px] whitespace-pre-line">{d.instructions}</p></Panel> : null}
 
@@ -382,21 +501,21 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
         {d.has_catalog ? (
           <Panel title="Items" aside={<span className="text-[14px] font-semibold tabular-nums">Total {money(String(total), d.currency)}</span>}>
             {d.items.length === 0 ? <p className="text-[14px] text-muted">No items yet.</p> : sections.map(([section, items]) => (
-              <div key={section} className="mb-6 last:mb-0">
-                {section ? <h3 className="mb-2 text-[14px] font-semibold">{section}</h3> : null}
+              <div key={section} className="mb-8 last:mb-0">
+                {section ? <div className="mb-4"><Band as="h3">{section}</Band></div> : null}
                 {/* A list, not a table: on a phone each item stacks (name, then price, quantity, amount in
                     one row) so the quantity box is always on screen without sideways scrolling. */}
-                <div className="hidden grid-cols-[minmax(0,1fr)_120px_96px_130px] gap-3 border-b border-line pb-2 text-[13px] font-semibold text-label sm:grid" aria-hidden>
-                  <span>Item</span><span className="text-right">Price</span><span className="text-right">Quantity</span><span className="text-right">Amount</span>
+                <div className="hidden grid-cols-[minmax(0,1fr)_120px_96px_130px] gap-3 rounded-t-[8px] bg-primary px-3 py-3 text-[14px] font-bold text-on-primary sm:grid" aria-hidden>
+                  <span>Item</span><span className="text-right">Price / Unit ({d.currency})</span><span className="text-right">QTY</span><span className="text-right">Amount</span>
                 </div>
-                <ul aria-label={section || "Items"}>
+                <ul aria-label={section || "Items"} className="sm:rounded-b-[8px] sm:border-x sm:border-b sm:border-line">
                   {items.map((i) => {
                     const qty = Number(draft.quantities[i.id] ?? 0);
                     const error = errors[`lines.${i.id}`];
                     return (
-                      <li key={i.id} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-2 border-b border-line py-3 text-[14px] last:border-0 sm:grid-cols-[minmax(0,1fr)_120px_96px_130px]">
+                      <li key={i.id} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-2 border-b border-line py-3 text-[14px] last:border-0 sm:grid-cols-[minmax(0,1fr)_120px_96px_130px] sm:px-3">
                         <div className="col-span-3 flex items-start gap-3 sm:col-span-1">
-                          {i.has_image ? <img src={`${base}/order-forms/${d.code}/items/${i.id}/image`} alt="" className="size-12 shrink-0 rounded-[10px] border border-line object-contain" /> : null}
+                          {i.has_image ? <img src={`${base}/order-forms/${d.code}/items/${i.id}/image`} alt="" className="h-12 w-16 shrink-0 rounded-[6px] border border-line bg-bg object-contain" /> : null}
                           <div className="min-w-0">
                             <div className="font-medium">{i.name}</div>
                             <div className="text-[12px] text-label">{[i.code, i.size, i.unit].filter(Boolean).join(" · ")}</div>
@@ -493,7 +612,7 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
               </div>
             </Panel>
             {/* Sticky action bar: on a long catalog the total and the next step stay in reach. */}
-            <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-line-strong bg-bg px-5 py-3 shadow-[0_6px_24px_rgb(47_49_139/0.14)] max-sm:px-4">
+            <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-line-strong bg-bg px-5 py-3 shadow-[0_6px_24px_rgb(0_0_0/0.12)] max-sm:px-4">
               <div className="min-w-0">
                 {d.has_catalog ? (
                   <>
@@ -523,6 +642,8 @@ function FormEditor({ leadId, detail: d, onReload, onSignedOut }: { leadId: stri
         </Panel>
       ) : null}
       {d.sent_orders.length ? <SentOrders leadId={leadId} orders={d.sent_orders} /> : null}
+      </div>
+      </PageBody>
     </>
   );
 }
@@ -651,8 +772,8 @@ export function OrderReviewPage({ record, code, onSignedOut }: { record: Exhibit
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const formPath = `/e/${id}/forms/${code}`;
-  if (state.kind === "loading") return <Loading />;
-  if (state.kind === "error") return <div className="flex flex-col gap-6"><Back to={formPath}>Back to the form</Back><Failed message={state.message} onRetry={() => void reload()} /></div>;
+  if (state.kind === "loading") return <PageBody><Loading /></PageBody>;
+  if (state.kind === "error") return <PageBody><Back to={formPath}>Back to the form</Back><Failed message={state.message} onRetry={() => void reload()} /></PageBody>;
   const { detail: d, quote } = state.data;
   const send = async () => {
     if (!quote) return;
@@ -670,18 +791,11 @@ export function OrderReviewPage({ record, code, onSignedOut }: { record: Exhibit
     }
   };
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <Back to={formPath}>Back to the form</Back>
-        <div className="flex items-start gap-4">
-          <FormIcon code={d.code} size="lg" />
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-label">Last step before sending</p>
-            <h1 className="text-[28px] leading-tight font-extrabold text-ink max-sm:text-[22px]">Review Order · {d.code} {d.title}</h1>
-          </div>
-        </div>
-        <p className="text-[14px] text-muted">{d.company_name} · Booth {d.booth_code ?? ""}</p>
-      </div>
+    <>
+    <PageHead title={`Review Order · ${d.title}`} subtitle={`Last step before sending · Order form no. ${d.code.replace(/^0/, "")} · ${d.company_name} · Booth ${d.booth_code ?? ""}`} aside={<DeadlineBadge f={d} />}>
+      <Back to={formPath}>Back to the form</Back>
+    </PageHead>
+    <PageBody className="max-w-[1080px]">
       {error ? <Notice>{error}</Notice> : null}
       {!quote ? (
         <Panel><p className="text-[14px] text-muted">There is nothing to send on this form. <a href={href(formPath)} onClick={(e) => { e.preventDefault(); navigate(formPath); }} className="text-link hover:underline">Go back to the form</a> to add items.</p></Panel>
@@ -709,7 +823,8 @@ export function OrderReviewPage({ record, code, onSignedOut }: { record: Exhibit
           </div>
         </>
       )}
-    </div>
+    </PageBody>
+    </>
   );
 }
 

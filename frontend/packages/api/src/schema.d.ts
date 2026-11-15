@@ -7209,6 +7209,12 @@ export interface components {
              * Format: date
              */
             edition_end_date: string;
+            /** Exhibition Code */
+            exhibition_code: string;
+            /** Exhibition Name */
+            exhibition_name: string;
+            /** Venue Name */
+            venue_name?: string | null;
             /** Company Name */
             company_name: string;
             /** Booth Code */

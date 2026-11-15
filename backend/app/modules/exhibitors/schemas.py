@@ -433,6 +433,10 @@ class PortalExhibitorOut(BaseModel):
     edition_name: str
     edition_start_date: date
     edition_end_date: date
+    # The show the edition belongs to: the portal takes its colours and logo from it.
+    exhibition_code: str
+    exhibition_name: str
+    venue_name: str | None = None
     company_name: str
     booth_code: str | None
     contract_number: str | None

@@ -99,10 +99,12 @@ try {
   await view("02-home");
 
   // --- 2. exhibition page and contract --------------------------------------------------------
-  await portal.getByRole("link", { name: /Open exhibition/ }).first().click().catch(() => portal.getByText("INATEX 2027").first().click());
-  await portal.getByLabel("PIC Name").waitFor();
+  await portal.getByRole("main").getByRole("link").first().click();
+  await portal.getByText("Expo date").waitFor();
   await settle();
   await view("03-exhibition");
+  await portal.getByRole("link", { name: "Contract & Payments" }).first().click();
+  await portal.getByLabel("PIC Name").waitFor();
   await portal.getByLabel("PIC Name").fill("Budi Santoso");
   await portal.getByLabel("Tax ID (NPWP)").fill("01.234.567.8-901.000");
   await portal.getByLabel("Company Address").fill("Jl. Industri Raya No. 12, Bandung, Jawa Barat 40225");
@@ -122,13 +124,15 @@ try {
   await portal.reload();
   await portal.locator("section#payments").waitFor();
   await settle();
-  await portal.evaluate(() => window.scrollTo(0, 0));
-  await part("06-checklist", portal.getByRole("region", { name: "Your checklist" }));
   await part("07-payments", portal.locator("section#payments"));
+  await portal.getByRole("link", { name: "Home" }).first().click();
+  await portal.getByText("Expo date").waitFor();
+  await settle();
+  await view("06-checklist");
 
   // --- 3. order forms -------------------------------------------------------------------------
-  await portal.getByRole("button", { name: "Open Order Forms" }).click();
-  await portal.getByRole("heading", { name: "Order Forms" }).waitFor();
+  await portal.getByRole("link", { name: "Order Forms" }).first().click();
+  await portal.getByRole("heading", { name: "Order Forms", level: 1 }).waitFor();
   await settle();
   await view("08-forms-list");
 
@@ -234,7 +238,8 @@ try {
 
   // --- 6. signing in later --------------------------------------------------------------------------
   await portal.setViewportSize({ width: 1200, height: 800 });
-  await portal.getByRole("button", { name: "Sign Out" }).click();
+  await portal.getByRole("button", { name: "Account" }).click();
+  await portal.getByRole("menuitem", { name: "Sign Out" }).click();
   await portal.getByRole("button", { name: "Sign In" }).waitFor();
   await portal.getByLabel("Email").fill(EMAIL);
   await portal.getByLabel("Password").fill("Guide-Password-2027");

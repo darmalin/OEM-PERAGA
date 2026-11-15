@@ -370,6 +370,16 @@ async def get_edition_by_id(session: AsyncSession, edition_id: uuid.UUID) -> Edi
     return await repo.get_edition(session, edition_id)
 
 
+async def exhibition_of_edition(session: AsyncSession, edition_id: uuid.UUID) -> Exhibition:
+    """Internal lookup for other modules: the exhibition an edition belongs to."""
+    edition = await repo.get_edition(session, edition_id)
+    if edition is None:
+        raise NotFound("Edition not found.")
+    exhibition = await session.get(Exhibition, edition.exhibition_id)
+    assert exhibition is not None  # noqa: S101 - foreign key
+    return exhibition
+
+
 async def get_edition_by_code(session: AsyncSession, code: str) -> Edition | None:
     """Internal lookup by edition code (public registration URL)."""
     return await repo.get_edition_by_code(session, code)

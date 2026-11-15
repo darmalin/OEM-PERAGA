@@ -126,7 +126,9 @@ try {
   await portal.getByRole("heading", { name: "My Exhibitions" }).waitFor();
   check(!portal.url().includes("token="), "password set, token gone from the address bar");
 
-  await portal.getByText("Open exhibition").first().click(); // a new account has one exhibition
+  await portal.getByRole("main").getByRole("link").first().click(); // a new account has one exhibition
+  await portal.getByRole("button", { name: "Open menu" }).click(); // phone width: the menu sits behind the button
+  await portal.locator("#mobile-menu").getByRole("link", { name: "Contract & Payments" }).click();
   await portal.getByLabel("PIC Name").fill("E2E Signer");
   await portal.getByLabel("Company Address").fill("Jl. E2E No. 1, Jakarta");
   await portal.getByRole("button", { name: "Save Details" }).click();
@@ -171,7 +173,7 @@ try {
   await shot(desk, "desk-paid");
 
   await portal.reload();
-  await portal.getByRole("heading", { name: "Payments" }).waitFor();
+  await portal.getByRole("heading", { name: "Booth Payments" }).waitFor(); // the panel, not the page title
   check(await portal.getByText("Paid", { exact: true }).first().isVisible(), "portal shows Paid");
   await shot(portal, "portal-paid");
 
