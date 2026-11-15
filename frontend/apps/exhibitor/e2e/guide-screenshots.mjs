@@ -49,7 +49,7 @@ try {
   csrf = (await staff("GET", "/auth/me")).csrf_token;
 
   let exhibition;
-  for (const code of ["INATEX", "INATEXG", "INATEXGD"]) {
+  for (const code of ["INATEX", "INATEXG", "INATEXGD", "INATEXGE", "INATEXGF", "INATEXGH"]) {
     exhibition = await staff("POST", "/exhibitions", { code, name: "INATEX" }).catch(() => null);
     if (exhibition) break;
   }

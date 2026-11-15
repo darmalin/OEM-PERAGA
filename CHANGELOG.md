@@ -9,8 +9,8 @@ Exhibitor portal restyled after the old Online Exhibitor Manual (owner request 2
 
 - **Look**: white menu bar with the show's logo and Home, Contract & Payments, Order Forms (a menu
   button on phones; the account menu holds Sign Out), page titles on a white band, white cards with
-  grey title bars, dark footer, Plus Jakarta Sans throughout. Sign In and Set Your Password show a
-  show-floor photo behind a frosted card with the INATEX and Indo Intertex logos.
+  grey title bars, dark footer, Plus Jakarta Sans throughout. Sign In and Set Your Password show an
+  exhibition hall photo (free, Unsplash License) behind a frosted card with the PERAGA Expo logo.
 - **Colour per show**: INATEX red (also the default), Indo Intertex green, picked from the
   exhibition's code or name. The portal's `/auth/me` now returns each exhibitor's
   `exhibition_code`, `exhibition_name`, and `venue_name`.

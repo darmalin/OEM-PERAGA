@@ -185,14 +185,10 @@ export function Progress({ done, total, label: text }: { done: number; total: nu
   );
 }
 
-const SHOW_LOGOS = [
-  { src: "brand/indo-intertex-logo.png", alt: "Indo Intertex", width: 125, height: 32 },
-  { src: "brand/inatex-logo.png", alt: "INATEX", width: 122, height: 32 },
-];
-
 /**
  * Sign-in and password pages, as the old manual's: a photo of a show floor behind a frosted card,
- * the shows' logos and a welcome on the left, the form on the right. Stacks on phones.
+ * the PERAGA Expo logo and a welcome on the left, the form on the right. Stacks on phones. The
+ * photo is free under the Unsplash License (Euronewsweek Media, "Busy exhibition hall").
  */
 export function AuthLayout({ title, intro, children }: { title: string; intro?: ReactNode; children: ReactNode }) {
   return (
@@ -202,12 +198,7 @@ export function AuthLayout({ title, intro, children }: { title: string; intro?: 
     >
       <div className="grid w-full max-w-[1360px] overflow-hidden rounded-[24px] bg-bg/75 backdrop-blur-xl md:min-h-[min(820px,calc(100dvh-64px))] md:grid-cols-2">
         <div className="flex flex-col items-center justify-center gap-6 px-8 py-10 text-center max-sm:px-5 max-sm:py-8">
-          <div className="flex items-center gap-5">
-            {SHOW_LOGOS.map((l, n) => (
-              <img key={l.alt} src={`${import.meta.env.BASE_URL}${l.src}`} alt={l.alt} width={l.width} height={l.height}
-                className={cn("h-11 w-auto max-sm:h-8", n > 0 && "border-l border-line-strong pl-5")} />
-            ))}
-          </div>
+          <img src={`${import.meta.env.BASE_URL}peraga-expo-logo.png`} alt="PERAGA Expo" width={165} height={29} className="h-10 w-auto max-sm:h-8" />
           <div className="w-full max-w-[380px] border-t border-line-strong pt-6">
             <p className="text-[24px] font-bold text-ink">Welcome Back!</p>
             <p className="mt-3 text-[15px] text-ink">Sign in to your account to set up your booth, order services, and follow your payments.</p>
