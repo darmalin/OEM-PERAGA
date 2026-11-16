@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { basePath, brandOf, date, exhibitorIdOf, exhibitorRouteOf, formCounts, money, routeOf, timeLeft } from "./lib";
+import { basePath, date, exhibitorIdOf, exhibitorRouteOf, formCounts, money, routeOf, timeLeft } from "./lib";
 
 describe("portal routes", () => {
   it("works under /exhibitor and on its own host", () => {
@@ -31,14 +31,7 @@ describe("portal routes", () => {
   });
 });
 
-describe("show branding", () => {
-  it("picks the show's colour from its exhibition", () => {
-    expect(brandOf({ exhibition_code: "INATEX", exhibition_name: "INATEX" }).theme).toBe("inatex");
-    expect(brandOf({ exhibition_code: "IIT", exhibition_name: "Indo Intertex" }).theme).toBe("indo-intertex");
-    expect(brandOf({ exhibition_code: "IBTE", exhibition_name: "IBTE Expo" }).theme).toBe("peraga");
-    expect(brandOf(null).logo.alt).toBe("PERAGA Expo");
-  });
-
+describe("order form counts", () => {
   it("counts forms by progress", () => {
     const forms = ["NOT_STARTED", "NOT_STARTED", "IN_PROGRESS", "SUBMITTED", "APPROVED", "NOT_REQUIRED"].map((progress) => ({ progress }));
     expect(formCounts(forms)).toEqual({ notFilled: 2, inProgress: 1, sent: 2, done: 3 });

@@ -5,11 +5,10 @@
 
 /*
  * Exhibitor portal: the look of the old PERAGA Online Exhibitor Manual (owner request 2026-11-15).
- * Each show has its colour: INATEX red #b80f0a (also the default and PERAGA Expo's own pages) and
- * Indo Intertex green, set as data-theme on <html> by the app. Near-black #181818 carries text,
- * table heads and the footer; white cards sit on a light grey page. Every text pair below was
- * checked for WCAG AA (4.5:1 or more); the old green #078a4d is 4.4:1 with white, so actions
- * use #067a44 (5.4:1), which reads the same.
+ * PERAGA Expo branding for every show: red #b80f0a on actions and the active menu item, the
+ * PERAGA Expo logo in the header. Near-black #181818 carries text, table heads and the footer;
+ * white cards sit on a light grey page. Every text pair below was checked for WCAG AA (4.5:1 or
+ * more).
  */
 :root,
 :root.dark {
@@ -48,19 +47,6 @@
   --amber-bg: #ffedd5;
   --red-fg: #b91c1c;
   --red-bg: #fee2e2;
-}
-
-/* On <html> for the page, or on one element (a show card on My Exhibitions). */
-[data-theme="indo-intertex"] {
-  --primary: #067a44; /* 5.4:1 with white text */
-  --primary-hover: #056338;
-  --primary-soft: #ecfdf5; /* primary text on it: 5.1:1 */
-  --accent: #067a44;
-  --accent-ink: #067a44;
-  --accent-soft: #ecfdf5;
-  --link: #067a44;
-  --focus: #067a44;
-  --hero-muted: #d1fae5;
 }
 
 @theme inline {

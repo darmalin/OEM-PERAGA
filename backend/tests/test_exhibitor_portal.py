@@ -128,9 +128,6 @@ async def test_invitation_to_portal_session() -> None:
         (e["edition_id"], e["booth_code"], e["contract_number"], e["contract_status"])
         for e in me["exhibitors"]
     ] == [(str(edition.id), "A01", f"{edition.code}-C-0001", "DRAFT")]
-    # The portal takes the show's colours and logo from its exhibition.
-    assert me["exhibitors"][0]["exhibition_code"]
-    assert me["exhibitors"][0]["exhibition_name"]
 
     _, r = await accept(token)  # single use
     assert r.json()["error"]["code"] == "INVITATION_INVALID"

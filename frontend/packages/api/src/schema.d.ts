@@ -1332,12 +1332,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Payment Proof */
-        get: operations["payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_get"];
+        get?: never;
         put?: never;
         /** Attach Payment Proof */
         post: operations["attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-leads/{lead_id}/payments/{payment_id}/proof/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payment Proof */
+        get: operations["payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof__number__get"];
+        put?: never;
+        post?: never;
+        /** Remove Payment Proof */
+        delete: operations["remove_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof__number__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2077,12 +2094,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Order Payment Proof */
-        get: operations["order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_get"];
+        get?: never;
         put?: never;
         /** Attach Order Payment Proof */
         post: operations["attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exhibitor-orders/{order_id}/payments/{payment_id}/proof/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Order Payment Proof */
+        get: operations["order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof__number__get"];
+        put?: never;
+        post?: never;
+        /** Remove Order Payment Proof */
+        delete: operations["remove_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof__number__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -7036,6 +7070,11 @@ export interface components {
              * @default false
              */
             has_proof: boolean;
+            /**
+             * Proof Names
+             * @default []
+             */
+            proof_names: string[];
             /** Reviewed By */
             reviewed_by: string | null;
             /** Reviewed At */
@@ -7209,10 +7248,6 @@ export interface components {
              * Format: date
              */
             edition_end_date: string;
-            /** Exhibition Code */
-            exhibition_code: string;
-            /** Exhibition Name */
-            exhibition_name: string;
             /** Venue Name */
             venue_name?: string | null;
             /** Company Name */
@@ -12220,13 +12255,50 @@ export interface operations {
             };
         };
     };
-    payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_get: {
+    attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 lead_id: string;
                 payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof__number__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+                payment_id: string;
+                number: number;
             };
             cookie?: never;
         };
@@ -12254,21 +12326,20 @@ export interface operations {
             };
         };
     };
-    attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post: {
+    remove_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof__number__delete: {
         parameters: {
-            query?: never;
+            query: {
+                version: number;
+            };
             header?: never;
             path: {
                 lead_id: string;
                 payment_id: string;
+                number: number;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_attach_payment_proof_api_v1_exhibitor_leads__lead_id__payments__payment_id__proof_post"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -14096,13 +14167,50 @@ export interface operations {
             };
         };
     };
-    order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_get: {
+    attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 order_id: string;
                 payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof__number__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                payment_id: string;
+                number: number;
             };
             cookie?: never;
         };
@@ -14130,21 +14238,20 @@ export interface operations {
             };
         };
     };
-    attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post: {
+    remove_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof__number__delete: {
         parameters: {
-            query?: never;
+            query: {
+                version: number;
+            };
             header?: never;
             path: {
                 order_id: string;
                 payment_id: string;
+                number: number;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_attach_order_payment_proof_api_v1_exhibitor_orders__order_id__payments__payment_id__proof_post"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

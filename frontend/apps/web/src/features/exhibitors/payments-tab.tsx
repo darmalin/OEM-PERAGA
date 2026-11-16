@@ -41,7 +41,7 @@ export function PaymentsTab({ lead }: { lead: ExhibitorLead; timezone?: string }
       key: "proof",
       header: "Proof",
       hideBelow: "lg",
-      cell: (x) => (x.has_proof ? <span className="inline-flex items-center gap-1 text-muted"><Paperclip className="size-3.5" aria-hidden />Attached</span> : <span className="text-label">None</span>),
+      cell: (x) => (x.has_proof ? <span className="inline-flex items-center gap-1 text-muted"><Paperclip className="size-3.5" aria-hidden />{x.proof_names.length === 1 ? "1 file" : `${x.proof_names.length} files`}</span> : <span className="text-label">None</span>),
     },
   ];
   return (

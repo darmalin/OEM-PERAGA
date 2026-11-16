@@ -14,6 +14,7 @@ from tests.test_exhibitor_leads import SALES_ROLE, admin_for, sales_role
 from tests.test_exhibitor_portal import LEADS, PORTAL
 
 PNG = b"\x89PNG\r\n\x1a\n rest of the image"
+PDF = b"%PDF-1.7\n%%EOF\n"
 
 
 async def signed(admin: AsyncClient, edition: Edition) -> tuple[AsyncClient, str]:
@@ -170,15 +171,29 @@ async def test_proof_upload_and_download(storage: MemoryStorage) -> None:
     assert r.status_code == 422
     r = await send("slip.png", b"%PDF-1.7", "image/png", payment["version"])
     assert r.status_code == 422  # content does not match the extension
-    assert (await admin.get(url)).status_code == 404
+    assert (await admin.get(f"{url}/1")).status_code == 404
 
     r = await send("bukti transfer.PNG", PNG, "image/png", payment["version"])
     assert r.status_code == 200, r.text
     payment = r.json()
-    assert payment["has_proof"] is True
-    r = await admin.get(url)
+    assert (payment["has_proof"], payment["proof_names"]) == (True, ["bukti transfer.PNG"])
+    r = await admin.get(f"{url}/1")
     assert (r.status_code, r.content, r.headers["content-type"]) == (200, PNG, "image/png")
-    assert f'filename="payment-{payment["id"]}.png"' in r.headers["content-disposition"]
+    assert f'filename="payment-{payment["id"]}-1.png"' in r.headers["content-disposition"]
+
+    # Up to five files per payment, in upload order; a wrong one comes off while pending.
+    for n in range(2, 6):
+        r = await send(f"slip-{n}.pdf", PDF, "application/pdf", payment["version"])
+        assert r.status_code == 200, r.text
+        payment = r.json()
+    r = await send("slip-6.pdf", PDF, "application/pdf", payment["version"])
+    assert r.json()["error"]["code"] == "PROOF_LIMIT"
+    assert (await admin.get(f"{url}/5")).content == PDF
+    r = await admin.delete(f"{url}/1", params={"version": payment["version"]})
+    assert r.status_code == 200, r.text
+    payment = r.json()
+    assert payment["proof_names"] == ["slip-2.pdf", "slip-3.pdf", "slip-4.pdf", "slip-5.pdf"]
+    assert (await admin.get(f"{url}/5")).status_code == 404
 
     payment = (await review(admin, lead_id, payment, "VERIFIED")).json()
     r = await send("slip.png", PNG, "image/png", payment["version"])

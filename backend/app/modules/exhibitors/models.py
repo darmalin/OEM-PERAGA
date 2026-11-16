@@ -303,7 +303,10 @@ class ExhibitorPayment(UUIDPk, Timestamps, Versioned, Base):
     paid_on: Mapped[date] = mapped_column(Date, nullable=False)
     method: Mapped[str] = mapped_column(String(20), nullable=False)
     reference: Mapped[str | None] = mapped_column(String(100))
-    proof_file_key: Mapped[str | None] = mapped_column(String(500))
+    # [{"key", "name"}]: transfer slips or receipts, up to PROOF_MAX_FILES (migration 0038).
+    proof_files: Mapped[list[dict[str, str]]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
     status: Mapped[str] = mapped_column(String(10), nullable=False, default=PaymentStatus.PENDING)
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

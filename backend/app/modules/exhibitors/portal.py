@@ -172,7 +172,6 @@ async def me(session: AsyncSession, account_id: uuid.UUID, csrf_token: str) -> P
     exhibitors = []
     for lead, booth_code, contract in await repo.account_exhibitors(session, account_id):
         edition = await exhibitions_service.public_edition_info(session, lead.edition_id)
-        exhibition = await exhibitions_service.exhibition_of_edition(session, lead.edition_id)
         exhibitors.append(
             PortalExhibitorOut(
                 exhibitor_lead_id=lead.id,
@@ -180,8 +179,6 @@ async def me(session: AsyncSession, account_id: uuid.UUID, csrf_token: str) -> P
                 edition_name=edition.name,
                 edition_start_date=edition.start_date,
                 edition_end_date=edition.end_date,
-                exhibition_code=exhibition.code,
-                exhibition_name=exhibition.name,
                 venue_name=edition.venue_name,
                 company_name=lead.company_name,
                 booth_code=booth_code,

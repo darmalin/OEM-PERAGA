@@ -46,8 +46,10 @@ extra items, a code-defined question set, attachments, or a mix.
 
 **Exhibitor portal**
 - Order Forms from the exhibition page; list with deadlines, progress, and filters; each form with the
-  catalog at today's price, extra items, questions, attachments, remarks, "I don't require this form";
-  Save Draft, Review and Send, Order More; sent orders with their status and payments.
+  catalog at today's price, extra items (only when the form allows them; off in the sample forms),
+  questions, attachments, Notes / Remarks, "I don't require this form"; Save Draft, Review and
+  Submit, Submit Order, Order More; submitted orders with their status and payments. Free
+  quantities come off the total without a "free" label.
 
 ## Rules worth knowing
 
@@ -76,7 +78,7 @@ Settings afterwards. Form 10 (seminar) is priced in USD.
 ```bash
 cd backend
 EMS_URL=http://localhost:8000 EMS_EMAIL=... EMS_PASSWORD=... \
-  uv run python -m scripts.seed_sample_order_forms --edition INATEX2027
+  uv run python -m scripts.seed_sample_order_forms --edition PERAGA2027
 ```
 
 It needs only the Python standard library. On the staging server, borrow the API image (it does not
@@ -85,7 +87,7 @@ carry `scripts/`, so mount it), after `read -rs EMS_PASSWORD && export EMS_PASSW
 ```bash
 docker compose run --rm --no-deps -v "$PWD/backend/scripts:/app/scripts:ro" \
   -e EMS_URL=https://<staging domain> -e EMS_EMAIL=<desk login email> -e EMS_PASSWORD \
-  api python -m scripts.seed_sample_order_forms --edition INATEX2027 --dry-run
+  api python -m scripts.seed_sample_order_forms --edition PERAGA2027 --dry-run
 ```
 
 A form number already present with other questions keeps its own choices. `--dry-run` lists what would be added, `--draft` keeps new

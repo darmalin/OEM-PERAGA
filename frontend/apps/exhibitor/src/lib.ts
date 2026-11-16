@@ -59,33 +59,8 @@ export function exhibitorRouteOf(route: string): ExhibitorRoute | null {
   return route.replace(/\/$/, "").endsWith("/forms") ? { page: "forms", id } : { page: "exhibitor", id };
 }
 
-export type Theme = "peraga" | "inatex" | "indo-intertex";
-
-export interface Brand {
-  theme: Theme;
-  /** The show's logo in the header; PERAGA Expo's when the show has none. */
-  logo: { src: string; alt: string; width: number; height: number };
-  /** Wide banner on the exhibition home, when the show has one. */
-  banner: string | null;
-}
-
-const ASSET = `${import.meta.env.BASE_URL}brand/`;
-const PERAGA_LOGO = { src: `${import.meta.env.BASE_URL}peraga-expo-logo.png`, alt: "PERAGA Expo", width: 165, height: 29 };
-
-/**
- * Each show keeps its own colour and logo, as in the old exhibitor manual: INATEX red, Indo Intertex
- * green. Matched on the exhibition's code or name, so a new edition of the same show needs no setup.
- */
-export function brandOf(record: Pick<ExhibitorRecord, "exhibition_code" | "exhibition_name"> | null | undefined): Brand {
-  const key = `${record?.exhibition_code ?? ""} ${record?.exhibition_name ?? ""}`.toLowerCase();
-  if (/inatex/.test(key)) {
-    return { theme: "inatex", logo: { src: `${ASSET}inatex-logo.png`, alt: "INATEX", width: 122, height: 32 }, banner: `${ASSET}inatex-banner.jpg` };
-  }
-  if (/intertex|\biit\b/.test(key)) {
-    return { theme: "indo-intertex", logo: { src: `${ASSET}indo-intertex-logo.png`, alt: "Indo Intertex", width: 125, height: 32 }, banner: null };
-  }
-  return { theme: "peraga", logo: PERAGA_LOGO, banner: null };
-}
+/** The portal is PERAGA Expo's for every show: its logo in the header and on the sign-in pages. */
+export const PERAGA_LOGO = { src: `${import.meta.env.BASE_URL}peraga-expo-logo.png`, alt: "PERAGA Expo", width: 165, height: 29 };
 
 /** Counts of the order forms by where the exhibitor stands, for the home card and the list. */
 export function formCounts(forms: { progress: string }[]): { notFilled: number; inProgress: number; sent: number; done: number } {
@@ -113,7 +88,7 @@ const LABELS: Record<string, string> = {
   UNPAID: "Unpaid",
   PARTIAL: "Partially Paid",
   PAID: "Paid",
-  SUBMITTED: "Sent",
+  SUBMITTED: "Submitted",
   RETURNED: "Returned",
   APPROVED: "Approved",
   CANCELLED: "Cancelled",

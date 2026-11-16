@@ -101,7 +101,7 @@ PIC, alamat, total, tanggal tanda tangan, dan PDF.
 
 ### `exhibitor_payments`
 Satu baris per pembayaran (termin). `contract_id`, `amount` (> 0), `paid_on`, `method`
-(`BANK_TRANSFER`, `CASH`, `OTHER`), `reference`, `proof_file_key`, `status`, `reviewed_by`,
+(`BANK_TRANSFER`, `CASH`, `OTHER`), `reference`, `proof_files` (JSONB `[{key, name}]`, maks 5, migration `0038`), `status`, `reviewed_by`,
 `reviewed_at` (wajib terisi kecuali `PENDING`), `notes`.
 
 ### `exhibitor_accounts` (migration `0028`)
@@ -196,8 +196,8 @@ Belum dibangun (F8 di `known-gaps.md`): membuka lagi contract SIGNED kalau PDF y
 ### Phase 6: Payment tagging (staff)
 - [x] Migration `0029`: permission `exhibitor_payment.record` dan `exhibitor_payment.verify` (Super Admin, Exhibition Admin)
 - [x] Catat payment (termin): `POST /api/v1/exhibitor-leads/{id}/payments` `{amount, paid_on, method, reference?, notes?}` (`exhibitor_payment.record`). Hanya untuk contract SIGNED (422 `CONTRACT_NOT_SIGNED`); `paid_on` tidak boleh di masa depan (zona waktu edition); status awal PENDING
-- [x] Bukti bayar opsional: `POST .../payments/{payment_id}/proof` (multipart `file` + `version`; PDF/JPG/PNG, maks 10 MB, bucket `contracts`), hanya selama PENDING; unduh `GET .../proof` (`exhibitor_lead.read`)
-- [x] Verifikasi / tolak: `POST .../payments/{payment_id}/review` `{decision: VERIFIED|REJECTED, notes, version}` (`exhibitor_payment.verify`). Tolak wajib `notes` (alasan). Payment yang sudah direview = 409 `PAYMENT_REVIEWED`. Audit `exhibitor_payment` (`record`, `attach_proof`, `verify`, `reject`)
+- [x] Bukti bayar opsional: `POST .../payments/{payment_id}/proof` (multipart `file` + `version`; PDF/JPG/PNG, maks 10 MB, bucket `contracts`), hanya selama PENDING; sampai 5 file per payment (409 `PROOF_LIMIT`), tiap upload menambah satu; unduh `GET .../proof/{n}` (`exhibitor_lead.read`, n mulai 1), hapus `DELETE .../proof/{n}?version=` selama PENDING (`exhibitor_payment.record`). Berlaku juga untuk payment order (`/exhibitor-orders/{id}/payments/...`)
+- [x] Verifikasi / tolak: `POST .../payments/{payment_id}/review` `{decision: VERIFIED|REJECTED, notes, version}` (`exhibitor_payment.verify`). Tolak wajib `notes` (alasan). Payment yang sudah direview = 409 `PAYMENT_REVIEWED`. Audit `exhibitor_payment` (`record`, `attach_proof`, `remove_proof`, `verify`, `reject`)
 - [x] Tidak boleh lebih dari total: saat dicatat, PENDING + VERIFIED + baru <= `total_amount`; saat verifikasi dicek lagi. Baris contract di-lock, jadi dua pencatatan bersamaan tidak bisa lolos dua-duanya (422 `PAYMENT_EXCEEDS_TOTAL`)
 - [x] `GET /api/v1/exhibitor-leads/{id}/payments` (`exhibitor_lead.read`): total, verified, pending, outstanding, `payment_state` (UNPAID/PARTIAL/PAID), daftar payment
 - [x] Portal: `GET /api/v1/portal/exhibitors/{lead_id}/payments` (tanpa `notes` internal dan reviewer), dan `payment_state` di `GET /auth/me` (`null` selama contract belum SIGNED)

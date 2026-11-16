@@ -1,21 +1,20 @@
-import { ApiError, api, call, downloadFile, upload } from "@ems/api";
+import { api, call } from "@ems/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, FileUp } from "lucide-react";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { exhibitorLeadQuery, type Payment, paymentsQuery } from "@/features/exhibitors/queries";
+import { PaymentProofs } from "@/features/exhibitors/payment-proofs";
 import { can, useMe } from "@/lib/auth";
 import { useEditionById } from "@/lib/edition";
 import { handleFormError } from "@/lib/forms";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { label } from "@/lib/labels";
-import { notifyError, notifySuccess } from "@/lib/notify";
+import { notifySuccess } from "@/lib/notify";
 import { Button } from "@/ui/button";
 import { Field, Section } from "@/ui/field";
 import { Indicator } from "@/ui/indicator";
-import { Input, Textarea } from "@/ui/input";
+import { Textarea } from "@/ui/input";
 import { Facts, FormActions, Page, PageHead, Panel } from "@/ui/page";
 import { EmptyState, ErrorState, FormSkeleton } from "@/ui/states";
 
@@ -65,54 +64,16 @@ function PaymentDetail() {
 function Proof({ leadId, payment }: { leadId: string; payment: Payment }) {
   const me = useMe();
   const queryClient = useQueryClient();
-  const [file, setFile] = useState<File | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const url = `/api/v1/exhibitor-leads/${leadId}/payments/${payment.id}/proof`;
-  const editable = payment.status === "PENDING" && can(me, "exhibitor_payment.record");
-
-  const send = async () => {
-    if (!file) return;
-    const form = new FormData();
-    form.append("file", file);
-    form.append("version", String(payment.version));
-    setBusy(true);
-    try {
-      await upload<Payment>(url, form);
-      await queryClient.invalidateQueries({ queryKey: paymentsQuery(leadId).queryKey });
-      setFile(null);
-      notifySuccess("Proof attached");
-    } catch (e) {
-      if (e instanceof ApiError) setError(Object.values(e.fields)[0] ?? null);
-      notifyError(e);
-    } finally {
-      setBusy(false);
-    }
-  };
-  const download = async () => {
-    try {
-      // The server names the file, with the extension of the uploaded proof.
-      await downloadFile(url);
-    } catch (e) {
-      notifyError(e);
-    }
-  };
-
-  if (!payment.has_proof && !editable) return null;
   return (
-    <Section title="Proof">
-      <div className="flex flex-wrap items-end gap-3">
-        {payment.has_proof ? <Button onClick={() => void download()}><Download aria-hidden />Download Proof</Button> : null}
-        {editable ? (
-          <>
-            <Field label={payment.has_proof ? "Replace Proof" : "Transfer Slip or Receipt"} help="PDF, JPG or PNG, up to 10 MB." error={error ?? undefined}>
-              {(p) => <Input {...p} type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" className="py-1" onChange={(e) => { setError(null); setFile(e.target.files?.[0] ?? null); }} />}
-            </Field>
-            <Button disabled={!file} loading={busy} onClick={() => void send()}><FileUp aria-hidden />Attach</Button>
-          </>
-        ) : null}
-      </div>
-    </Section>
+    <PaymentProofs
+      url={`/api/v1/exhibitor-leads/${leadId}/payments/${payment.id}/proof`}
+      payment={payment}
+      editable={payment.status === "PENDING" && can(me, "exhibitor_payment.record")}
+      onChanged={() => queryClient.invalidateQueries({ queryKey: paymentsQuery(leadId).queryKey })}
+      onRemove={(number, version) =>
+        call(api.DELETE("/api/v1/exhibitor-leads/{lead_id}/payments/{payment_id}/proof/{number}", { params: { path: { lead_id: leadId, payment_id: payment.id, number }, query: { version } } }))
+      }
+    />
   );
 }
 

@@ -587,14 +587,18 @@ async def attach_order_payment_proof(
 
 
 @orders_router.get(
-    f"{PAYMENTS}/{{payment_id}}/proof",
+    f"{PAYMENTS}/{{payment_id}}/proof/{{number}}",
     response_class=StreamingResponse,
     responses={200: {"content": {"application/pdf": {}, "image/jpeg": {}, "image/png": {}}}},
 )
 async def order_payment_proof(
-    order_id: uuid.UUID, payment_id: uuid.UUID, session: Session, ctx: AuthContext = LeadRead
+    order_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    number: int,
+    session: Session,
+    ctx: AuthContext = LeadRead,
 ) -> StreamingResponse:
-    chunks, name, media_type = await payments.proof(session, ctx, order_id, payment_id)
+    chunks, name, media_type = await payments.proof(session, ctx, order_id, payment_id, number)
     return StreamingResponse(
         chunks,
         media_type=media_type,
@@ -603,6 +607,18 @@ async def order_payment_proof(
             "Cache-Control": "no-store",
         },
     )
+
+
+@orders_router.delete(f"{PAYMENTS}/{{payment_id}}/proof/{{number}}", response_model=PaymentOut)
+async def remove_order_payment_proof(
+    order_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    number: int,
+    version: int,
+    session: Session,
+    ctx: AuthContext = Depends(require(payments.RECORD)),
+) -> PaymentOut:
+    return await payments.remove_proof(session, ctx, order_id, payment_id, number, version)
 
 
 @orders_router.post(f"{PAYMENTS}/{{payment_id}}/review", response_model=PaymentOut)

@@ -5,16 +5,29 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+Customer feedback on the guides (2026-11-16).
+
+- **Submit, not Send**: the portal says Review and Submit, Submit Order, and status Submitted
+  (Submitted Orders, Submitted filter). Submitting locks the order; staff reopen it with Return.
+- **No extra items in the sample forms**: exhibitors write special requests in Notes / Remarks and
+  order only from the list. Running the sample forms script turns extra items off on forms it
+  already made. The "free with your booth" and "set by the organizer" labels are gone from the portal.
+- **Up to five proof files per payment** (booth and order payments), added one by one or several at
+  once, each downloadable and removable while the payment is pending. Migration 0038 moves an
+  existing proof into the new list. API: `GET` and `DELETE .../payments/{id}/proof/{n}`; payments
+  return `proof_names`.
+- Both guides rebuilt: how to pay for the booth, the short order flow, Notes / Remarks, and where
+  "I don't require this form" sits.
+
 Exhibitor portal restyled after the old Online Exhibitor Manual (owner request 2026-11-15).
 
-- **Look**: white menu bar with the show's logo and Home, Contract & Payments, Order Forms (a menu
+- **Look**: white menu bar with the PERAGA Expo logo and Home, Contract & Payments, Order Forms (a menu
   button on phones; the account menu holds Sign Out), page titles on a white band, white cards with
   grey title bars, dark footer, Plus Jakarta Sans throughout. Sign In and Set Your Password show an
   exhibition hall photo (free, Unsplash License) behind a frosted card with the PERAGA Expo logo.
-- **Colour per show**: INATEX red (also the default), Indo Intertex green, picked from the
-  exhibition's code or name. The portal's `/auth/me` now returns each exhibitor's
-  `exhibition_code`, `exhibition_name`, and `venue_name`.
-- **Home** of an exhibition: banner, welcome with the next step, contract and payment status, order
+- **PERAGA Expo branding only**, for every show: PERAGA red on actions, no show logos or colours.
+  The portal's `/auth/me` now returns each exhibitor's `venue_name`.
+- **Home** of an exhibition: a band with the show's name and dates, welcome with the next step, contract and payment status, order
   forms not filled / in progress / sent, and the show date. Contract and payments moved to their
   own page (`/e/{id}/contract`).
 - **Order Forms**: a table (form, deadline, time left, status, Start / Continue / View Form) with

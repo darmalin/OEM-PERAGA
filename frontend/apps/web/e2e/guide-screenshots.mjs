@@ -97,9 +97,9 @@ try {
   await portal.getByRole("button", { name: "Add Extra Item" }).click();
   await portal.getByLabel("Extra item 1", { exact: true }).fill("Hanging banner lamp");
   await portal.getByLabel("Quantity", { exact: true }).fill("1");
-  await portal.getByRole("button", { name: "Review and Send" }).click();
-  await portal.getByRole("button", { name: "Send Order" }).click();
-  await portal.getByText("sent.", { exact: false }).first().waitFor();
+  await portal.getByRole("button", { name: "Review and Submit" }).click();
+  await portal.getByRole("button", { name: "Submit Order" }).click();
+  await portal.getByText("submitted.", { exact: false }).first().waitFor();
 
   }
   // FROM_ORDERS=1 reruns only the order screens once the earlier ones exist.

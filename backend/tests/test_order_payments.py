@@ -131,14 +131,33 @@ async def test_proof(storage: MemoryStorage) -> None:
         files={"file": ("slip.pdf", PDF, "application/pdf")},
     )
     assert r.status_code == 200, r.text
-    assert r.json()["has_proof"] is True
-    assert (await s.admin.get(url)).content == PDF
+    assert (r.json()["has_proof"], r.json()["proof_names"]) == (True, ["slip.pdf"])
+    assert (await s.admin.get(f"{url}/1")).content == PDF
+    assert (await s.admin.get(f"{url}/2")).status_code == 404
     r = await s.admin.post(
         url,
         data={"version": str(r.json()["version"])},
         files={"file": ("slip.gif", b"GIF89a", "image/gif")},
     )
     assert r.status_code == 422
+
+    # Up to five files; a wrong one comes off while the payment is pending.
+    version = payment["version"] + 1
+    for n in range(2, 6):
+        r = await s.admin.post(
+            url,
+            data={"version": str(version)},
+            files={"file": (f"slip-{n}.pdf", PDF, "application/pdf")},
+        )
+        assert r.status_code == 200, r.text
+        version = r.json()["version"]
+    r = await s.admin.post(
+        url, data={"version": str(version)}, files={"file": ("slip-6.pdf", PDF, "application/pdf")}
+    )
+    assert r.json()["error"]["code"] == "PROOF_LIMIT"
+    r = await s.admin.delete(f"{url}/2", params={"version": version})
+    assert r.status_code == 200, r.text
+    assert r.json()["proof_names"] == ["slip.pdf", "slip-3.pdf", "slip-4.pdf", "slip-5.pdf"]
 
 
 async def test_cancel_needs_no_open_payments() -> None:

@@ -49,24 +49,23 @@ try {
   csrf = (await staff("GET", "/auth/me")).csrf_token;
 
   let exhibition;
-  for (const code of ["INATEX", "INATEXG", "INATEXGD", "INATEXGE", "INATEXGF", "INATEXGH"]) {
-    exhibition = await staff("POST", "/exhibitions", { code, name: "INATEX" }).catch(() => null);
+  for (const code of ["PERAGA", "PERAGAX", "PERAGAXD", "PERAGAXE", "PERAGAXF", "PERAGAXG"]) {
+    exhibition = await staff("POST", "/exhibitions", { code, name: "PERAGA Expo" }).catch(() => null);
     if (exhibition) break;
   }
   if (!exhibition) throw new Error("no free exhibition code");
   const edition = await staff("POST", "/editions", {
-    exhibition_id: exhibition.id, year: 2027, name: "INATEX 2027", city: "Jakarta", start_date: day(40), end_date: day(43), timezone: "Asia/Jakarta", default_currency: "IDR",
+    exhibition_id: exhibition.id, year: 2027, name: "PERAGA Expo 2027", city: "Jakarta", start_date: day(40), end_date: day(43), timezone: "Asia/Jakarta", default_currency: "IDR",
     price_regular_from: day(-5), price_regular_to: day(20), price_surcharge_from: day(21), price_surcharge_to: day(39), price_onsite_from: day(40), price_onsite_to: day(43),
   });
   const f04 = await staff("POST", "/order-forms", {
-    edition_id: edition.id, code: "04", title: "Electrical Fittings & Supplies", has_catalog: true, allow_custom_items: true,
+    edition_id: edition.id, code: "04", title: "Electrical Fittings & Supplies", has_catalog: true,
     attachment_purposes: ["FITTING_LOCATION"], deadline_on: day(14), sort_order: 4,
     instructions: "Prices include installation and dismantling. Orders cannot be refunded after the deadline.",
   });
   await staff("POST", `/order-forms/${f04.id}/items`, { section: "A. Lighting", code: "04-1", name: "Spotlight", size: "100 W", price_regular: "350000", max_quantity: 10 });
   await staff("POST", `/order-forms/${f04.id}/items`, { section: "A. Lighting", code: "04-2", name: "Fluorescent lamp", size: "40 W", price_regular: "275000" });
-  const power = await staff("POST", `/order-forms/${f04.id}/items`, { section: "B. Power", code: "04-3", name: "Power socket", size: "2 A", price_regular: "650000" });
-  await staff("PUT", `/order-forms/${f04.id}/items/${power.id}/allowances`, { tiers: [{ min_area_sqm: "0", free_quantity: 1 }] });
+  await staff("POST", `/order-forms/${f04.id}/items`, { section: "B. Power", code: "04-3", name: "Power socket", size: "2 A", price_regular: "650000" });
   await staff("PATCH", `/order-forms/${f04.id}`, { is_published: true, version: f04.version });
 
   const f07 = await staff("POST", "/order-forms", { edition_id: edition.id, code: "07", title: "Furniture & Display Rental", has_catalog: true, deadline_on: day(20), sort_order: 7 });
@@ -140,11 +139,7 @@ try {
   await portal.getByRole("heading", { name: /^Electrical Fittings/ }).waitFor();
   await portal.getByLabel("Quantity of Spotlight").fill("4");
   await portal.getByLabel("Quantity of Fluorescent lamp").fill("2");
-  await portal.getByRole("button", { name: "Add Extra Item" }).click();
-  await portal.getByLabel("Extra item 1", { exact: true }).fill("LED strip, warm white");
-  await portal.getByLabel("Size", { exact: true }).fill("5 m");
-  await portal.getByLabel("Quantity", { exact: true }).fill("2");
-  await portal.getByLabel("Remarks").fill("Please install the spotlights before the move-in day.");
+  await portal.getByLabel("Notes / Remarks").fill("Please install the spotlights before the move-in day.");
   await portal.getByRole("button", { name: "Save Draft" }).click();
   await portal.getByText("Draft saved.", { exact: false }).waitFor();
   await portal.getByLabel("Add Fitting Location").setInputFiles({ name: "booth-B12-layout.pdf", mimeType: "application/pdf", buffer: PDF });
@@ -154,35 +149,33 @@ try {
   await settle();
   await view("09-form-top");
   await part("10-items", panel("Items"));
-  await part("11-extra", panel("Extra Items"));
+  await part("11-remarks", portal.getByLabel("Notes / Remarks").locator("xpath=ancestor::section[1]"));
   await part("12-attachments", panel("Attachments"));
   await portal.getByText("Estimated total").locator("xpath=ancestor::div[contains(@class,'sticky')][1]").screenshot({ path: `${OUT}/13-action-bar.png` });
 
-  await portal.getByRole("button", { name: "Review and Send" }).click();
+  await portal.getByRole("button", { name: "Review and Submit" }).click();
   await portal.getByRole("heading", { name: /Review Order/ }).waitFor();
   await settle();
   await full("14-review");
-  await portal.getByRole("button", { name: "Send Order" }).click();
-  await portal.getByText("sent.", { exact: false }).first().waitFor();
+  await portal.getByRole("button", { name: "Submit Order" }).click();
+  await portal.getByText("submitted.", { exact: false }).first().waitFor();
   await portal.evaluate(() => window.scrollTo(0, 0));
   await settle();
   await full("15-sent");
 
-  // Staff price the extra item and return the order with a note.
+  // Staff return the order with a note.
   const list = await staff("GET", `/exhibitor-orders?edition_id=${edition.id}`);
   const orderId = list.items[0].id;
   let order = await staff("GET", `/exhibitor-orders/${orderId}`);
-  const extra = order.lines.find((l) => !l.item_id);
-  order = await staff("PATCH", `/exhibitor-orders/${orderId}/lines/${extra.id}`, { unit_price: "175000", version: order.version });
-  order = await staff("POST", `/exhibitor-orders/${orderId}/review`, { decision: "RETURNED", notes: "Please add one power socket for the spotlights. The first socket is free with your booth.", version: order.version });
+  order = await staff("POST", `/exhibitor-orders/${orderId}/review`, { decision: "RETURNED", notes: "Please add one power socket for the spotlights.", version: order.version });
   await portal.reload();
   await portal.getByText("Please add one power socket", { exact: false }).waitFor();
   await settle();
   await view("16-returned");
   await portal.getByLabel("Quantity of Power socket").fill("1");
-  await portal.getByRole("button", { name: "Review and Send" }).click();
-  await portal.getByRole("button", { name: "Send Order" }).click();
-  await portal.getByText("sent.", { exact: false }).first().waitFor();
+  await portal.getByRole("button", { name: "Review and Submit" }).click();
+  await portal.getByRole("button", { name: "Submit Order" }).click();
+  await portal.getByText("submitted.", { exact: false }).first().waitFor();
 
   // Staff approve and record a partial payment, verified.
   order = await staff("GET", `/exhibitor-orders/${orderId}`);
@@ -217,7 +210,7 @@ try {
   await portal.getByLabel("I don't require this form").click();
   await portal.waitForFunction(() => document.querySelector("input[type=checkbox]")?.checked === true);
   await settle();
-  await part("19-not-required", portal.getByLabel("Remarks").locator("xpath=ancestor::section[1]"));
+  await part("19-not-required", portal.getByLabel("Notes / Remarks").locator("xpath=ancestor::section[1]"));
 
   await portal.goto(`${PORTAL}/e/${lead.id}/forms`);
   await portal.getByRole("heading", { name: "Order Forms" }).waitFor();

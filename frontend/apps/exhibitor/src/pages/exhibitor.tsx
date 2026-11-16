@@ -2,7 +2,7 @@ import { api, ApiError, call, downloadFile, type Schemas, upload } from "@ems/ap
 import { CalendarDays, ChevronRight, CircleCheck, Download, FileUp, House, NotebookPen, ClipboardList } from "lucide-react";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 
-import { brandOf, date, dayParts, type ExhibitorRecord, formCounts, href, label, messageOf, money, navigate, showCountdown } from "../lib";
+import { date, dayParts, type ExhibitorRecord, formCounts, href, label, messageOf, money, navigate, showCountdown } from "../lib";
 import { Button, Facts, Field, Input, Notice, PageBody, PageHead, Panel, Progress, Status, Textarea } from "../ui";
 
 type Contract = Schemas["ContractOut"];
@@ -53,24 +53,18 @@ function link(to: string) {
 }
 
 /**
- * The exhibition home, laid out as the old manual's: the show banner, a welcome with the next
+ * The exhibition home, laid out as the old manual's: a band with the show, a welcome with the next
  * step, links to the contract and payments, the order forms at a glance, and the show date.
  */
 export function ExhibitorPage({ record, onSignedOut }: { record: ExhibitorRecord; onSignedOut: () => void }) {
   const id = record.exhibitor_lead_id;
   const { state, load } = useExhibitor(id, onSignedOut);
-  const brand = brandOf(record);
   return (
     <PageBody>
-      {brand.banner ? (
-        <img src={brand.banner} alt={`${record.edition_name}, ${date(record.edition_start_date)} to ${date(record.edition_end_date)}`} width={1024} height={100}
-          className="aspect-[1024/100] w-full rounded-[12px] object-cover max-sm:aspect-[1024/180] max-sm:object-left" />
-      ) : (
-        <div className="flex flex-wrap items-end justify-between gap-3 rounded-[12px] bg-primary px-7 py-6 text-on-primary max-sm:px-5">
-          <p className="text-[26px] leading-tight font-extrabold max-sm:text-[22px]">{record.edition_name}</p>
-          <p className="text-[15px] font-semibold">{date(record.edition_start_date)} to {date(record.edition_end_date)}{record.venue_name ? ` · ${record.venue_name}` : ""}</p>
-        </div>
-      )}
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-[12px] bg-primary px-7 py-6 text-on-primary max-sm:px-5">
+        <p className="text-[26px] leading-tight font-extrabold max-sm:text-[22px]">{record.edition_name}</p>
+        <p className="text-[15px] font-semibold">{date(record.edition_start_date)} to {date(record.edition_end_date)}{record.venue_name ? ` · ${record.venue_name}` : ""}</p>
+      </div>
       {state.kind === "loading" ? (
         <p role="status" className="py-10 text-center text-label">Loading</p>
       ) : state.kind === "error" ? (
@@ -137,14 +131,14 @@ function HomeLink({ to, title, aside, children }: { to: string; title: string; a
   );
 }
 
-/** The old home's Order Forms card: progress, then how many are not filled, in progress, sent. */
+/** The old home's Order Forms card: progress, then how many are not filled, in progress, submitted. */
 function FormsCard({ leadId, forms }: { leadId: string; forms: Forms | null }) {
   const list = forms?.forms ?? [];
   const counts = formCounts(list);
   const rows: [string, number, ReactNode, string][] = [
     ["Not Filled", counts.notFilled, <ClipboardList key="n" className="size-4" aria-hidden />, "var(--red-fg)"],
     ["In Progress", counts.inProgress, <NotebookPen key="p" className="size-4" aria-hidden />, "#c2410c"],
-    ["Sent", counts.sent, <CircleCheck key="s" className="size-4" aria-hidden />, "var(--green-fg)"],
+    ["Submitted", counts.sent, <CircleCheck key="s" className="size-4" aria-hidden />, "var(--green-fg)"],
   ];
   return (
     <section className="rounded-[12px] border border-line bg-bg px-6 py-6 max-sm:px-4">

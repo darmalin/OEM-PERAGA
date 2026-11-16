@@ -294,18 +294,35 @@ async def attach_payment_proof(
 
 
 @router.get(
-    "/exhibitor-leads/{lead_id}/payments/{payment_id}/proof",
+    "/exhibitor-leads/{lead_id}/payments/{payment_id}/proof/{number}",
     response_class=StreamingResponse,
     responses={200: {"content": {PDF: {}, "image/jpeg": {}, "image/png": {}}}},
 )
 async def payment_proof(
     lead_id: uuid.UUID,
     payment_id: uuid.UUID,
+    number: int,
     session: Session,
     ctx: AuthContext = Depends(require("exhibitor_lead.read")),
 ) -> StreamingResponse:
-    chunks, name, media_type = await service.payment_proof(session, ctx, lead_id, payment_id)
+    chunks, name, media_type = await service.payment_proof(
+        session, ctx, lead_id, payment_id, number
+    )
     return _download(chunks, name, media_type)
+
+
+@router.delete(
+    "/exhibitor-leads/{lead_id}/payments/{payment_id}/proof/{number}", response_model=PaymentOut
+)
+async def remove_payment_proof(
+    lead_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    number: int,
+    version: int,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_payment.record")),
+) -> PaymentOut:
+    return await service.remove_payment_proof(session, ctx, lead_id, payment_id, number, version)
 
 
 @router.post("/exhibitor-leads/{lead_id}/payments/{payment_id}/review", response_model=PaymentOut)

@@ -22,7 +22,7 @@ const PURPOSES: Record<Purpose, { label: string; accept: string; help: string }>
   OTHER: { label: "Other File", accept: ".pdf,.xlsx,.jpg,.jpeg,.png", help: "PDF, Excel, JPG, or PNG, up to 10 MB." },
 };
 
-// A confirmation carried to the next page (after sending, the form page shows it).
+// A confirmation carried to the next page (after submitting, the form page shows it).
 let pendingFlash: string | null = null;
 function takeFlash(): string | null {
   const message = pendingFlash;
@@ -103,7 +103,7 @@ function deadlineText(f: { deadline_on?: string | null; is_closed: boolean; clos
 }
 
 function periodNotice(period: Detail["price_period"]): ReactNode {
-  if (period === null) return <Notice tone="amber">Ordering is not open today. Prices shown are the regular prices; you can prepare a draft and send it once ordering opens.</Notice>;
+  if (period === null) return <Notice tone="amber">Ordering is not open today. Prices shown are the regular prices; you can prepare a draft and submit it once ordering opens.</Notice>;
   if (period === "SURCHARGE" || period === "ONSITE") return <Notice tone="amber">{label(period)}s apply today.</Notice>;
   return null;
 }
@@ -114,7 +114,7 @@ const FILTERS = [
   ["all", "All Forms"],
   ["todo", "Not Filled"],
   ["progress", "In Progress"],
-  ["sent", "Sent"],
+  ["sent", "Submitted"],
 ] as const;
 type Filter = (typeof FILTERS)[number][0];
 
@@ -170,7 +170,7 @@ export function OrderFormsPage({ record, onSignedOut }: { record: ExhibitorRecor
     <>
       <PageHead
         title="Order Forms"
-        subtitle={`Order forms and task checklist for your booth ${record.booth_code ?? ""} setup. Fill each form and send it before its deadline.`}
+        subtitle={`Order forms and task checklist for your booth ${record.booth_code ?? ""} setup. Fill each form and submit it before its deadline.`}
         aside={forms.length ? <div className="w-[260px] max-sm:w-full"><Progress done={counts.done} total={forms.length} label="Order forms done" /></div> : null}
       />
       <PageBody>
@@ -339,7 +339,7 @@ function DeadlineBadge({ f }: { f: { deadline_on?: string | null; is_closed: boo
   );
 }
 
-/** Every form on the left, as the old manual: the open one marked, sent ones ticked. */
+/** Every form on the left, as the old manual: the open one marked, submitted ones ticked. */
 function FormsSidebar({ leadId, forms, current }: { leadId: string; forms: FormRow[]; current: string }) {
   if (forms.length === 0) return null;
   return (
@@ -380,7 +380,7 @@ function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadI
   });
   const [busy, setBusy] = useState<string | null>(null);
   const editable = !d.is_closed && (open === null || open.status === "DRAFT" || open.status === "RETURNED");
-  // After an order is sent the form shows it, and a new order starts only when asked for.
+  // After an order is submitted the form shows it, and a new order starts only when asked for.
   const [adding, setAdding] = useState(false);
   const showEditor = open !== null || d.sent_orders.length === 0 || adding;
   const dirty = !sameDraft(draft, saved, d.items);
@@ -433,7 +433,7 @@ function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadI
 
   const saveDraft = () => run("save", async () => {
     await save();
-    pendingFlash = "Draft saved. Nothing is sent until you choose Review and Send.";
+    pendingFlash = "Draft saved. Nothing goes to the organizer until you choose Review and Submit.";
     await onReload();
   });
   const review = () => run("review", async () => {
@@ -483,7 +483,7 @@ function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadI
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
       {d.is_closed ? <Notice tone="amber">This form closed on {date(d.closes_on)}. Contact the organizer if you still need something.</Notice> : periodNotice(d.price_period)}
       {open?.status === "RETURNED" ? (
-        <Notice tone="amber">The organizer sent order {open.order_number} back: {open.review_notes}. Change it below and send it again.</Notice>
+        <Notice tone="amber">The organizer sent order {open.order_number} back: {open.review_notes?.replace(/[.\s]+$/, "")}. Change it below and submit it again.</Notice>
       ) : null}
 
       <Panel title="Company Information">
@@ -520,7 +520,6 @@ function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadI
                             <div className="font-medium">{i.name}</div>
                             <div className="text-[12px] text-label">{[i.code, i.size, i.unit].filter(Boolean).join(" · ")}</div>
                             {i.description ? <div className="text-[12px] text-muted">{i.description}</div> : null}
-                            {i.free_quantity ? <div className="text-[12px] font-medium" style={{ color: "var(--green-fg)" }}>{i.free_quantity} free with your booth</div> : null}
                             {error ? <div className="text-[12px] text-required">{error}</div> : null}
                           </div>
                         </div>
@@ -600,7 +599,7 @@ function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadI
           <>
             <Panel>
               <div className="flex flex-col gap-4">
-                <Field label="Remarks" help="Anything the organizer should know about this order.">
+                <Field label="Notes / Remarks" help="Special requests or anything the organizer should know. Only items in the list above can be ordered.">
                   {(p) => <Textarea {...p} value={draft.remarks} maxLength={2000} onChange={(e) => setDraft((s) => ({ ...s, remarks: e.target.value }))} />}
                 </Field>
                 {d.sent_orders.some((o) => o.status === "SUBMITTED" || o.status === "APPROVED") ? null : (
@@ -620,13 +619,13 @@ function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadI
                     <p className="font-display text-[20px] leading-tight font-extrabold text-ink tabular-nums">{money(String(total), d.currency)}</p>
                   </>
                 ) : (
-                  <p className="text-[14px] text-muted">{dirty ? "You have unsaved changes." : "Saved. Review it, then send it to the organizer."}</p>
+                  <p className="text-[14px] text-muted">{dirty ? "You have unsaved changes." : "Saved. Review it, then submit it to the organizer."}</p>
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {open?.status === "DRAFT" ? <Button type="button" variant="ghost" loading={busy === "delete"} onClick={() => void discard()}>Delete Draft</Button> : null}
                 <Button type="button" disabled={!dirty} loading={busy === "save"} onClick={() => void saveDraft()}>Save Draft</Button>
-                <Button type="button" variant="primary" loading={busy === "review"} onClick={() => void review()}>Review and Send<ChevronRight aria-hidden /></Button>
+                <Button type="button" variant="primary" loading={busy === "review"} onClick={() => void review()}>Review and Submit<ChevronRight aria-hidden /></Button>
               </div>
             </div>
           </>
@@ -636,7 +635,7 @@ function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadI
       ) : editable ? (
         <Panel>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[14px] text-muted">Need more on this form? Start another order; the sent ones stay as they are.</p>
+            <p className="text-[14px] text-muted">Need more on this form? Start another order; the submitted ones stay as they are.</p>
             <Button type="button" variant="primary" onClick={() => setAdding(true)}><Plus aria-hidden />Order More</Button>
           </div>
         </Panel>
@@ -722,7 +721,7 @@ function LinesTable({ order }: { order: Order }) {
             <tr key={l.id} className="border-b border-line last:border-0">
               <td className="py-2 pr-3">{l.name}{l.size ? <span className="text-label"> · {l.size}</span> : null}{l.item_id ? null : <span className="text-label"> (extra item)</span>}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{l.unit_price == null ? <span className="text-label">Set by the organizer</span> : money(l.unit_price, order.currency)}</td>
-              <td className="py-2 pr-3 text-right tabular-nums">{l.quantity}{l.free_quantity ? <span className="block text-[12px] text-label">{l.free_quantity} free</span> : null}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">{l.quantity}</td>
               <td className="py-2 text-right tabular-nums">{l.amount == null ? "" : money(l.amount, order.currency)}</td>
             </tr>
           ))}
@@ -734,14 +733,14 @@ function LinesTable({ order }: { order: Order }) {
 
 function SentOrders({ leadId, orders }: { leadId: string; orders: Order[] }) {
   return (
-    <Panel title="Sent Orders">
+    <Panel title="Submitted Orders">
       <div className="flex flex-col gap-6">
         {orders.map((o) => (
           <div key={o.id}>
             <div className="mb-2 flex flex-wrap items-center gap-3">
               <h3 className="text-[15px] font-semibold">Order {o.order_number}</h3>
               <Status value={o.status} />
-              <span className="text-[13px] text-label">Sent {date(o.submitted_at)} · {label(o.price_period)}</span>
+              <span className="text-[13px] text-label">Submitted {date(o.submitted_at)} · {label(o.price_period)}</span>
               {o.payment_state ? <Status value={o.payment_state} /> : null}
             </div>
             {o.waiting_for_contract ? <div className="mb-2"><Notice tone="amber">The organizer confirms this order once your booth contract is signed.</Notice></div> : null}
@@ -780,8 +779,8 @@ export function OrderReviewPage({ record, code, onSignedOut }: { record: Exhibit
     setBusy(true);
     setError(null);
     try {
-      const sent = await call(api.POST("/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}/submit", { params: { path: { lead_id: id, order_id: quote.id } }, body: { version: quote.version } }));
-      pendingFlash = `Order ${sent.order_number ?? ""} sent. The organizer reviews it and confirms the total.`;
+      const submitted = await call(api.POST("/api/v1/portal/exhibitors/{lead_id}/orders/{order_id}/submit", { params: { path: { lead_id: id, order_id: quote.id } }, body: { version: quote.version } }));
+      pendingFlash = `Order ${submitted.order_number ?? ""} submitted. The organizer reviews it and confirms the total.`;
       navigate(formPath);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) return onSignedOut();
@@ -792,13 +791,13 @@ export function OrderReviewPage({ record, code, onSignedOut }: { record: Exhibit
   };
   return (
     <>
-    <PageHead title={`Review Order · ${d.title}`} subtitle={`Last step before sending · Order form no. ${d.code.replace(/^0/, "")} · ${d.company_name} · Booth ${d.booth_code ?? ""}`} aside={<DeadlineBadge f={d} />}>
+    <PageHead title={`Review Order · ${d.title}`} subtitle={`Last step before submitting · Order form no. ${d.code.replace(/^0/, "")} · ${d.company_name} · Booth ${d.booth_code ?? ""}`} aside={<DeadlineBadge f={d} />}>
       <Back to={formPath}>Back to the form</Back>
     </PageHead>
     <PageBody className="max-w-[1080px]">
       {error ? <Notice>{error}</Notice> : null}
       {!quote ? (
-        <Panel><p className="text-[14px] text-muted">There is nothing to send on this form. <a href={href(formPath)} onClick={(e) => { e.preventDefault(); navigate(formPath); }} className="text-link hover:underline">Go back to the form</a> to add items.</p></Panel>
+        <Panel><p className="text-[14px] text-muted">There is nothing to submit on this form. <a href={href(formPath)} onClick={(e) => { e.preventDefault(); navigate(formPath); }} className="text-link hover:underline">Go back to the form</a> to add items.</p></Panel>
       ) : (
         <>
           {periodNotice(quote.price_period)}
@@ -812,13 +811,13 @@ export function OrderReviewPage({ record, code, onSignedOut }: { record: Exhibit
             {quote.unpriced_lines ? <p className="mt-1 text-right text-[13px] text-label">Extra items are priced by the organizer and added to the total.</p> : null}
             {d.details_type && Object.keys(quote.details).length ? <AnswerList type={d.details_type as DetailsType} answers={quote.details as Answers} /> : null}
             {quote.files.length ? <p className="mt-4 text-[14px]">Attachments: {quote.files.map((f) => f.file_name).join(", ")}</p> : null}
-            {quote.remarks ? <p className="mt-2 text-[14px] whitespace-pre-line">Remarks: {quote.remarks}</p> : null}
+            {quote.remarks ? <p className="mt-2 text-[14px] whitespace-pre-line">Notes / Remarks: {quote.remarks}</p> : null}
           </Panel>
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[13px] text-muted">{d.has_catalog ? "Prices are fixed when you send. The organizer reviews the order and sends payment details." : "The organizer reviews your answers and confirms them."}</p>
+            <p className="text-[13px] text-muted">{d.has_catalog ? "Prices are fixed when you submit. You cannot change the order after submitting. The organizer reviews the order and sends payment details." : "The organizer reviews your answers and confirms them."}</p>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => navigate(formPath)}>Change Order</Button>
-              <Button variant="primary" loading={busy} disabled={quote.price_period === null} onClick={() => void send()}><Send aria-hidden />Send Order</Button>
+              <Button variant="primary" loading={busy} disabled={quote.price_period === null} onClick={() => void send()}><Send aria-hidden />Submit Order</Button>
             </div>
           </div>
         </>

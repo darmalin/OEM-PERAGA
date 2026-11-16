@@ -3,7 +3,7 @@ import { cn } from "@ems/ui/cn";
 import { LayoutGrid, LogOut, Menu, UserRound, X } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
-import { brandOf, type ExhibitorRecord, exhibitorRouteOf, href, type Me, messageOf, navigate, useRoute } from "./lib";
+import { type ExhibitorRecord, exhibitorRouteOf, href, type Me, messageOf, navigate, PERAGA_LOGO, useRoute } from "./lib";
 import { AcceptInvite } from "./pages/accept-invite";
 import { ContractPage, ExhibitorPage } from "./pages/exhibitor";
 import { Home } from "./pages/home";
@@ -42,12 +42,6 @@ export function App() {
 
   const target = exhibitorRouteOf(route);
   const record = session.kind === "in" ? (session.me.exhibitors.find((e) => e.exhibitor_lead_id === target?.id) ?? null) : null;
-  const brand = brandOf(record);
-
-  // The show's colour on the whole page (styles.css), PERAGA red outside a show.
-  useEffect(() => {
-    document.documentElement.dataset.theme = brand.theme;
-  }, [brand.theme]);
 
   // Sign-in and password pages fill the screen on their own, as the old manual's.
   if (route === "/accept-invite") {
@@ -79,7 +73,6 @@ export function App() {
   return (
     <div className="flex min-h-dvh flex-col">
       <Header
-        brand={brand}
         record={record}
         section={section}
         me={session.kind === "in" ? session.me : null}
@@ -100,8 +93,7 @@ export function App() {
 
 type Section = "home" | "contract" | "forms";
 
-function Header({ brand, record, section, me, onSignOut }: {
-  brand: ReturnType<typeof brandOf>;
+function Header({ record, section, me, onSignOut }: {
   record: ExhibitorRecord | null;
   section: Section | null;
   me: Me | null;
@@ -118,7 +110,7 @@ function Header({ brand, record, section, me, onSignOut }: {
     <header className="sticky top-0 z-30 bg-bg shadow-[0_2px_12px_rgb(0_0_0/0.08)]">
       <div className="mx-auto flex h-[66px] max-w-[1280px] items-center justify-between gap-4 px-6 max-sm:px-4">
         <a href={href(base ?? "/")} onClick={go(base ?? "/")} className="flex shrink-0 items-center rounded-[6px]">
-          <img src={brand.logo.src} alt={brand.logo.alt} width={brand.logo.width} height={brand.logo.height} className="h-8 w-auto" />
+          <img src={PERAGA_LOGO.src} alt={PERAGA_LOGO.alt} width={PERAGA_LOGO.width} height={PERAGA_LOGO.height} className="h-8 w-auto" />
         </a>
         {me ? (
           <div className="flex items-center gap-4">

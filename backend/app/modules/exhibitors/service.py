@@ -33,12 +33,14 @@ from app.modules.exhibitors.models import (
 )
 from app.modules.exhibitors.rules import (
     BOOTH_STAGES,
+    PROOF_MAX_FILES,
     ContractStatus,
     PaymentState,
     PaymentStatus,
     SalesStage,
     can_move,
     payment_state,
+    proof_name,
 )
 from app.modules.exhibitors.schemas import (
     BoothAssignIn,
@@ -1142,7 +1144,7 @@ async def contract_file(
 PAYMENT_ENTITY = "exhibitor_payment"
 PAYMENT_AUDIT_FIELDS = (
     "amount", "paid_on", "method", "reference", "status", "reviewed_by", "reviewed_at",
-    "notes", "proof_file_key",
+    "notes", "proof_files",
 )  # fmt: skip
 _PROOF_KINDS = (".pdf", ".jpg", ".jpeg", ".png")
 ZERO = Decimal("0.00")
@@ -1173,7 +1175,8 @@ async def contract_payment_state(
 
 def _payment_out(payment: ExhibitorPayment) -> PaymentOut:
     out = PaymentOut.model_validate(payment)
-    out.has_proof = payment.proof_file_key is not None
+    out.has_proof = bool(payment.proof_files)
+    out.proof_names = [f["name"] for f in payment.proof_files]
     return out
 
 
@@ -1272,7 +1275,8 @@ async def attach_payment_proof(
     data: bytes,
     version: int,
 ) -> PaymentOut:
-    """Transfer slip or receipt (PDF, JPG, PNG) of a PENDING payment; replaces an earlier one."""
+    """Adds a transfer slip or receipt (PDF, JPG, PNG) to a PENDING payment, up to
+    PROOF_MAX_FILES."""
     lead = await _staff_lead(session, ctx, lead_id)
     await exhibitions_service.ensure_writable(session, lead.edition_id)
     payment = await _payment(
@@ -1281,13 +1285,16 @@ async def attach_payment_proof(
     check_version(payment.version, version)
     if payment.status != PaymentStatus.PENDING:
         raise Conflict("The payment is already reviewed.", code="PAYMENT_REVIEWED")
+    if len(payment.proof_files) >= PROOF_MAX_FILES:
+        raise Conflict(f"A payment holds up to {PROOF_MAX_FILES} proof files.", code="PROOF_LIMIT")
     ext = _check_upload(file_name, content_type, data, _PROOF_KINDS)
     key = new_object_key(ext)
     await run_in_threadpool(
         get_storage().put, get_settings().s3_bucket_contracts, key, data, _FILE_KINDS[ext][0]
     )
     before = audit.snapshot(payment, PAYMENT_AUDIT_FIELDS)
-    payment.proof_file_key = key
+    # A new list: SQLAlchemy does not see changes made inside a JSONB value.
+    payment.proof_files = [*payment.proof_files, {"key": key, "name": proof_name(file_name)}]
     payment.updated_by = current_actor_id()
     await session.flush()
     await session.refresh(payment)
@@ -1334,22 +1341,59 @@ async def review_payment(
     return _payment_out(payment)
 
 
+async def remove_payment_proof(
+    session: AsyncSession,
+    ctx: AuthContext,
+    lead_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    number: int,
+    version: int,
+) -> PaymentOut:
+    """Takes a wrong file off a PENDING payment; the stored object stays (audit trail)."""
+    lead = await _staff_lead(session, ctx, lead_id)
+    await exhibitions_service.ensure_writable(session, lead.edition_id)
+    payment = await _payment(
+        session, await _contract_of(session, lead), payment_id, for_update=True
+    )
+    check_version(payment.version, version)
+    if payment.status != PaymentStatus.PENDING:
+        raise Conflict("The payment is already reviewed.", code="PAYMENT_REVIEWED")
+    _proof_at(payment, number)
+    before = audit.snapshot(payment, PAYMENT_AUDIT_FIELDS)
+    payment.proof_files = [f for n, f in enumerate(payment.proof_files, 1) if n != number]
+    payment.updated_by = current_actor_id()
+    await session.flush()
+    await session.refresh(payment)
+    await _record_payment(session, payment, "remove_proof", before)
+    return _payment_out(payment)
+
+
+def _proof_at(payment: ExhibitorPayment, number: int) -> dict[str, str]:
+    """The proof file by its 1-based number in the list."""
+    if not 1 <= number <= len(payment.proof_files):
+        raise NotFound("The payment has no such proof file.")
+    return payment.proof_files[number - 1]
+
+
 async def payment_proof(
-    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID, payment_id: uuid.UUID
+    session: AsyncSession,
+    ctx: AuthContext,
+    lead_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    number: int,
 ) -> tuple[Iterator[bytes], str, str]:
-    """(chunks, download name, MIME) of a payment's proof, streamed through the API."""
+    """(chunks, download name, MIME) of one proof file, streamed through the API."""
     contract = await _contract_of(session, await _staff_lead(session, ctx, lead_id))
     payment = await _payment(session, contract, payment_id)
-    if payment.proof_file_key is None:
-        raise NotFound("The payment has no proof attached.")
+    proof = _proof_at(payment, number)
     try:
         chunks = await run_in_threadpool(
-            get_storage().stream, get_settings().s3_bucket_contracts, payment.proof_file_key
+            get_storage().stream, get_settings().s3_bucket_contracts, proof["key"]
         )
     except FileNotFoundError as e:
         raise NotFound("The proof is no longer available.") from e
-    ext = PurePosixPath(payment.proof_file_key).suffix
-    return chunks, f"payment-{payment.id}{ext}", _FILE_KINDS[ext][0]
+    ext = PurePosixPath(proof["key"]).suffix
+    return chunks, f"payment-{payment.id}-{number}{ext}", _FILE_KINDS[ext][0]
 
 
 # --- pipeline summary ----------------------------------------------------------------------

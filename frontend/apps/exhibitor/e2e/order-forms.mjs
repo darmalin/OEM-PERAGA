@@ -131,13 +131,13 @@ try {
   await shot("02-draft");
   check(true, "draft saved with an extra item and an attachment");
 
-  await portal.getByRole("button", { name: "Review and Send" }).click();
+  await portal.getByRole("button", { name: "Review and Submit" }).click();
   await portal.getByRole("heading", { name: /Review Order/ }).waitFor();
   await portal.getByText("Total IDR 4,314,800").waitFor();
   await portal.getByText("Extra items are priced by the organizer", { exact: false }).waitFor();
   await shot("03-review");
-  await portal.getByRole("button", { name: "Send Order" }).click();
-  await portal.getByText(`Order ${edition.code}-O-0001 sent.`, { exact: false }).waitFor();
+  await portal.getByRole("button", { name: "Submit Order" }).click();
+  await portal.getByText(`Order ${edition.code}-O-0001 submitted.`, { exact: false }).waitFor();
   await portal.getByText("The organizer confirms this order once your booth contract is signed.").waitFor();
   await shot("04-sent");
   check(true, "order sent with a number, waiting for the signed contract");
@@ -149,8 +149,8 @@ try {
   // --- a questions form ---------------------------------------------------------------------
   await portal.goto(`${PORTAL}/e/${lead.id}/forms/09`);
   await portal.getByRole("heading", { name: /^Exhibitor Badges/ }).waitFor();
-  await portal.getByRole("button", { name: "Review and Send" }).click();
-  await portal.getByRole("button", { name: "Send Order" }).click();
+  await portal.getByRole("button", { name: "Review and Submit" }).click();
+  await portal.getByRole("button", { name: "Submit Order" }).click();
   await portal.getByText("Some answers are missing.", { exact: false }).waitFor();
   check(true, "questions: sending with missing answers is refused with the reasons");
   await portal.goto(`${PORTAL}/e/${lead.id}/forms/09`);
@@ -159,11 +159,11 @@ try {
   await portal.getByLabel("Full name 1").fill("Budi Santoso");
   await portal.getByLabel("Gender 1").selectOption("MALE");
   await portal.getByLabel("Designation 1").fill("Sales Manager");
-  await portal.getByRole("button", { name: "Review and Send" }).click();
+  await portal.getByRole("button", { name: "Review and Submit" }).click();
   await portal.getByText("Your Answers", { exact: true }).waitFor();
   await shot("05-questions-review");
-  await portal.getByRole("button", { name: "Send Order" }).click();
-  await portal.getByText(`Order ${edition.code}-O-0002 sent.`, { exact: false }).waitFor();
+  await portal.getByRole("button", { name: "Submit Order" }).click();
+  await portal.getByText(`Order ${edition.code}-O-0002 submitted.`, { exact: false }).waitFor();
   check(true, "questions: badge holders answered and sent");
   await portal.goto(`${PORTAL}/e/${lead.id}/forms/04`);
 
@@ -189,11 +189,10 @@ try {
 
   await portal.reload();
   await portal.getByText("Please add the power outlet for the spotlights.", { exact: false }).waitFor();
-  await portal.getByText("1 free with your booth").waitFor();
   await portal.getByLabel("Quantity of Power 2 A").fill("1");
-  await portal.getByRole("button", { name: "Review and Send" }).click();
-  await portal.getByRole("button", { name: "Send Order" }).click();
-  await portal.getByText(`Order ${edition.code}-O-0001 sent.`, { exact: false }).waitFor();
+  await portal.getByRole("button", { name: "Review and Submit" }).click();
+  await portal.getByRole("button", { name: "Submit Order" }).click();
+  await portal.getByText(`Order ${edition.code}-O-0001 submitted.`, { exact: false }).waitFor();
   check(true, "portal: returned order changed and sent again with the same number");
 
   // Sign the contract through the portal API, then approve in the desk.

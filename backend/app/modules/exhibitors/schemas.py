@@ -315,6 +315,7 @@ class PaymentOut(BaseModel):
     reference: str | None
     status: str
     has_proof: bool = False
+    proof_names: list[str] = []  # file names, in upload order; download by 1-based number
     reviewed_by: uuid.UUID | None
     reviewed_at: datetime | None
     notes: str | None
@@ -433,9 +434,6 @@ class PortalExhibitorOut(BaseModel):
     edition_name: str
     edition_start_date: date
     edition_end_date: date
-    # The show the edition belongs to: the portal takes its colours and logo from it.
-    exhibition_code: str
-    exhibition_name: str
     venue_name: str | None = None
     company_name: str
     booth_code: str | None

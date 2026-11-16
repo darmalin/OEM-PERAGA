@@ -39,8 +39,8 @@ stage of the lead, not another table or menu.
 - Exhibitor Leads: list (search, stage and owner filters), board by stage (drag a card or use its
   Move to menu; Lost and Convert open their pages, as does leaving Opportunity with a booth), new lead, detail with Details,
   Contract, Payments, and Activity tabs. Actions are pages: move stage, choose booth, Convert
-  (shows the one-time invitation link), new invitation link, record payment, payment proof and
-  Verify / Reject.
+  (shows the one-time invitation link), new invitation link, record payment, payment proof (up to
+  five files per payment) and Verify / Reject.
 - Lead Owner: users with edition-wide access assign or reassign a lead (or leave it unassigned)
   to an active user who can edit exhibitor leads in that edition (`GET /exhibitor-leads/owners`);
   the list filters by owner. Sales with Own Leads access own what they create.
@@ -55,11 +55,10 @@ stage of the lead, not another table or menu.
   date), Contract & Payments (contract details form, signed PDF upload and download, payment
   status), and Order Forms.
 - Look of the old PERAGA Online Exhibitor Manual (owner request 2026-11-15): white menu bar with the
-  show's logo, page titles on a white band, white cards with grey title bars, near-black table
-  heads and footer, Plus Jakarta Sans. Each show has its colour, matched on the exhibition code or
-  name: INATEX red `#b80f0a` (also the default), Indo Intertex green (`#067a44`, the old `#078a4d`
-  darkened for contrast). Logos and the INATEX banner are files in
-  `frontend/apps/exhibitor/public/brand/`.
+  PERAGA Expo logo, page titles on a white band, white cards with grey title bars, near-black table
+  heads and footer, Plus Jakarta Sans, PERAGA red `#b80f0a` on actions. The portal carries PERAGA
+  Expo branding only, for every show (owner, 2026-11-15: no show logos or colours). The sign-in
+  background is a free photo (Unsplash License) in `frontend/apps/exhibitor/public/brand/`.
 - Own cookie (`ems_portal_session`) and Redis session namespace; staff and portal sessions never
   open each other's API.
 - Forgotten password: staff make a **password reset link** from the lead (same page as a new
@@ -87,9 +86,6 @@ stage of the lead, not another table or menu.
 
 ## Known gaps
 
-- The INATEX banner is a fixed image with the show's dates and venue printed on it; replace
-  `public/brand/inatex-banner.jpg` when they change. A show without a banner gets a coloured band
-  with its name and dates from the edition.
 
 - Edition remarks and exhibitor dates (price periods, Order Expired, Catalog Expired) are still
   display only (FEATURES/02, W13).

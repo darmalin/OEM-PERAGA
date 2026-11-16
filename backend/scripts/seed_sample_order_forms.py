@@ -10,7 +10,7 @@ apply. Safe to run again: a form number already in the edition is kept and only 
 catalog items are added; choices are set only on a form that has none yet.
 
     EMS_URL=http://localhost:8000 EMS_EMAIL=... EMS_PASSWORD=... \
-        python -m scripts.seed_sample_order_forms --edition INATEX2027
+        python -m scripts.seed_sample_order_forms --edition PERAGA2027
 
 Options: --draft keeps new forms unpublished; --images also copies each item's picture from the
 old portal (peragaexpo.com); --dry-run only prints what would be added.
@@ -219,7 +219,6 @@ FORMS: list[dict[str, Any]] = [
         "title": "Electrical Fittings & Supplies",
         "group": 2,
         "has_catalog": True,
-        "allow_custom_items": True,
         "attachment_purposes": ["FITTING_LOCATION"],
         "instructions": (
             "Mark where each fitting goes on your booth layout and attach it.\n\n"
@@ -462,7 +461,6 @@ FORMS: list[dict[str, Any]] = [
         "title": "Compressed Air",
         "group": 2,
         "has_catalog": True,
-        "allow_custom_items": True,
         "attachment_purposes": ["FITTING_LOCATION"],
         "instructions": (
             "For each connection, write the pipe size (3/4 inch inner diameter), working "
@@ -521,7 +519,6 @@ FORMS: list[dict[str, Any]] = [
         "title": "Water & Waste",
         "group": 2,
         "has_catalog": True,
-        "allow_custom_items": True,
         "attachment_purposes": ["FITTING_LOCATION"],
         "instructions": (
             "Write the water in and water out sizes (inches) in the remarks and attach your "
@@ -537,7 +534,6 @@ FORMS: list[dict[str, Any]] = [
         "title": "Furniture & Display Rental",
         "group": 2,
         "has_catalog": True,
-        "allow_custom_items": True,
         "instructions": "If you need more furniture, order it below.\n\n" + PAYMENT_NOTE,
         "items": [
             (
@@ -938,7 +934,6 @@ def seed(desk: Desk, edition_code: str, publish: bool, images: bool, dry_run: bo
                 "title": spec["title"],
                 "details_type": spec.get("details_type"),
                 "has_catalog": spec.get("has_catalog", False),
-                "allow_custom_items": spec.get("allow_custom_items", False),
                 "attachment_purposes": spec.get("attachment_purposes", []),
                 "deadline_on": due[spec["group"]].isoformat(),
                 "instructions": spec["instructions"],
@@ -957,6 +952,14 @@ def seed(desk: Desk, edition_code: str, publish: bool, images: bool, dry_run: bo
             print(f"{code} {spec['title']}: already there, adding what is missing")
             if dry_run:
                 continue
+            # The organizer takes requests outside the list in the remarks, not as extra items.
+            if form.get("allow_custom_items"):
+                form = desk.send(
+                    "PATCH",
+                    f"/order-forms/{form['id']}",
+                    body={"allow_custom_items": False, "version": form["version"]},
+                )
+                print("  extra items turned off")
 
         fid = form["id"]
         have = {
@@ -1035,7 +1038,7 @@ def upload_picture(desk: Desk, form_id: str, item_id: str, picture: str) -> None
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--edition", required=True, help="edition code, e.g. INATEX2027")
+    parser.add_argument("--edition", required=True, help="edition code, e.g. PERAGA2027")
     parser.add_argument("--draft", action="store_true", help="keep new forms unpublished")
     parser.add_argument(
         "--images", action="store_true", help="copy item pictures from the old portal"

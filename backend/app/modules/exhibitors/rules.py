@@ -24,6 +24,15 @@ class PaymentStatus(StrEnum):
     REJECTED = "REJECTED"
 
 
+# Transfer slips and receipts per payment: a payment paid in parts can have one slip per transfer.
+PROOF_MAX_FILES = 5
+
+
+def proof_name(file_name: str) -> str:
+    """The uploaded name, without any folder the browser sent, as staff see it in the list."""
+    return file_name.replace("\\", "/").rsplit("/", 1)[-1].strip()[:200] or "proof"
+
+
 class PaymentMethod(StrEnum):
     BANK_TRANSFER = "BANK_TRANSFER"
     CASH = "CASH"
