@@ -25,6 +25,8 @@ COPY --from=deps /opt/venv /opt/venv
 COPY app ./app
 COPY migrations ./migrations
 COPY alembic.ini ./
+# Operator scripts (reset_master_data), run with: docker exec <api> python -m scripts.<name>
+COPY scripts ./scripts
 USER app
 EXPOSE 8000
 CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "-w", "4", "--forwarded-allow-ips", "*"]
