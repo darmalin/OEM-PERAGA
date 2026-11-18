@@ -2,7 +2,8 @@
 
 Two emails per submit, through the shared queue (mail.service.queue_email, mail.tasks.deliver):
 the exhibitor who submitted gets "Order received" with the full order; the sales person who owns
-the lead gets a short alert with a link to the desk. A lead without an owner sends no alert.
+the lead and the team inbox in EMS_ORDER_ALERT_EMAIL get a short alert with a link to the desk,
+one email per address.
 Both are rendered at send time from the order as it is then, so a retry never mails stale data.
 """
 
@@ -42,16 +43,27 @@ async def queue_submitted(
             payload={"order_id": str(order.id)},
             edition_id=order.edition_id,
         )
-    owner = await session.get(User, lead.lead_owner_id) if lead.lead_owner_id else None
-    if owner is not None and owner.is_active:
+    for recipient in await alert_recipients(session, lead):
         await mail_service.queue_email(
             session,
             kind=EmailKind.ORDER_ALERT,
-            recipient=owner.email,
+            recipient=recipient,
             task=TASK,
             payload={"order_id": str(order.id)},
             edition_id=order.edition_id,
         )
+
+
+async def alert_recipients(session: AsyncSession, lead: ExhibitorLead) -> list[str]:
+    """The active lead owner, then the team inbox addresses, without repeats."""
+    owner = await session.get(User, lead.lead_owner_id) if lead.lead_owner_id else None
+    candidates = [owner.email] if owner is not None and owner.is_active else []
+    candidates += get_settings().order_alert_email.split(",")
+    found: list[str] = []
+    for address in (a.strip() for a in candidates):
+        if address and address.lower() not in (f.lower() for f in found):
+            found.append(address)
+    return found
 
 
 @dataclass(frozen=True)

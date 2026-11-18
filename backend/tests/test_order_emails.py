@@ -3,8 +3,10 @@
 import uuid
 from typing import Any
 
+import pytest
 from sqlalchemy import text
 
+from app.core.config import get_settings
 from app.core.db import get_sessionmaker
 from app.core.email import MemorySender, get_email_sender
 from app.modules.mail.rules import EmailKind
@@ -78,3 +80,35 @@ async def test_no_owner_no_alert() -> None:
     order = (await s.save(order, lines=[s.line("E-001", 1)])).json()
     assert (await s.submit(order)).status_code == 200
     assert [k for (k,) in await rows("SELECT kind FROM email_jobs")] == [EmailKind.ORDER_RECEIVED]
+
+
+async def test_team_inbox_gets_every_alert(monkeypatch: pytest.MonkeyPatch) -> None:
+    s = await setup("team@example.test")
+    sales, _ = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", s.edition.id))
+    async with get_sessionmaker()() as session:
+        await session.execute(
+            text("UPDATE exhibitor_leads SET lead_owner_id = :u WHERE id = :l"),
+            {"u": sales.id, "l": uuid.UUID(s.lead_id)},
+        )
+        await session.commit()
+    # The owner listed again (other case) is mailed once; blanks are skipped.
+    monkeypatch.setattr(
+        get_settings(), "order_alert_email", f" ops@example.test, ,{sales.email.upper()}"
+    )
+    order = await s.draft()
+    order = (await s.save(order, lines=[s.line("E-001", 1)])).json()
+    assert (await s.submit(order)).status_code == 200
+    alerts = await rows("SELECT recipient FROM email_jobs WHERE kind = 'ORDER_ALERT'")
+    assert sorted(r for (r,) in alerts) == sorted([sales.email, "ops@example.test"])
+
+
+async def test_team_inbox_alerted_without_an_owner(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(get_settings(), "order_alert_email", "ops@example.test")
+    s = await setup("noowner@example.test")
+    order = await s.draft()
+    order = (await s.save(order, lines=[s.line("E-001", 1)])).json()
+    assert (await s.submit(order)).status_code == 200
+    assert await rows("SELECT kind, recipient FROM email_jobs ORDER BY kind") == [
+        (EmailKind.ORDER_ALERT, "ops@example.test"),
+        (EmailKind.ORDER_RECEIVED, "noowner@example.test"),
+    ]

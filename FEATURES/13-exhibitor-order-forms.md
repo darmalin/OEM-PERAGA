@@ -52,8 +52,8 @@ extra items, a code-defined question set, attachments, or a mix.
   quantities come off the total without a "free" label.
 - Badges & Visa: an Indonesian company gives a badge count, an overseas company lists each holder;
   a visa letter lists each person and needs a passport copy per person before submitting.
-- Submitting emails the exhibitor ("Order received") and the lead's owner (an alert with the desk
-  link), through the shared email queue (`orders/emails.py`, `orders/tasks.py`).
+- Submitting emails the exhibitor ("Order received"), and the lead's owner plus the team inbox in
+  `EMS_ORDER_ALERT_EMAIL` (an alert with the desk link), through the shared email queue (`orders/emails.py`, `orders/tasks.py`).
 
 ## Rules worth knowing
 

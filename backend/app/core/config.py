@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # One WhatsApp number for exhibitor questions, every show (owner request 2026-11-18), in
     # international form without "+", e.g. 6281234567890. Empty hides the portal's WhatsApp button.
     portal_whatsapp: str = ""
+    # Team inbox that gets every order alert too, besides the lead's owner (owner, 2026-11-18), so
+    # a lead without an owner is still seen. Comma-separated for several. Empty: owner only.
+    order_alert_email: str = ""
     campaign_submissions_per_ip_per_hour: int = 20
     campaign_submissions_per_link_per_hour: int = 1000
 

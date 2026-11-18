@@ -18,7 +18,8 @@ Customer feedback, group C (2026-11-18).
   and staff only). Signing in the portal needs the number and the card; staff uploading a signed
   copy do not. Desk: Tax ID Type and the card download on the Contract tab.
 - **Order emails**: submitting an order emails the exhibitor ("Order received" with the items,
-  total, and remarks) and the lead's owner (an alert with the desk link). No owner, no alert.
+  total, and remarks), and alerts the lead's owner and the team inbox in `EMS_ORDER_ALERT_EMAIL`
+  (an alert with the desk link, once per address).
   Sent through the shared email queue with the edition's email account.
 - Migration 0040: tax ID type and card columns, the `PASSPORT` purpose, and the two email kinds.
   Existing contracts with a tax ID are marked NPWP.
