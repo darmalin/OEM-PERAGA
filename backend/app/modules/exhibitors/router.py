@@ -249,6 +249,24 @@ async def contract_file(
     return _download(*await service.contract_file(session, ctx, lead_id))
 
 
+@router.get(
+    "/exhibitor-leads/{lead_id}/contract/tax-id-file",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "content": {PDF: {}, "image/jpeg": {}, "image/png": {}},
+            "description": "NPWP or KTP card",
+        }
+    },
+)
+async def contract_tax_id_file(
+    lead_id: uuid.UUID,
+    session: Session,
+    ctx: AuthContext = Depends(require("exhibitor_lead.read")),
+) -> StreamingResponse:
+    return _download(*await service.staff_tax_id_file(session, ctx, lead_id))
+
+
 @router.get("/exhibitor-leads/{lead_id}/payments", response_model=PaymentsOut)
 async def list_payments(
     lead_id: uuid.UUID,
@@ -481,6 +499,42 @@ async def portal_contract_file(
 ) -> StreamingResponse:
     lead = await portal.own_exhibitor(session, ctx, lead_id)
     return _download(*await service.signed_copy(session, lead))
+
+
+@portal_router.post("/exhibitors/{lead_id}/contract/tax-id-file", response_model=ContractOut)
+async def portal_attach_tax_id_file(
+    lead_id: uuid.UUID,
+    session: Session,
+    file: Annotated[UploadFile, File()],
+    version: Annotated[int, Form()],
+    ctx: PortalContext = Depends(portal_account),
+) -> ContractOut:
+    return await service.attach_tax_id_file(
+        session,
+        await portal.own_exhibitor(session, ctx, lead_id),
+        file_name=file.filename or "card",
+        content_type=file.content_type,
+        data=await _read_limited(file),
+        version=version,
+        portal_account_id=ctx.account_id,
+    )
+
+
+@portal_router.get(
+    "/exhibitors/{lead_id}/contract/tax-id-file",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "content": {PDF: {}, "image/jpeg": {}, "image/png": {}},
+            "description": "NPWP or KTP card",
+        }
+    },
+)
+async def portal_tax_id_file(
+    lead_id: uuid.UUID, session: Session, ctx: PortalContext = Depends(portal_account)
+) -> StreamingResponse:
+    lead = await portal.own_exhibitor(session, ctx, lead_id)
+    return _download(*await service.tax_id_file(session, lead))
 
 
 @portal_router.get("/exhibitors/{lead_id}/payments", response_model=PortalPaymentsOut)

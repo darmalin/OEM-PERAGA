@@ -8,6 +8,9 @@ class EmailKind(StrEnum):
     PASSWORD_RESET = "PASSWORD_RESET"  # noqa: S105 - an email kind, not a secret
     FOLLOWUP_REMINDER = "FOLLOWUP_REMINDER"
     TEST = "TEST"
+    # An exhibitor submitted an order: the exhibitor's copy, and the alert to the lead's owner.
+    ORDER_RECEIVED = "ORDER_RECEIVED"
+    ORDER_ALERT = "ORDER_ALERT"
 
 
 # Emails about the system itself go through the default account, never an edition's.

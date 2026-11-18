@@ -1,9 +1,9 @@
 import { api, ApiError, call, setCsrfToken } from "@ems/api";
 import { cn } from "@ems/ui/cn";
-import { LayoutGrid, LogOut, Menu, UserRound, X } from "lucide-react";
+import { LayoutGrid, LogOut, Menu, MessageCircle, UserRound, X } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
-import { type ExhibitorRecord, exhibitorRouteOf, href, type Me, messageOf, navigate, PERAGA_LOGO, useRoute } from "./lib";
+import { type ExhibitorRecord, exhibitorRouteOf, href, type Me, messageOf, navigate, PERAGA_LOGO, useRoute, whatsappLink } from "./lib";
 import { AcceptInvite } from "./pages/accept-invite";
 import { ContractPage, ExhibitorPage } from "./pages/exhibitor";
 import { Home } from "./pages/home";
@@ -79,6 +79,9 @@ export function App() {
         onSignOut={() => void signOut()}
       />
       <main className="flex-1">{body}</main>
+      {session.kind === "in" && session.me.whatsapp ? (
+        <WhatsApp number={session.me.whatsapp} record={record} formCode={target && "code" in target ? target.code : undefined} />
+      ) : null}
       <footer className="bg-secondary text-white">
         <div className="mx-auto max-w-[1280px] px-6 max-sm:px-4">
           <p className="py-8 text-center text-[17px]">PERAGA Expo · Online Exhibitor Manual</p>
@@ -193,6 +196,20 @@ function ProfileMenu({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
 
 function MenuLink({ onClick, className, children }: { onClick: () => void; className: string; children: ReactNode }) {
   return <button type="button" role="menuitem" onClick={onClick} className={className}>{children}</button>;
+}
+
+/**
+ * Questions while filling the forms go to the organizer on WhatsApp (owner request 2026-11-18).
+ * Bottom left, so it never covers the sticky Save / Review bar's buttons on the right.
+ */
+function WhatsApp({ number, record, formCode }: { number: string; record: ExhibitorRecord | null; formCode: string | undefined }) {
+  return (
+    <a href={whatsappLink(number, record, formCode)} target="_blank" rel="noopener noreferrer"
+      className="fixed bottom-20 left-4 z-20 inline-flex h-12 items-center gap-2 rounded-full bg-[var(--whatsapp)] px-4 text-[15px] font-semibold text-white shadow-[0_6px_20px_rgb(0_0_0/0.2)] hover:bg-[var(--whatsapp-hover)] max-sm:size-12 max-sm:justify-center max-sm:px-0">
+      <MessageCircle className="size-5" aria-hidden />
+      <span className="max-sm:sr-only">Ask on WhatsApp</span>
+    </a>
+  );
 }
 
 function NotFound() {

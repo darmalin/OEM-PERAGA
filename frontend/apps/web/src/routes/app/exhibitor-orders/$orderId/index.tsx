@@ -24,6 +24,7 @@ const PURPOSES: Record<string, string> = {
   PRODUCT_IMAGE: "Product image",
   FITTING_LOCATION: "Fitting location",
   VISA_LIST: "Visa list",
+  PASSPORT: "Passport copy",
   OTHER: "Other file",
 };
 

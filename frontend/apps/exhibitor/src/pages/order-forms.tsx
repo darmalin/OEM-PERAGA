@@ -19,6 +19,7 @@ const PURPOSES: Record<Purpose, { label: string; accept: string; help: string }>
   PRODUCT_IMAGE: { label: "Product Images", accept: ".jpg,.jpeg,.png,image/jpeg,image/png", help: "JPG or PNG, up to 10 MB each." },
   FITTING_LOCATION: { label: "Fitting Location", accept: ".pdf,.jpg,.jpeg,.png", help: "Your booth layout with the points marked. PDF, JPG, or PNG, up to 10 MB." },
   VISA_LIST: { label: "Visa List", accept: ".xlsx,.pdf", help: "Excel or PDF, up to 10 MB." },
+  PASSPORT: { label: "Passport Copies", accept: ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png", help: "One copy per person who needs the visa letter: PDF, JPG or PNG, up to 10 MB each." },
   OTHER: { label: "Other File", accept: ".pdf,.xlsx,.jpg,.jpeg,.png", help: "PDF, Excel, JPG, or PNG, up to 10 MB." },
 };
 
@@ -462,6 +463,10 @@ function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadI
     await onReload();
   });
 
+  // Passport copies are asked only once the visa letter is ticked; files already there stay shown.
+  const visa = draft.details.needs_visa_letter === true || (open?.files ?? []).some((f) => f.purpose === "PASSPORT");
+  const purposes = d.attachment_purposes.filter((p) => p !== "PASSPORT" || visa);
+
   const sections = useMemo(() => {
     const groups = new Map<string, Item[]>();
     for (const i of d.items) groups.set(i.section ?? "", [...(groups.get(i.section ?? "") ?? []), i]);
@@ -578,10 +583,10 @@ function FormEditor({ leadId, detail: d, forms, onReload, onSignedOut }: { leadI
           </Panel>
         ) : null}
 
-        {d.attachment_purposes.length ? (
+        {purposes.length ? (
           <Panel title="Attachments">
             <div className="flex flex-col gap-5">
-              {d.attachment_purposes.map((purpose) => (
+              {purposes.map((purpose) => (
                 <Attachment key={purpose} purpose={purpose} files={(open?.files ?? []).filter((f) => f.purpose === purpose)} editable={editable} busy={busy === purpose} error={busy === null ? errors.file ?? errors.purpose : undefined}
                   onUpload={(file) => { const f = new FormData(); f.append("file", file); f.append("purpose", purpose); void uploadTo(purpose, "/files", f); }}
                   onRemove={(fileId) => run(`remove-${fileId}`, async () => {

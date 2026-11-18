@@ -28,6 +28,7 @@ from app.modules.exhibitors.rules import (
     PaymentMethod,
     PaymentStatus,
     SalesStage,
+    TaxIdType,
 )
 
 MONEY = Numeric(14, 2)
@@ -212,6 +213,10 @@ class ExhibitorContract(UUIDPk, Timestamps, Versioned, Base):
         ),
         Index("ix_exhibitor_contracts_edition_status", "edition_id", "status"),
         CheckConstraint(_in("status", list(ContractStatus)), name="status_valid"),
+        CheckConstraint(
+            "tax_id_type IS NULL OR " + _in("tax_id_type", list(TaxIdType)),
+            name="tax_id_type_valid",
+        ),
         CheckConstraint("booth_price >= 0", name="booth_price_not_negative"),
         CheckConstraint(
             "discount_amount >= 0 AND discount_amount <= booth_price", name="discount_valid"
@@ -234,7 +239,11 @@ class ExhibitorContract(UUIDPk, Timestamps, Versioned, Base):
     contract_number: Mapped[str | None] = mapped_column(String(50))
     pic_name: Mapped[str | None] = mapped_column(String(200))
     company_address: Mapped[str | None] = mapped_column(Text)
-    tax_id: Mapped[str | None] = mapped_column(String(30))  # NPWP
+    tax_id: Mapped[str | None] = mapped_column(String(30))  # number of the tax_id_type card
+    # NPWP, or KTP when the company has none, with a photo or scan of the card (migration 0040).
+    tax_id_type: Mapped[str | None] = mapped_column(String(4))
+    tax_id_file_key: Mapped[str | None] = mapped_column(String(500))
+    tax_id_file_name: Mapped[str | None] = mapped_column(String(255))
     # Copied from the booth when the contract is created; later booth price edits do not apply.
     booth_price: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     discount_amount: Mapped[Decimal] = mapped_column(MONEY, nullable=False, default=Decimal(0))

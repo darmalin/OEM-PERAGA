@@ -27,7 +27,8 @@ async def test_reopen_and_sign_again(storage: MemoryStorage) -> None:
     edition = await make_edition()
     admin = await admin_for(edition)
     portal, lead_id = await signed(admin, edition)
-    [(bucket, old_key)] = list(storage.objects)
+    # The signed PDF; the other object is the NPWP card.
+    [(bucket, old_key)] = [k for k in storage.objects if k[1].endswith(".pdf")]
 
     r = await reopen(admin, lead_id, "  Signed the 2026 draft by mistake  ")
     assert r.status_code == 200, r.text
@@ -47,7 +48,7 @@ async def test_reopen_and_sign_again(storage: MemoryStorage) -> None:
     assert r.status_code == 200, r.text
     r = await upload(portal, url, r.json()["version"], data=PDF + b"% right one\n")
     assert r.json()["status"] == "SIGNED"
-    assert len(storage.objects) == 2 and (bucket, old_key) in storage.objects  # old file kept
+    assert len(storage.objects) == 3 and (bucket, old_key) in storage.objects  # old file kept
 
     async with get_sessionmaker()() as session:
         entry = await session.scalar(select(AuditLog).where(AuditLog.action == "reopen"))

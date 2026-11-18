@@ -29,7 +29,7 @@ const FIELD_ORDER: Record<DetailsType, string[]> = {
   stand_service: ["service", "contractor", "official_contractor", "own_contractor"],
   exhibit_details: ["items", "sale_and_operation", "purchased"],
   freight: ["uses_official", "official_forwarder", "non_official", "shipments"],
-  badges_visa: ["company_type", "badges", "vip_needed", "vip_badges", "needs_visa_letter"],
+  badges_visa: ["company_type", "badge_count", "badges", "vip_needed", "vip_badges", "needs_visa_letter", "visa_applicants"],
   seminar: ["topic", "date", "time", "speakers"],
   parking: ["plates"],
 };
@@ -41,6 +41,7 @@ const KEY_LABELS: Record<string, string> = {
   sale_and_operation: "The exhibits are", uses_official: "Official forwarder", official_forwarder: "Forwarder",
   non_official: "Own forwarder", company_type: "Company type", badges: "Exhibitor badges", vip_needed: "VIP badges",
   vip_badges: "VIP guests", needs_visa_letter: "Visa invitation letter", plates: "Plate numbers",
+  badge_count: "Number of badges", visa_applicants: "Visa letter for",
 };
 
 const VALUE_LABELS: Record<string, string> = {
@@ -68,7 +69,7 @@ export function answerRows(type: DetailsType, answers: Answers): [string, string
   return keys.map((k) => [KEY_LABELS[k] ?? k.replaceAll("_", " ").replace(/^\w/, (c) => c.toUpperCase()), plain(answers[k])]);
 }
 
-const COLUMN_ORDER = ["quantity", "full_name", "name", "company", "description", "designation", "gender", "country", "title_of_speech", "dimension", "length_m", "width_m", "height_m", "weight_kg"];
+const COLUMN_ORDER = ["quantity", "company", "full_name", "name", "description", "designation", "gender", "nationality", "passport_number", "passport_expiry", "country", "title_of_speech", "dimension", "length_m", "width_m", "height_m", "weight_kg"];
 
 function orderedKeys(keys: string[], order: string[]): string[] {
   return [...order.filter((k) => keys.includes(k)), ...keys.filter((k) => !order.includes(k))];
@@ -187,7 +188,7 @@ function Multi({ ctx, path, label, kind, required }: { ctx: Ctx; path: string; l
 interface Column {
   key: string;
   label: string;
-  kind?: "text" | "number" | "gender";
+  kind?: "text" | "number" | "gender" | "date";
   width?: string;
 }
 
@@ -211,7 +212,7 @@ function Rows({ ctx, path, label, columns, max, add, required }: { ctx: Ctx; pat
                     <option value="">Not set</option><option value="MALE">Male</option><option value="FEMALE">Female</option>
                   </select>
                 ) : (
-                  <Input {...p} inputMode={c.kind === "number" ? "decimal" : undefined} value={v == null ? "" : String(v)} disabled={ctx.disabled}
+                  <Input {...p} type={c.kind === "date" ? "date" : "text"} inputMode={c.kind === "number" ? "decimal" : undefined} value={v == null ? "" : String(v)} disabled={ctx.disabled}
                     onChange={(e) => set(c.kind === "number" ? (e.target.value.trim() === "" ? undefined : Number(e.target.value.replace(",", "."))) : e.target.value)} />
                 )}
               </Field>
@@ -227,6 +228,21 @@ function Rows({ ctx, path, label, columns, max, add, required }: { ctx: Ctx; pat
         <div><Button type="button" variant="ghost" className="h-9" onClick={() => setRows([...rows, {}])}><Plus aria-hidden />{add}</Button></div>
       )}
     </div>
+  );
+}
+
+function Count({ ctx, path, label, max }: { ctx: Ctx; path: string; label: string; max: number }) {
+  const v = get(ctx.value, path) as number | undefined;
+  return (
+    <Field label={label} required error={error(ctx, path)}>
+      {(p) => (
+        <Input {...p} inputMode="numeric" className="max-w-[160px]" value={v == null ? "" : String(v)} disabled={ctx.disabled}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, "").slice(0, String(max).length);
+            ctx.onChange(setIn(ctx.value, path, digits === "" ? undefined : Number(digits)));
+          }} />
+      )}
+    </Field>
   );
 }
 
@@ -323,12 +339,23 @@ export function Questions({ type, ...ctx }: { type: DetailsType } & Ctx) {
       return (
         <Grid>
           <Choice ctx={ctx} path="company_type" label="Company type" required choices={[["LOCAL", "Indonesian company"], ["OVERSEAS", "Overseas company"]]} />
-          <Rows ctx={ctx} path="badges" label="Exhibitor badges" required max={50} add="Add Badge" columns={[{ key: "full_name", label: "Full name" }, { key: "gender", label: "Gender", kind: "gender" }, { key: "designation", label: "Designation" }]} />
+          {/* Indonesian companies give a count only; overseas companies list each holder (owner request 2026-11-18). */}
+          {get(ctx.value, "company_type") === "LOCAL" ? (
+            <Count ctx={ctx} path="badge_count" label="How many exhibitor badges do you need?" max={500} />
+          ) : get(ctx.value, "company_type") === "OVERSEAS" ? (
+            <Rows ctx={ctx} path="badges" label="Exhibitor badges" required max={50} add="Add Badge" columns={[{ key: "company", label: "Company" }, { key: "full_name", label: "Full name" }, { key: "designation", label: "Job title" }]} />
+          ) : null}
           <YesNo ctx={ctx} path="vip_needed" label="Do you need VIP badges for special guests?" />
           {get(ctx.value, "vip_needed") === true ? (
             <Rows ctx={ctx} path="vip_badges" label="VIP guests" required max={20} add="Add VIP Guest" columns={[{ key: "full_name", label: "Full name" }, { key: "designation", label: "Designation" }, { key: "company", label: "Company" }]} />
           ) : null}
           <YesNo ctx={ctx} path="needs_visa_letter" label="Do you need an invitation letter for a visa?" />
+          {get(ctx.value, "needs_visa_letter") === true ? (
+            <>
+              <Rows ctx={ctx} path="visa_applicants" label="People who need the visa letter" required max={50} add="Add Person" columns={[{ key: "full_name", label: "Full name (as in passport)" }, { key: "nationality", label: "Nationality" }, { key: "passport_number", label: "Passport number" }, { key: "passport_expiry", label: "Passport expiry", kind: "date" }, { key: "designation", label: "Position" }]} />
+              <p className="text-[13px] text-muted sm:col-span-2">Attach a passport copy for each person under <b>Attachments</b> below.</p>
+            </>
+          ) : null}
         </Grid>
       );
     case "seminar":

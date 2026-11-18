@@ -32,7 +32,7 @@ from app.modules.exhibitors.rules import (
     PaymentStatus,
     payment_state,
 )
-from app.modules.orders import details
+from app.modules.orders import details, emails
 from app.modules.orders import repository as repo
 from app.modules.orders.models import (
     ExhibitorFormWaiver,
@@ -46,6 +46,7 @@ from app.modules.orders.rules import (
     OPEN_STATUSES,
     AttachmentPurpose,
     DateRange,
+    DetailsType,
     OptionKind,
     OrderStatus,
     PricePeriod,
@@ -90,6 +91,7 @@ _PURPOSE_KINDS: dict[str, tuple[str, ...]] = {
     AttachmentPurpose.PRODUCT_IMAGE: _IMAGES,
     AttachmentPurpose.FITTING_LOCATION: (".pdf", *_IMAGES),
     AttachmentPurpose.VISA_LIST: (".xlsx", ".pdf"),
+    AttachmentPurpose.PASSPORT: (".pdf", *_IMAGES),
     AttachmentPurpose.OTHER: (".pdf", ".xlsx", *_IMAGES),
 }
 _SENT = frozenset({OrderStatus.SUBMITTED, OrderStatus.RETURNED, OrderStatus.APPROVED})
@@ -152,6 +154,14 @@ async def _own_order(
     if form is None or not form.is_published:
         raise NotFound("Order not found.")
     return order, form
+
+
+def purposes_of(form: OrderForm) -> list[AttachmentPurpose]:
+    """What the form takes: the purposes staff ticked, plus passport copies on Badges & Visa."""
+    purposes = [AttachmentPurpose(p) for p in form.attachment_purposes]
+    if form.details_type == DetailsType.BADGES_VISA and AttachmentPurpose.PASSPORT not in purposes:
+        purposes.append(AttachmentPurpose.PASSPORT)
+    return purposes
 
 
 def _require_open(order: ExhibitorOrder) -> None:
@@ -339,7 +349,7 @@ async def form_detail(
         has_catalog=form.has_catalog,
         allow_custom_items=form.allow_custom_items,
         details_type=form.details_type,
-        attachment_purposes=[AttachmentPurpose(p) for p in form.attachment_purposes],
+        attachment_purposes=purposes_of(form),
         deadline_on=form.deadline_on,
         closes_on=clock.closes_on(form),
         secondary_deadline_label=form.secondary_deadline_label,
@@ -605,6 +615,12 @@ async def submit_order(
     lines = list(await repo.order_lines(session, [order.id]))
     files = await repo.order_files(session, [order.id])
     incomplete = details.missing(form.details_type, order.details)
+    applicants = len(order.details.get("visa_applicants") or [])
+    passports = sum(1 for f in files if f.purpose == AttachmentPurpose.PASSPORT)
+    if applicants and passports < applicants:
+        incomplete["file"] = (
+            f"Attach a passport copy for each person: {passports} of {applicants} attached."
+        )
     if incomplete:
         raise ValidationFailed(
             "Some answers are missing.", code="DETAILS_INCOMPLETE", fields=incomplete
@@ -652,6 +668,7 @@ async def submit_order(
         await session.delete(waiver)
         await session.flush()
     await _record(session, order, "submit", account_id, before, lines=_lines_summary(lines))
+    await emails.queue_submitted(session, lead, order, account_id)
     return await _one_order_out(session, lead, form, order)
 
 
@@ -753,7 +770,7 @@ async def add_file(
     order, form = await _own_order(session, lead, order_id, for_update=True)
     check_version(order.version, version)
     _require_open(order)
-    if purpose not in form.attachment_purposes:
+    if purpose not in purposes_of(form):
         raise ValidationFailed(fields={"purpose": "This form does not take this attachment."})
     if len(await repo.order_files(session, [order.id])) >= MAX_FILES_PER_ORDER:
         raise ValidationFailed(

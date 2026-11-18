@@ -50,6 +50,10 @@ extra items, a code-defined question set, attachments, or a mix.
   questions, attachments, Notes / Remarks, "I don't require this form"; Save Draft, Review and
   Submit, Submit Order, Order More; submitted orders with their status and payments. Free
   quantities come off the total without a "free" label.
+- Badges & Visa: an Indonesian company gives a badge count, an overseas company lists each holder;
+  a visa letter lists each person and needs a passport copy per person before submitting.
+- Submitting emails the exhibitor ("Order received") and the lead's owner (an alert with the desk
+  link), through the shared email queue (`orders/emails.py`, `orders/tasks.py`).
 
 ## Rules worth knowing
 

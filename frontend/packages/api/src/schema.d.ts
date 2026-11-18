@@ -1309,6 +1309,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exhibitor-leads/{lead_id}/contract/tax-id-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contract Tax Id File */
+        get: operations["contract_tax_id_file_api_v1_exhibitor_leads__lead_id__contract_tax_id_file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exhibitor-leads/{lead_id}/payments": {
         parameters: {
             query?: never;
@@ -1512,6 +1529,24 @@ export interface paths {
         put?: never;
         /** Portal Sign Contract */
         post: operations["portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/exhibitors/{lead_id}/contract/tax-id-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Tax Id File */
+        get: operations["portal_tax_id_file_api_v1_portal_exhibitors__lead_id__contract_tax_id_file_get"];
+        put?: never;
+        /** Portal Attach Tax Id File */
+        post: operations["portal_attach_tax_id_file_api_v1_portal_exhibitors__lead_id__contract_tax_id_file_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3284,7 +3319,7 @@ export interface components {
          * AttachmentPurpose
          * @enum {string}
          */
-        AttachmentPurpose: "LOGO" | "PRODUCT_IMAGE" | "FITTING_LOCATION" | "VISA_LIST" | "OTHER";
+        AttachmentPurpose: "LOGO" | "PRODUCT_IMAGE" | "FITTING_LOCATION" | "VISA_LIST" | "PASSPORT" | "OTHER";
         /**
          * Attend
          * @description spec 4.2: fixed options. Labels: Attend, Attend Sourcing, Under Consideration,
@@ -3403,6 +3438,13 @@ export interface components {
             /** File */
             file: string;
             purpose: components["schemas"]["AttachmentPurpose"];
+            /** Version */
+            version: number;
+        };
+        /** Body_portal_attach_tax_id_file_api_v1_portal_exhibitors__lead_id__contract_tax_id_file_post */
+        Body_portal_attach_tax_id_file_api_v1_portal_exhibitors__lead_id__contract_tax_id_file_post: {
+            /** File */
+            file: string;
             /** Version */
             version: number;
         };
@@ -3936,6 +3978,7 @@ export interface components {
             pic_name?: string | null;
             /** Company Address */
             company_address?: string | null;
+            tax_id_type?: components["schemas"]["TaxIdType"] | null;
             /** Tax Id */
             tax_id?: string | null;
             /** Version */
@@ -3964,8 +4007,17 @@ export interface components {
             pic_name: string | null;
             /** Company Address */
             company_address: string | null;
+            /** Tax Id Type */
+            tax_id_type?: string | null;
             /** Tax Id */
             tax_id: string | null;
+            /**
+             * Has Tax Id File
+             * @default false
+             */
+            has_tax_id_file: boolean;
+            /** Tax Id File Name */
+            tax_id_file_name?: string | null;
             /** Booth Price */
             booth_price: string;
             /** Discount Amount */
@@ -4051,6 +4103,7 @@ export interface components {
             pic_name?: string | null;
             /** Company Address */
             company_address?: string | null;
+            tax_id_type?: components["schemas"]["TaxIdType"] | null;
             /** Tax Id */
             tax_id?: string | null;
             /** Version */
@@ -4957,7 +5010,7 @@ export interface components {
          * EmailKind
          * @enum {string}
          */
-        EmailKind: "QR_CONFIRMATION" | "PASSWORD_RESET" | "FOLLOWUP_REMINDER" | "TEST";
+        EmailKind: "QR_CONFIRMATION" | "PASSWORD_RESET" | "FOLLOWUP_REMINDER" | "TEST" | "ORDER_RECEIVED" | "ORDER_ALERT";
         /** EmailLogOut */
         EmailLogOut: {
             event: components["schemas"]["EmailEvent"];
@@ -7282,6 +7335,8 @@ export interface components {
             csrf_token: string;
             /** Exhibitors */
             exhibitors: components["schemas"]["PortalExhibitorOut"][];
+            /** Whatsapp */
+            whatsapp?: string | null;
         };
         /** PortalOrderFileOut */
         PortalOrderFileOut: {
@@ -8567,6 +8622,13 @@ export interface components {
             /** Results */
             results: components["schemas"]["ScanResultOut"][];
         };
+        /**
+         * TaxIdType
+         * @description The company's NPWP, or the signer's KTP when the company has none (owner request
+         *     2026-11-18). Both are 15 or 16 digits; KTP (NIK) is always 16.
+         * @enum {string}
+         */
+        TaxIdType: "NPWP" | "KTP";
         /** TeamIn */
         TeamIn: {
             /** Name */
@@ -12253,6 +12315,39 @@ export interface operations {
             };
         };
     };
+    contract_tax_id_file_api_v1_exhibitor_leads__lead_id__contract_tax_id_file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description NPWP or KTP card */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_payments_api_v1_exhibitor_leads__lead_id__payments_get: {
         parameters: {
             query?: never;
@@ -12773,6 +12868,74 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": components["schemas"]["Body_portal_sign_contract_api_v1_portal_exhibitors__lead_id__contract_signed_copy_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_tax_id_file_api_v1_portal_exhibitors__lead_id__contract_tax_id_file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description NPWP or KTP card */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_attach_tax_id_file_api_v1_portal_exhibitors__lead_id__contract_tax_id_file_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_portal_attach_tax_id_file_api_v1_portal_exhibitors__lead_id__contract_tax_id_file_post"];
             };
         };
         responses: {

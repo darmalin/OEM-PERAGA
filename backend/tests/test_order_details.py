@@ -50,10 +50,7 @@ COMPLETE: dict[DetailsType, dict[str, Any]] = {
         "sale_and_operation": "SALE_OPERATED",
     },
     DetailsType.FREIGHT: {"uses_official": True, "official_forwarder": "PT Example Logistics"},
-    DetailsType.BADGES_VISA: {
-        "company_type": "LOCAL",
-        "badges": [{"full_name": "Budi Santoso", "gender": "MALE"}],
-    },
+    DetailsType.BADGES_VISA: {"company_type": "LOCAL", "badge_count": 3},
     DetailsType.SEMINAR: {
         "topic": "Recycled yarns",
         "date": "15 April 2027",
@@ -126,6 +123,59 @@ def test_conditional_requirements() -> None:
     }
     badges = {**COMPLETE[DetailsType.BADGES_VISA], "vip_needed": True}
     assert "details.vip_badges" in details.missing(DetailsType.BADGES_VISA, badges)
+
+
+def test_badges_by_company_type() -> None:
+    """Indonesian companies give a count; overseas companies list each holder in full."""
+    kind = DetailsType.BADGES_VISA
+    holder = {"full_name": "John Lee", "designation": "Sales Manager", "company": "Lee Textiles"}
+    local = details.parse(kind, {"company_type": "LOCAL", "badges": [holder]}, OPTIONS)
+    assert local == {"company_type": "LOCAL"}  # names are not asked of a local company
+    assert details.missing(kind, local) == {"details.badge_count": "How many badges do you need?"}
+    with pytest.raises(ValidationFailed) as e:
+        details.parse(kind, {"company_type": "LOCAL", "badge_count": 0}, OPTIONS)
+    assert "details.badge_count" in e.value.fields
+
+    overseas = details.parse(
+        kind,
+        {"company_type": "OVERSEAS", "badge_count": 4, "badges": [{"full_name": "John Lee"}]},
+        OPTIONS,
+    )
+    assert "badge_count" not in overseas
+    assert details.missing(kind, overseas) == {
+        "details.badges.0.company": "Required.",
+        "details.badges.0.designation": "Required.",
+    }
+    full = details.parse(kind, {"company_type": "OVERSEAS", "badges": [holder]}, OPTIONS)
+    assert details.missing(kind, full) == {}
+
+
+def test_visa_applicants() -> None:
+    kind = DetailsType.BADGES_VISA
+    base = {"company_type": "LOCAL", "badge_count": 2, "needs_visa_letter": True}
+    answers = details.parse(kind, base, OPTIONS)
+    assert details.missing(kind, answers) == {
+        "details.visa_applicants": "Add the people who need the letter."
+    }
+    answers = details.parse(kind, {**base, "visa_applicants": [{"full_name": "Wei"}]}, OPTIONS)
+    assert set(details.missing(kind, answers)) == {
+        f"details.visa_applicants.0.{f}"
+        for f in ("nationality", "passport_number", "passport_expiry", "designation")
+    }
+    with pytest.raises(ValidationFailed) as e:
+        details.parse(
+            kind,
+            {**base, "visa_applicants": [{"full_name": "Wei", "passport_expiry": "12/2030"}]},
+            OPTIONS,
+        )
+    assert "details.visa_applicants.0.passport_expiry" in e.value.fields
+    # No letter, no applicants kept.
+    no = details.parse(
+        kind,
+        {**base, "needs_visa_letter": False, "visa_applicants": [{"full_name": "Wei"}]},
+        OPTIONS,
+    )
+    assert "visa_applicants" not in no
 
 
 def test_answers_keep_text_and_drop_blanks() -> None:
@@ -271,3 +321,49 @@ async def test_catalog_form_with_questions() -> None:
         await s.save(order, lines=[s.line("E-001", 2)], details={"plates": ["B 1 AB", "B 2 CD"]})
     ).json()
     assert (await s.submit(order)).json()["status"] == "SUBMITTED"
+
+
+PDF = b"%PDF-1.7\n%%EOF\n"
+APPLICANT = {
+    "full_name": "Wei Zhang",
+    "nationality": "China",
+    "passport_number": "E12345678",
+    "passport_expiry": "2030-05-01",
+    "designation": "Engineer",
+}
+
+
+async def test_visa_letter_needs_a_passport_copy_per_person(storage: Any) -> None:
+    s = await setup()
+    form = await question_form(s, "09", "badges_visa")
+    await publish(s, form)
+    assert "PASSPORT" in (await s.detail("09"))["attachment_purposes"]
+    order = await s.draft("09")
+    answers = {"company_type": "LOCAL", "badge_count": 2, "needs_visa_letter": True}
+    two = [APPLICANT, {**APPLICANT, "full_name": "Li Na", "passport_number": "E7654321"}]
+    order = (await s.save(order, details={**answers, "visa_applicants": two})).json()
+    r = await s.submit(order)
+    assert r.json()["error"]["fields"] == {
+        "file": "Attach a passport copy for each person: 0 of 2 attached."
+    }
+
+    files_url = s.url(f"/orders/{order['id']}/files")
+    for n in (1, 2):
+        r = await s.portal.post(
+            files_url,
+            data={"purpose": "PASSPORT", "version": str(order["version"])},
+            files={"file": (f"passport-{n}.pdf", PDF, "application/pdf")},
+        )
+        assert r.status_code == 200, r.text
+        order = r.json()
+    r = await s.submit(order)
+    assert r.status_code == 200, r.text
+
+    # Another form does not take passports.
+    other = await s.draft()
+    r = await s.portal.post(
+        s.url(f"/orders/{other['id']}/files"),
+        data={"purpose": "PASSPORT", "version": str(other["version"])},
+        files={"file": ("passport.pdf", PDF, "application/pdf")},
+    )
+    assert r.status_code == 422

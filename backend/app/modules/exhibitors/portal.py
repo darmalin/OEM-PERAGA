@@ -191,8 +191,13 @@ async def me(session: AsyncSession, account_id: uuid.UUID, csrf_token: str) -> P
                 ),
             )
         )
+    whatsapp = "".join(c for c in get_settings().portal_whatsapp if c.isdigit())
     return PortalMeOut(
-        account_id=account.id, email=account.email, csrf_token=csrf_token, exhibitors=exhibitors
+        account_id=account.id,
+        email=account.email,
+        csrf_token=csrf_token,
+        exhibitors=exhibitors,
+        whatsapp=whatsapp or None,
     )
 
 

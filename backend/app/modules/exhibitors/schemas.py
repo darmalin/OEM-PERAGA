@@ -6,7 +6,13 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.core.pagination import PageParams
-from app.modules.exhibitors.rules import PaymentMethod, PaymentState, PaymentStatus, SalesStage
+from app.modules.exhibitors.rules import (
+    PaymentMethod,
+    PaymentState,
+    PaymentStatus,
+    SalesStage,
+    TaxIdType,
+)
 
 
 class ExhibitorLeadFields(BaseModel):
@@ -226,6 +232,7 @@ class ContractFieldsIn(BaseModel):
 
     pic_name: str | None = Field(default=None, max_length=200)
     company_address: str | None = Field(default=None, max_length=2000)
+    tax_id_type: TaxIdType | None = None
     tax_id: str | None = Field(default=None, max_length=30)
     version: int
 
@@ -262,7 +269,10 @@ class ContractOut(BaseModel):
     contract_number: str | None
     pic_name: str | None
     company_address: str | None
+    tax_id_type: str | None = None
     tax_id: str | None
+    has_tax_id_file: bool = False
+    tax_id_file_name: str | None = None
     booth_price: Decimal
     discount_amount: Decimal
     vat_rate: Decimal = Decimal(0)
@@ -447,3 +457,4 @@ class PortalMeOut(BaseModel):
     email: str
     csrf_token: str
     exhibitors: list[PortalExhibitorOut]
+    whatsapp: str | None = None  # the organizer's WhatsApp number, digits only

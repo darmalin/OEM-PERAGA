@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { basePath, date, exhibitorIdOf, exhibitorRouteOf, formCounts, money, routeOf, timeLeft } from "./lib";
+import { basePath, date, type ExhibitorRecord, exhibitorIdOf, exhibitorRouteOf, formCounts, money, routeOf, timeLeft, whatsappLink } from "./lib";
 
 describe("portal routes", () => {
   it("works under /exhibitor and on its own host", () => {
@@ -52,5 +52,15 @@ describe("format", () => {
     expect(timeLeft("2027-02-20", now)).toBe("Today");
     expect(timeLeft("2027-02-19", now)).toBe("Past");
     expect(timeLeft(null, now)).toBe("");
+  });
+});
+
+describe("whatsapp link", () => {
+  it("says who asks and from which form", () => {
+    const record = { company_name: "PT Maju & Co", booth_code: "B12", edition_name: "PERAGA Expo 2027" } as ExhibitorRecord;
+    const url = new URL(whatsappLink("6281234567890", record, "04"));
+    expect(url.origin + url.pathname).toBe("https://wa.me/6281234567890");
+    expect(url.searchParams.get("text")).toBe("Hello PERAGA Expo, this is PT Maju & Co, booth B12 (PERAGA Expo 2027). I have a question about order form no. 4.");
+    expect(new URL(whatsappLink("62811", null)).searchParams.get("text")).toBe("Hello PERAGA Expo. I have a question.");
   });
 });

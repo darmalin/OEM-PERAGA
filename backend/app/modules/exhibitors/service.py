@@ -41,6 +41,7 @@ from app.modules.exhibitors.rules import (
     can_move,
     payment_state,
     proof_name,
+    tax_id_problem,
 )
 from app.modules.exhibitors.schemas import (
     BoothAssignIn,
@@ -651,7 +652,8 @@ async def update_booth(
 
 CONTRACT_ENTITY = "exhibitor_contract"
 CONTRACT_AUDIT_FIELDS = (
-    "contract_number", "pic_name", "company_address", "tax_id", "booth_price",
+    "contract_number", "pic_name", "company_address", "tax_id_type", "tax_id",
+    "tax_id_file_name", "booth_price",
     "discount_amount", "vat_amount", "total_amount", "currency", "status", "signed_at",
     "signed_file_name", "quotation_id",
 )  # fmt: skip
@@ -870,6 +872,10 @@ async def set_portal_account_active(
 PDF_MIME = "application/pdf"
 _CONTRACT_TEXT_FIELDS = ("pic_name", "company_address", "tax_id")
 _REQUIRED_TO_SIGN = ("pic_name", "company_address")
+# The exhibitor signs only with an ID on file; staff uploading a copy they got by email may not
+# have it yet (owner request 2026-11-18).
+_REQUIRED_TO_SIGN_IN_PORTAL = ("tax_id_type", "tax_id", "tax_id_file_key")
+_TAX_ID_KINDS = (".pdf", ".jpg", ".jpeg", ".png")
 
 
 async def _contract_of(
@@ -885,6 +891,7 @@ async def _contract_out(
     session: AsyncSession, lead: ExhibitorLead, contract: ExhibitorContract
 ) -> ContractOut:
     out = ContractOut.model_validate(contract)
+    out.has_tax_id_file = contract.tax_id_file_key is not None
     out.company_name = lead.company_name
     out.booth_code = await repo.booth_code(session, lead.booth_id)
     if contract.quotation_id is not None:
@@ -945,6 +952,12 @@ async def fill_contract(
     for key in _CONTRACT_TEXT_FIELDS:
         if key in changes:
             setattr(contract, key, clean_text(changes[key]))
+    if "tax_id_type" in changes:
+        contract.tax_id_type = changes["tax_id_type"]
+    if contract.tax_id and contract.tax_id_type:
+        problem = tax_id_problem(contract.tax_id_type, contract.tax_id)
+        if problem and ("tax_id" in changes or "tax_id_type" in changes):
+            raise ValidationFailed(fields={"tax_id": problem})
     if changes.get("booth_price") is not None:
         # Staff only (ContractUpdateIn); the lead keeps the same agreed price.
         contract.booth_price = changes["booth_price"]
@@ -1007,7 +1020,12 @@ async def sign_contract(
 ) -> ContractOut:
     """Store the signed PDF and mark the contract SIGNED. It is read-only afterwards."""
     contract = await _writable_draft(session, lead, version)
-    missing = {f: "Required before signing." for f in _REQUIRED_TO_SIGN if not getattr(contract, f)}
+    required = _REQUIRED_TO_SIGN + (_REQUIRED_TO_SIGN_IN_PORTAL if portal_account_id else ())
+    missing = {
+        ("tax_id_file" if f == "tax_id_file_key" else f): "Required before signing."
+        for f in required
+        if not getattr(contract, f)
+    }
     if missing:
         raise ValidationFailed(
             "Fill in the contract before uploading the signed copy.",
@@ -1029,6 +1047,57 @@ async def sign_contract(
     await session.refresh(contract)
     await _record_contract(session, contract, "sign", before, portal_account_id)
     return await _contract_out(session, lead, contract)
+
+
+async def attach_tax_id_file(
+    session: AsyncSession,
+    lead: ExhibitorLead,
+    *,
+    file_name: str,
+    content_type: str | None,
+    data: bytes,
+    version: int,
+    portal_account_id: uuid.UUID | None = None,
+) -> ContractOut:
+    """Photo or scan of the NPWP or KTP card (PDF, JPG, PNG); replaces an earlier one."""
+    contract = await _writable_draft(session, lead, version)
+    ext = _check_upload(file_name, content_type, data, _TAX_ID_KINDS)
+    key = new_object_key(ext)
+    await run_in_threadpool(
+        get_storage().put, get_settings().s3_bucket_contracts, key, data, _FILE_KINDS[ext][0]
+    )
+    before = audit.snapshot(contract, CONTRACT_AUDIT_FIELDS)
+    contract.tax_id_file_key = key
+    contract.tax_id_file_name = _display_name(file_name)
+    contract.updated_by = current_actor_id()
+    await session.flush()
+    await session.refresh(contract)
+    await _record_contract(session, contract, "attach_tax_id", before, portal_account_id)
+    return await _contract_out(session, lead, contract)
+
+
+async def tax_id_file(
+    session: AsyncSession, lead: ExhibitorLead
+) -> tuple[Iterator[bytes], str, str]:
+    """(chunks, download name, MIME) of the ID card. Private: the owner and staff only."""
+    contract = await _contract_of(session, lead)
+    if contract.tax_id_file_key is None:
+        raise NotFound("No NPWP or KTP card is attached.")
+    try:
+        chunks = await run_in_threadpool(
+            get_storage().stream, get_settings().s3_bucket_contracts, contract.tax_id_file_key
+        )
+    except FileNotFoundError as e:
+        raise NotFound("The card file is no longer available.") from e
+    ext = PurePosixPath(contract.tax_id_file_key).suffix
+    kind = (contract.tax_id_type or "tax-id").lower()
+    return chunks, f"{kind}-{lead.id}{ext}", _FILE_KINDS[ext][0]
+
+
+async def staff_tax_id_file(
+    session: AsyncSession, ctx: AuthContext, lead_id: uuid.UUID
+) -> tuple[Iterator[bytes], str, str]:
+    return await tax_id_file(session, await _staff_lead(session, ctx, lead_id))
 
 
 async def signed_copy(session: AsyncSession, lead: ExhibitorLead) -> tuple[Iterator[bytes], str]:

@@ -12,7 +12,7 @@ import { notifyError, notifySuccess } from "@/lib/notify";
 import { Button } from "@/ui/button";
 import { Field, FieldGrid, Section } from "@/ui/field";
 import { Indicator } from "@/ui/indicator";
-import { Input, Textarea } from "@/ui/input";
+import { Input, Select, Textarea } from "@/ui/input";
 import { Facts, FormActions } from "@/ui/page";
 import { EmptyState, ErrorState, FormSkeleton } from "@/ui/states";
 
@@ -21,16 +21,18 @@ import { type Contract, contractQuery, type ExhibitorLead } from "./queries";
 interface ContractValues {
   pic_name: string;
   company_address: string;
+  tax_id_type: "" | "NPWP" | "KTP";
   tax_id: string;
   booth_price: string;
   discount_amount: string;
 }
 
-const FIELDS = ["pic_name", "company_address", "tax_id", "booth_price", "discount_amount"] as const;
+const FIELDS = ["pic_name", "company_address", "tax_id_type", "tax_id", "booth_price", "discount_amount"] as const;
 
 const toValues = (c: Contract): ContractValues => ({
   pic_name: c.pic_name ?? "",
   company_address: c.company_address ?? "",
+  tax_id_type: (c.tax_id_type ?? "") as ContractValues["tax_id_type"],
   tax_id: c.tax_id ?? "",
   booth_price: c.booth_price,
   discount_amount: c.discount_amount,
@@ -90,7 +92,8 @@ function ContractBody({ contract: c, timezone }: { contract: Contract; timezone?
         </>
       ) : (
         <Section title="Contract Details">
-          <Facts items={[["PIC", c.pic_name], ["Address", c.company_address], ["Tax ID", c.tax_id]]} />
+          <Facts items={[["PIC", c.pic_name], ["Address", c.company_address], taxId(c)]} />
+          <TaxIdCard contract={c} />
         </Section>
       )}
     </>
@@ -106,7 +109,7 @@ function ContractForm({ contract: c }: { contract: Contract }) {
       const updated = await call(
         api.PATCH("/api/v1/exhibitor-leads/{lead_id}/contract", {
           params: { path: { lead_id: c.exhibitor_lead_id } },
-          body: { pic_name: v.pic_name, company_address: v.company_address, tax_id: v.tax_id, booth_price: v.booth_price, discount_amount: v.discount_amount || "0", version: c.version },
+          body: { pic_name: v.pic_name, company_address: v.company_address, tax_id_type: v.tax_id_type || null, tax_id: v.tax_id, booth_price: v.booth_price, discount_amount: v.discount_amount || "0", version: c.version },
         }),
       );
       queryClient.setQueryData(contractQuery(c.exhibitor_lead_id).queryKey, updated);
@@ -125,8 +128,17 @@ function ContractForm({ contract: c }: { contract: Contract }) {
           <Field label="PIC Name" help="Who signs for the exhibitor. Required before signing." error={errors.pic_name?.message}>
             {(p) => <Input {...p} {...form.register("pic_name")} />}
           </Field>
-          <Field label="Tax ID (NPWP)" error={errors.tax_id?.message}>
-            {(p) => <Input {...p} {...form.register("tax_id")} />}
+          <Field label="Tax ID Type" help="The company's NPWP, or the signer's KTP when the company has none." error={errors.tax_id_type?.message}>
+            {(p) => (
+              <Select {...p} {...form.register("tax_id_type")}>
+                <option value="">Not set</option>
+                <option value="NPWP">NPWP</option>
+                <option value="KTP">KTP</option>
+              </Select>
+            )}
+          </Field>
+          <Field label="Tax ID Number" error={errors.tax_id?.message}>
+            {(p) => <Input {...p} inputMode="numeric" {...form.register("tax_id")} />}
           </Field>
           <Field label="Booth Price" required help={`In ${c.currency}. The price agreed with the exhibitor; it can change until the contract is signed.`} error={errors.booth_price?.message}>
             {(p) => <Input {...p} inputMode="decimal" {...form.register("booth_price", { required: "Enter the booth price.", pattern: { value: /^\d+(\.\d{1,2})?$/, message: "Enter an amount, e.g. 45000000." } })} />}
@@ -138,6 +150,7 @@ function ContractForm({ contract: c }: { contract: Contract }) {
             {(p) => <Textarea {...p} {...form.register("company_address")} />}
           </Field>
         </FieldGrid>
+        <TaxIdCard contract={c} />
       </Section>
       <FormActions>
         <Button type="button" variant="ghost" disabled={!isDirty} onClick={() => form.reset(toValues(c))}>Discard Changes</Button>
@@ -188,6 +201,30 @@ function SignedUpload({ contract: c }: { contract: Contract }) {
   );
 }
 
+function taxId(c: Contract): [string, string | null] {
+  return [c.tax_id_type ? `Tax ID (${c.tax_id_type})` : "Tax ID", c.tax_id];
+}
+
+/** The NPWP or KTP card the exhibitor attached in the portal. Personal data: download only. */
+function TaxIdCard({ contract: c }: { contract: Contract }) {
+  if (!c.has_tax_id_file) return null;
+  const download = async () => {
+    try {
+      // The server names the file (ktp-<lead>.png), never the uploader's name.
+      await downloadFile(`/api/v1/exhibitor-leads/${c.exhibitor_lead_id}/contract/tax-id-file`);
+    } catch (e) {
+      notifyError(e);
+    }
+  };
+  return (
+    <div className="mt-4">
+      <Button type="button" onClick={() => void download()}>
+        <Download aria-hidden />Download {c.tax_id_type ?? "Tax ID"} Card
+      </Button>
+    </div>
+  );
+}
+
 function SignedCopy({ contract: c }: { contract: Contract }) {
   const me = useMe();
   const [busy, setBusy] = useState(false);
@@ -203,7 +240,8 @@ function SignedCopy({ contract: c }: { contract: Contract }) {
   };
   return (
     <Section title="Contract Details">
-      <Facts items={[["PIC", c.pic_name], ["Address", c.company_address], ["Tax ID", c.tax_id], ["Signed File", c.signed_file_name]]} />
+      <Facts items={[["PIC", c.pic_name], ["Address", c.company_address], taxId(c), ["Signed File", c.signed_file_name]]} />
+      <TaxIdCard contract={c} />
       <div className="mt-4 flex flex-wrap gap-2">
         <Button loading={busy} onClick={() => void download()}>
           <Download aria-hidden />Download Signed PDF

@@ -24,6 +24,7 @@ export const PURPOSES: Record<AttachmentPurpose, string> = {
   PRODUCT_IMAGE: "Product Images",
   FITTING_LOCATION: "Fitting Location",
   VISA_LIST: "Visa List",
+  PASSPORT: "Passport Copies",
   OTHER: "Other File",
 };
 

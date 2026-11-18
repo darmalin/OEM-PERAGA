@@ -131,8 +131,13 @@ try {
   await portal.locator("#mobile-menu").getByRole("link", { name: "Contract & Payments" }).click();
   await portal.getByLabel("PIC Name").fill("E2E Signer");
   await portal.getByLabel("Company Address").fill("Jl. E2E No. 1, Jakarta");
+  await portal.getByLabel("KTP of the signer", { exact: false }).check();
+  await portal.getByLabel("KTP Number (NIK)").fill("3171012345670001");
   await portal.getByRole("button", { name: "Save Details" }).click();
   await portal.getByText("Contract details saved.").waitFor();
+  await portal.getByLabel(/^Card photo or scan/).setInputFiles({ name: "ktp.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") });
+  await portal.getByRole("button", { name: "Upload Card" }).click();
+  await portal.getByText("KTP card received.").waitFor();
   await portal.getByLabel(/^Signed PDF/).setInputFiles({ name: "signed.pdf", mimeType: "application/pdf", buffer: PDF });
   await portal.getByRole("button", { name: "Upload Signed Contract" }).click();
   await portal.getByRole("button", { name: "Download Signed Contract" }).waitFor();

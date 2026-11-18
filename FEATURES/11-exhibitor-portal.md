@@ -30,7 +30,7 @@ stage of the lead, not another table or menu.
 | E6 | Production: own subdomain (`EMS_PORTAL_BASE_URL`). Staging and dev: `/exhibitor/` on the same domain. |
 | P1 | Payments can be installments; each is recorded and verified on its own. Tagging only, no gateway. |
 | P2 | Stage `LOST` with a reason; can be reopened to `LEAD`. |
-| P3 | Contract = fields (number, PIC, address, NPWP, price, discount, total) + signed PDF. |
+| P3 | Contract = fields (number, PIC, address, tax ID as NPWP or the signer's KTP with a card photo, price, discount, total) + signed PDF. Signing in the portal needs the tax ID and the card (2026-11-18). |
 | C1 | Contract numbers are automatic per edition: `<edition code>-C-0001`. |
 
 ## What is built
@@ -52,8 +52,10 @@ stage of the lead, not another table or menu.
 **Exhibitor portal** (`frontend/apps/exhibitor`)
 - Set Your Password (invitation link), Sign In, My Exhibitions, and per exhibition a menu with Home
   (banner, welcome with the next step, contract and payment status, order forms at a glance, show
-  date), Contract & Payments (contract details form, signed PDF upload and download, payment
-  status), and Order Forms.
+  date), Contract & Payments (contract details form with NPWP or KTP and the card photo, signed
+  PDF upload and download, payment status), and Order Forms.
+- Ask on WhatsApp button on every page (bottom left) to the one organizer number in
+  `EMS_PORTAL_WHATSAPP`, with a first message naming the company, booth, and open form.
 - Look of the old PERAGA Online Exhibitor Manual (owner request 2026-11-15): white menu bar with the
   PERAGA Expo logo, page titles on a white band, white cards with grey title bars, near-black table
   heads and footer, Plus Jakarta Sans, PERAGA red `#b80f0a` on actions. The portal carries PERAGA

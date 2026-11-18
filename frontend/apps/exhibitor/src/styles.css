@@ -36,6 +36,8 @@
   --focus: #b80f0a;
   --required: #b80f0a;
   --hero-muted: #fde2e1;
+  --whatsapp: #15803d; /* WhatsApp-like green; white text 5.0:1 */
+  --whatsapp-hover: #166534;
 
   --gray-fg: #4b5563;
   --gray-bg: #f3f4f6;

@@ -182,6 +182,8 @@
   <h3>Tampilan portal exhibitor</h3>
   <p>Portal exhibitor memakai logo dan warna PERAGA Expo untuk semua pameran. Di Home pameran, exhibitor melihat nama dan tanggal edisi dari halaman edisi, jadi pastikan <b>Name</b> dan tanggal edisi sudah benar.</p>
   <figure><img src="../exhibitor-guide/img/03-exhibition.png" alt="" /><figcaption>Home pameran di portal exhibitor</figcaption></figure>
+  <h3>Tombol WhatsApp di portal</h3>
+  <p>Setiap halaman portal punya tombol hijau <b>Ask on WhatsApp</b> di kiri bawah. Exhibitor bisa langsung bertanya ke satu nomor WhatsApp panitia. Pesan pertama otomatis berisi nama perusahaan, booth, edisi, dan nomor form yang sedang dibuka. Nomornya sama untuk semua pameran dan diatur oleh tim IT di server (<b>EMS_PORTAL_WHATSAPP</b>, format internasional tanpa +, misalnya 6281234567890). Bila belum diisi, tombol tidak tampil.</p>
 </section>
 
 <!-- ============================== 2 ============================== -->
@@ -295,10 +297,11 @@
   <div class="chapter-head"><div class="num">4</div><div><h2>Kontrak dan pembayaran booth</h2><p>Tab Contract dan Payments di halaman exhibitor.</p></div></div>
 
   <h3>Kontrak</h3>
-  <p>Exhibitor mengisi data PIC dan mengunggah kontrak yang sudah ditandatangani dari portal. Statusnya berubah menjadi <span class="chip c-green">Signed</span>. Di tab <b>Contract</b>, Anda bisa:</p>
+  <p>Exhibitor mengisi data PIC, alamat, dan Tax ID, mengunggah foto kartu NPWP (atau KTP penanda tangan bila perusahaan tidak punya NPWP), lalu mengunggah kontrak yang sudah ditandatangani dari portal. Di portal, kontrak baru bisa diunggah setelah nomor dan foto kartu ada. Statusnya berubah menjadi <span class="chip c-green">Signed</span>. Di tab <b>Contract</b>, Anda bisa:</p>
   <ul class="dots">
     <li>Mengubah <b>Booth Price</b>, <b>Discount</b>, dan data kontrak selama kontrak masih Draft. Harga yang disepakati di lead ikut berubah.</li>
     <li><span class="ui">Download Signed PDF</span>: mengunduh kontrak yang diunggah exhibitor.</li>
+    <li><span class="ui">Download NPWP Card</span> atau <span class="ui">Download KTP Card</span>: mengunduh foto kartu yang dilampirkan exhibitor. Ini data pribadi, jadi simpan hanya bila perlu. Kolom <b>Tax ID Type</b> dan <b>Tax ID Number</b> bisa Anda ubah selama kontrak masih Draft.</li>
     <li><span class="ui">Reopen Contract</span>: membuka kembali kontrak yang sudah Signed bila ada yang salah. Isi <b>Reason</b>; exhibitor bisa mengunggah ulang.</li>
   </ul>
   <figure><img src="img/c/14-contract.png" alt="" /><figcaption>Kontrak yang sudah ditandatangani</figcaption></figure>
@@ -389,7 +392,8 @@
   <figure><img src="img/c/26-orders.png" alt="" /><figcaption>Antrean pesanan</figcaption></figure>
 
   <h3>Halaman pesanan</h3>
-  <p>Klik nomor pesanan. Anda melihat item, jumlah, harga (sudah dikunci saat di-submit), jumlah gratis, jawaban, lampiran, dan catatan exhibitor.</p>
+  <p>Klik nomor pesanan. Anda melihat item, jumlah, harga (sudah dikunci saat di-submit), jumlah gratis, jawaban, lampiran, dan catatan exhibitor. Pada form <b>Badges &amp; Visa</b>, perusahaan Indonesia hanya mengisi jumlah badge, sedangkan perusahaan luar negeri mengisi nama, perusahaan, dan jabatan tiap orang. Bila butuh surat visa, ada daftar orangnya beserta <b>Passport copy</b> untuk masing-masing orang di lampiran.</p>
+  <div class="note tip"><b class="t">Email saat pesanan masuk</b>Setiap kali exhibitor submit, exhibitor menerima email konfirmasi berisi nomor pesanan, barang, total, dan catatannya. <b>Lead Owner</b> exhibitor itu (sales yang menanganinya) menerima email pemberitahuan dengan tautan ke halaman pesanan. Isi Lead Owner di halaman lead supaya pemberitahuan sampai. Email dikirim dari akun email edisi, atau akun default bila edisi belum punya.</div>
   <ol class="steps">
     <li>Untuk item tambahan, isi <b>Unit price</b> lalu klik <span class="ui">Set Price</span>. Total langsung diperbarui.</li>
     <li>Bila ada yang perlu diubah exhibitor, klik <span class="ui">Return to Exhibitor</span> dan tulis apa yang harus diubah. Pesanan kembali ke exhibitor dengan nomor yang sama.</li>

@@ -11,6 +11,26 @@ class SalesStage(StrEnum):
     LOST = "LOST"
 
 
+class TaxIdType(StrEnum):
+    """The company's NPWP, or the signer's KTP when the company has none (owner request
+    2026-11-18). Both are 15 or 16 digits; KTP (NIK) is always 16."""
+
+    NPWP = "NPWP"
+    KTP = "KTP"
+
+
+def tax_id_problem(kind: str, number: str) -> str | None:
+    """Why the number cannot be this kind of ID, or None. Dots, dashes and spaces are allowed."""
+    digits = "".join(c for c in number if c.isdigit())
+    if any(not (c.isdigit() or c in ".- ") for c in number):
+        return "Use digits only (dots and dashes are fine)."
+    if kind == TaxIdType.KTP and len(digits) != 16:
+        return "A KTP number (NIK) has 16 digits."
+    if kind == TaxIdType.NPWP and len(digits) not in (15, 16):
+        return "An NPWP has 15 or 16 digits."
+    return None
+
+
 class ContractStatus(StrEnum):
     DRAFT = "DRAFT"
     SIGNED = "SIGNED"

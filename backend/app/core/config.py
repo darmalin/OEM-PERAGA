@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     portal_invite_ttl_seconds: int = 7 * 24 * 60 * 60
     # Link that sets a new password on an account that already has one (known-gaps F6).
     portal_reset_ttl_seconds: int = 24 * 60 * 60
+    # One WhatsApp number for exhibitor questions, every show (owner request 2026-11-18), in
+    # international form without "+", e.g. 6281234567890. Empty hides the portal's WhatsApp button.
+    portal_whatsapp: str = ""
     campaign_submissions_per_ip_per_hour: int = 20
     campaign_submissions_per_link_per_hour: int = 1000
 

@@ -11,6 +11,7 @@ const OUT = process.env.OUT ?? "../../../docs/exhibitor-guide/img";
 const EMAIL = process.env.GUIDE_EMAIL ?? "budi@majutekstil.example";
 mkdirSync(OUT, { recursive: true });
 const PDF = Buffer.from("%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
 const day = (offset) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? "/snap/bin/chromium", headless: true });
@@ -49,7 +50,7 @@ try {
   csrf = (await staff("GET", "/auth/me")).csrf_token;
 
   let exhibition;
-  for (const code of ["PERAGA", "PERAGAX", "PERAGAXD", "PERAGAXE", "PERAGAXF", "PERAGAXG"]) {
+  for (const code of ["PERAGA", "PERAGAX", "PERAGAXD", "PERAGAXE", "PERAGAXF", "PERAGAXG", "PERAGAXH", "PERAGAXJ", "PERAGAXK", "PERAGAXL"]) {
     exhibition = await staff("POST", "/exhibitions", { code, name: "PERAGA Expo" }).catch(() => null);
     if (exhibition) break;
   }
@@ -105,10 +106,14 @@ try {
   await portal.getByRole("link", { name: "Contract & Payments" }).first().click();
   await portal.getByLabel("PIC Name").waitFor();
   await portal.getByLabel("PIC Name").fill("Budi Santoso");
-  await portal.getByLabel("Tax ID (NPWP)").fill("01.234.567.8-901.000");
   await portal.getByLabel("Company Address").fill("Jl. Industri Raya No. 12, Bandung, Jawa Barat 40225");
+  await portal.getByLabel("Company NPWP").check();
+  await portal.getByLabel("NPWP Number").fill("01.234.567.8-901.000");
   await portal.getByRole("button", { name: "Save Details" }).click();
-  await portal.getByText("Save the PIC name and company address first.").waitFor({ state: "detached" });
+  await portal.getByText("Contract details saved.").waitFor();
+  await portal.getByLabel(/^Card photo or scan/).setInputFiles({ name: "npwp-maju-tekstil.png", mimeType: "image/png", buffer: PNG });
+  await portal.getByRole("button", { name: "Upload Card" }).click();
+  await portal.getByText("NPWP card received.").waitFor();
   await settle();
   await part("04-contract-details", portal.locator("section#contract"));
   await portal.getByLabel("Signed PDF (up to 10 MB)").setInputFiles({ name: "contract-signed.pdf", mimeType: "application/pdf", buffer: PDF });
@@ -190,19 +195,32 @@ try {
   // --- 4. a questions form, and "I don't require this form" ----------------------------------
   await portal.goto(`${PORTAL}/e/${lead.id}/forms/09`);
   await portal.getByRole("heading", { name: /^Exhibitor Badges/ }).waitFor();
+  // Indonesian company: only the number of badges.
   await portal.getByLabel("Indonesian company").check();
-  await portal.getByRole("button", { name: "Add Badge" }).click();
-  await portal.getByLabel("Full name 1").fill("Budi Santoso");
-  await portal.getByLabel("Gender 1").selectOption("MALE");
-  await portal.getByLabel("Designation 1").fill("Sales Manager");
-  await portal.getByRole("button", { name: "Add Badge" }).click();
-  await portal.getByLabel("Full name 2").fill("Siti Rahmawati");
-  await portal.getByLabel("Gender 2").selectOption("FEMALE");
-  await portal.getByLabel("Designation 2").fill("Marketing");
+  await portal.getByLabel("How many exhibitor badges do you need?").fill("4");
   await settle();
   await part("18-questions", panel("Badges and Visa"));
+  // Overseas company: each badge holder, and a visa letter with a passport copy per person.
+  await portal.getByLabel("Overseas company").check();
+  await portal.getByRole("button", { name: "Add Badge" }).click();
+  await portal.getByLabel("Company 1").fill("Lee Textiles Ltd");
+  await portal.getByLabel("Full name 1").fill("John Lee");
+  await portal.getByLabel("Job title 1").fill("Sales Manager");
+  await portal.getByRole("group", { name: "Do you need an invitation letter for a visa?" }).getByLabel("Yes").check();
+  await portal.getByRole("button", { name: "Add Person" }).click();
+  await portal.getByLabel("Full name (as in passport) 1").fill("John Lee");
+  await portal.getByLabel("Nationality 1").fill("Singapore");
+  await portal.getByLabel("Passport number 1").fill("K1234567A");
+  await portal.getByLabel("Passport expiry 1").fill("2031-08-20");
+  await portal.getByLabel("Position 1").fill("Sales Manager");
   await portal.getByRole("button", { name: "Save Draft" }).click();
   await portal.getByText("Draft saved.", { exact: false }).waitFor();
+  await portal.getByLabel("Add Passport Copies").setInputFiles({ name: "passport-john-lee.pdf", mimeType: "application/pdf", buffer: PDF });
+  await portal.getByRole("button", { name: "Upload", exact: true }).last().click();
+  await portal.getByRole("button", { name: "passport-john-lee.pdf", exact: true }).waitFor();
+  await settle();
+  await part("18b-overseas-visa", panel("Badges and Visa"));
+  await part("18c-passport", panel("Attachments"));
 
   await portal.goto(`${PORTAL}/e/${lead.id}/forms/07`);
   await portal.getByRole("heading", { name: /^Furniture/ }).waitFor();
@@ -240,7 +258,7 @@ try {
   await view("00-sign-in");
   console.log(`done: ${edition.code}, lead ${lead.id}`);
 } catch (e) {
-  console.log(`FAIL ${String(e).split("\n")[0]}`);
+  console.log(`FAIL ${String(e).split("\n").slice(0, 6).join(" / ")}`);
   await portal.screenshot({ path: `${OUT}/failed.png`, fullPage: true }).catch(() => {});
   process.exitCode = 1;
 } finally {

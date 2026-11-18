@@ -17,7 +17,13 @@ from tests.test_exhibitor_leads import SALES_ROLE, admin_for, sales_role
 from tests.test_exhibitor_portal import LEADS, PORTAL, accept, exhibitor, token_of
 
 PDF = b"%PDF-1.7\n1 0 obj << >> endobj\n%%EOF\n"
-FIELDS = {"pic_name": "Budi Santoso", "company_address": "Jl. Sudirman 1, Jakarta"}
+FIELDS = {
+    "pic_name": "Budi Santoso",
+    "company_address": "Jl. Sudirman 1, Jakarta",
+    "tax_id_type": "NPWP",
+    "tax_id": "01.234.567.8-901.000",
+}
+PNG = b"\x89PNG\r\n\x1a\n card photo"
 
 
 async def portal_exhibitor(
@@ -50,10 +56,24 @@ async def upload(
 
 
 async def fill(client: AsyncClient, url: str, **fields: Any) -> dict[str, Any]:
+    """Saves the fields; in the portal, a tax ID also gets its card, as signing there needs it."""
     version = (await client.get(url)).json()["version"]
     r = await client.patch(url, json=fields | {"version": version})
     assert r.status_code == 200, r.text
+    if url.startswith(PORTAL) and fields.get("tax_id"):
+        r = await attach_card(client, url, r.json()["version"])
+        assert r.status_code == 200, r.text
     return dict(r.json())
+
+
+async def attach_card(
+    client: AsyncClient, url: str, version: int, data: bytes = PNG, name: str = "npwp.png"
+) -> Any:
+    return await client.post(
+        f"{url}/tax-id-file",
+        data={"version": str(version)},
+        files={"file": (name, data, "image/png" if name.endswith(".png") else "application/pdf")},
+    )
 
 
 async def test_exhibitor_fills_and_signs(storage: MemoryStorage) -> None:
@@ -71,9 +91,15 @@ async def test_exhibitor_fills_and_signs(storage: MemoryStorage) -> None:
     r = await upload(portal, url, contract["version"])
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "CONTRACT_INCOMPLETE"
-    assert set(r.json()["error"]["fields"]) == {"pic_name", "company_address"}
+    assert set(r.json()["error"]["fields"]) == {
+        "pic_name",
+        "company_address",
+        "tax_id_type",
+        "tax_id",
+        "tax_id_file",
+    }
 
-    contract = await fill(portal, url, **FIELDS, tax_id=" 01.234.567.8-901.000 ")
+    contract = await fill(portal, url, **FIELDS | {"tax_id": " 01.234.567.8-901.000 "})
     assert contract["tax_id"] == "01.234.567.8-901.000"
     r = await portal.patch(url, json={"discount_amount": "1", "version": contract["version"]})
     assert r.status_code == 422  # the discount is staff only
@@ -84,7 +110,7 @@ async def test_exhibitor_fills_and_signs(storage: MemoryStorage) -> None:
     assert signed["status"] == "SIGNED"
     assert signed["signed_at"] is not None
     assert signed["signed_file_name"] == "kontrak final.pdf"
-    [(bucket, key)] = list(storage.objects)
+    [(bucket, key)] = [k for k in storage.objects if k[1].endswith(".pdf")]
     assert bucket == get_settings().s3_bucket_contracts
     assert key.endswith(".pdf") and "kontrak" not in key
 
@@ -104,7 +130,7 @@ async def test_exhibitor_fills_and_signs(storage: MemoryStorage) -> None:
             )
         ).all()
         sign = await session.scalar(select(AuditLog).where(AuditLog.action == "sign"))
-    assert set(actions) == {"create", "update", "sign"}
+    assert set(actions) == {"create", "update", "attach_tax_id", "sign"}
     assert sign is not None and sign.source == "PORTAL"
 
 
@@ -124,7 +150,7 @@ async def test_signed_contract_is_read_only(storage: MemoryStorage) -> None:
     staff_url = contract_url(lead_id, portal=False)
     r = await admin.patch(staff_url, json={"discount_amount": "1", "version": signed["version"]})
     assert r.json()["error"]["code"] == "CONTRACT_SIGNED"
-    assert len(storage.objects) == 1
+    assert len(storage.objects) == 2  # the signed PDF and the NPWP card
 
 
 async def test_upload_checks(storage: MemoryStorage) -> None:
@@ -156,7 +182,7 @@ async def test_upload_checks(storage: MemoryStorage) -> None:
         headers={"X-CSRF-Token": "forged"},
     )
     assert r.status_code == 403
-    assert storage.objects == {}
+    assert all(not k.endswith(".pdf") for _, k in storage.objects)  # only the NPWP card
     assert (await portal.get(f"{url}/signed-copy")).status_code == 404
 
 
@@ -233,3 +259,61 @@ async def test_archived_edition_is_read_only(storage: MemoryStorage) -> None:
     r = await portal.patch(url, json=FIELDS | {"version": version})
     assert r.json()["error"]["code"] == "EDITION_ARCHIVED"
     assert (await portal.get(url)).status_code == 200
+
+
+async def test_tax_id_npwp_or_ktp_with_card(storage: MemoryStorage) -> None:
+    """No NPWP: the signer's KTP, and a photo of the card either way (owner request 2026-11-18)."""
+    edition = await make_edition()
+    admin = await admin_for(edition)
+    portal, lead_id = await portal_exhibitor(admin, edition)
+    url = contract_url(lead_id)
+    contract = (await portal.get(url)).json()
+
+    for kind, number, ok in (
+        ("KTP", "3171 0123 4567 0001", True),
+        ("KTP", "01.234.567.8-901.000", False),  # 15 digits
+        ("NPWP", "01.234.567.8-901.000", True),
+        ("NPWP", "0012 3456 7890 1234", True),  # the 16-digit NPWP
+        ("NPWP", "NPWP-123", False),
+        ("SIM", "123", False),
+    ):
+        r = await portal.patch(
+            url, json={"tax_id_type": kind, "tax_id": number, "version": contract["version"]}
+        )
+        assert (r.status_code == 200) is ok, (kind, number, r.text)
+        if ok:
+            contract = r.json()
+    assert (contract["tax_id_type"], contract["has_tax_id_file"]) == ("NPWP", False)
+
+    contract = (
+        await portal.patch(
+            url,
+            json={
+                "pic_name": "Budi",
+                "company_address": "Jl. Sudirman 1",
+                "tax_id_type": "KTP",
+                "tax_id": "3171012345670001",
+                "version": contract["version"],
+            },
+        )
+    ).json()
+    r = await upload(portal, url, contract["version"])
+    assert r.json()["error"]["fields"] == {"tax_id_file": "Required before signing."}
+
+    r = await attach_card(portal, url, contract["version"], data=b"GIF89a", name="ktp.gif")
+    assert r.status_code == 422
+    r = await attach_card(portal, url, contract["version"], name="C:\\scan\\ktp budi.png")
+    assert r.status_code == 200, r.text
+    contract = r.json()
+    assert (contract["has_tax_id_file"], contract["tax_id_file_name"]) == (True, "ktp budi.png")
+
+    # Private: the exhibitor and staff download it; the name comes from the server.
+    for client, card_url in ((portal, url), (admin, contract_url(lead_id, portal=False))):
+        r = await client.get(f"{card_url}/tax-id-file")
+        assert (r.status_code, r.content) == (200, PNG)
+        assert f'filename="ktp-{lead_id}.png"' in r.headers["content-disposition"]
+
+    r = await upload(portal, url, contract["version"])
+    assert r.status_code == 200, r.text
+    r = await attach_card(portal, url, r.json()["version"])
+    assert r.json()["error"]["code"] == "CONTRACT_SIGNED"

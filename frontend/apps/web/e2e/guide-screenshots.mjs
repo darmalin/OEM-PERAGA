@@ -259,7 +259,9 @@ try {
   const pcsrf = (await (await portal.request.get(`${portalApi}/auth/me`)).json()).csrf_token;
   const curl = `${portalApi}/exhibitors/${nf.id}/contract`;
   const c = await (await portal.request.get(curl)).json();
-  await portal.request.patch(curl, { headers: { "X-CSRF-Token": pcsrf }, data: { pic_name: "Rina Kusuma", company_address: "Jl. Gatot Subroto 45, Jakarta", version: c.version } });
+  await portal.request.patch(curl, { headers: { "X-CSRF-Token": pcsrf }, data: { pic_name: "Rina Kusuma", company_address: "Jl. Gatot Subroto 45, Jakarta", tax_id_type: "NPWP", tax_id: "02.345.678.9-012.000", version: c.version } });
+  const c1 = await (await portal.request.get(curl)).json();
+  await portal.request.post(`${curl}/tax-id-file`, { headers: { "X-CSRF-Token": pcsrf }, multipart: { version: String(c1.version), file: { name: "npwp.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") } } });
   const c2 = await (await portal.request.get(curl)).json();
   await portal.request.post(`${curl}/signed-copy`, { headers: { "X-CSRF-Token": pcsrf }, multipart: { version: String(c2.version), file: { name: "signed.pdf", mimeType: "application/pdf", buffer: PDF } } });
   await page.reload();

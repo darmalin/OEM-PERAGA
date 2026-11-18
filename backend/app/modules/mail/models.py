@@ -64,7 +64,8 @@ class EmailJob(UUIDPk, Timestamps, Base):
             "status IN ('QUEUED', 'SENDING', 'SENT', 'FAILED', 'CANCELLED')", name="status_valid"
         ),
         CheckConstraint(
-            "kind IN ('QR_CONFIRMATION', 'PASSWORD_RESET', 'FOLLOWUP_REMINDER', 'TEST')",
+            "kind IN ('QR_CONFIRMATION', 'PASSWORD_RESET', 'FOLLOWUP_REMINDER', 'TEST',"
+            " 'ORDER_RECEIVED', 'ORDER_ALERT')",
             name="kind_valid",
         ),
     )

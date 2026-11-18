@@ -137,7 +137,8 @@ export function OrderFormFields({
           <fieldset className="flex flex-col gap-2 md:col-span-2">
             <legend className="mb-1 text-[13px] text-label">Attachments</legend>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
-              {(Object.keys(PURPOSES) as AttachmentPurpose[]).map((p) => (
+              {/* Passport copies come with every Badges & Visa form; nothing to tick. */}
+              {(Object.keys(PURPOSES) as AttachmentPurpose[]).filter((p) => p !== "PASSPORT").map((p) => (
                 <Check key={p} checked={purposes.includes(p)} onChange={(on) => togglePurpose(p, on)}>{PURPOSES[p]}</Check>
               ))}
             </div>

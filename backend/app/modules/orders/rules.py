@@ -44,6 +44,8 @@ class AttachmentPurpose(StrEnum):
     PRODUCT_IMAGE = "PRODUCT_IMAGE"
     FITTING_LOCATION = "FITTING_LOCATION"
     VISA_LIST = "VISA_LIST"
+    # One copy per visa applicant; any Badges & Visa form takes it, without staff ticking it.
+    PASSPORT = "PASSPORT"
     OTHER = "OTHER"
 
 

@@ -233,7 +233,7 @@ function ContractPanel({
           ...(Number(c.vat_rate) > 0 ? ([[`VAT ${Number(c.vat_rate)}%`, money(c.vat_amount, c.currency)]] as [string, string][]) : []),
           ["Total", <span key="t" className="font-semibold">{money(c.total_amount, c.currency)}</span>],
           ...(c.quotation_number ? ([["Quotation", c.quotation_number]] as [string, string][]) : []),
-          ...(signed ? ([["Signed", date(c.signed_at)], ["PIC", c.pic_name], ["Address", c.company_address], ["Tax ID (NPWP)", c.tax_id]] as [string, string | null][]) : []),
+          ...(signed ? ([["Signed", date(c.signed_at)], ["PIC", c.pic_name], ["Address", c.company_address], [`Tax ID (${c.tax_id_type ?? "NPWP"})`, c.tax_id]] as [string, string | null][]) : []),
         ]}
       />
       {(c.payment_terms ?? []).length > 0 ? (
@@ -251,7 +251,7 @@ function ContractPanel({
       ) : null}
       {signed ? <SignedCopy leadId={leadId} /> : (
         <>
-          <ContractForm leadId={leadId} contract={c} onSaved={() => onChange("Contract details saved.")} onError={onError} />
+          <ContractForm leadId={leadId} contract={c} onSaved={(message) => onChange(message)} onError={onError} />
           <SignUpload leadId={leadId} contract={c} onSigned={() => onChange("Signed contract received. The contract is now final.")} />
         </>
       )}
@@ -259,13 +259,17 @@ function ContractPanel({
   );
 }
 
-function ContractForm({ leadId, contract: c, onSaved, onError }: { leadId: string; contract: Contract; onSaved: () => void; onError: (e: unknown) => void }) {
-  const [values, setValues] = useState({ pic_name: c.pic_name ?? "", company_address: c.company_address ?? "", tax_id: c.tax_id ?? "" });
+type TaxIdType = "NPWP" | "KTP";
+
+function ContractForm({ leadId, contract: c, onSaved, onError }: { leadId: string; contract: Contract; onSaved: (message: string) => void; onError: (e: unknown) => void }) {
+  const initial = { pic_name: c.pic_name ?? "", company_address: c.company_address ?? "", tax_id_type: (c.tax_id_type ?? "") as TaxIdType | "", tax_id: c.tax_id ?? "" };
+  const [values, setValues] = useState(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const dirty = values.pic_name !== (c.pic_name ?? "") || values.company_address !== (c.company_address ?? "") || values.tax_id !== (c.tax_id ?? "");
+  const dirty = (Object.keys(initial) as (keyof typeof initial)[]).some((k) => values[k] !== initial[k]);
   const set = (k: keyof typeof values) => (e: { target: { value: string } }) => setValues((v) => ({ ...v, [k]: e.target.value }));
+  const kind = values.tax_id_type || null;
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
@@ -273,8 +277,8 @@ function ContractForm({ leadId, contract: c, onSaved, onError }: { leadId: strin
     setErrors({});
     setMessage(null);
     try {
-      await call(api.PATCH("/api/v1/portal/exhibitors/{lead_id}/contract", { params: { path: { lead_id: leadId } }, body: { ...values, version: c.version } }));
-      onSaved();
+      await call(api.PATCH("/api/v1/portal/exhibitors/{lead_id}/contract", { params: { path: { lead_id: leadId } }, body: { ...values, tax_id_type: kind, version: c.version } }));
+      onSaved("Contract details saved.");
     } catch (err) {
       if (err instanceof ApiError && err.code === "VERSION_CONFLICT") setMessage("The contract was changed by your sales contact meanwhile. Reload the page to see the latest version.");
       else if (err instanceof ApiError && err.status !== 401) { setErrors(err.fields); setMessage(err.message); }
@@ -288,18 +292,80 @@ function ContractForm({ leadId, contract: c, onSaved, onError }: { leadId: strin
     <form onSubmit={(e) => void save(e)} noValidate className="mt-6 flex flex-col gap-4 border-t border-line pt-6">
       <div>
         <h3 className="text-[15px] font-semibold">1. Contract Details</h3>
-        <p className="text-[13px] text-muted">Who signs for your company and the address for the contract.</p>
+        <p className="text-[13px] text-muted">Who signs for your company, the address for the contract, and your tax ID.</p>
       </div>
       {message ? <Notice>{message}</Notice> : null}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="PIC Name" required error={errors.pic_name}>{(p) => <Input {...p} value={values.pic_name} onChange={set("pic_name")} autoComplete="name" />}</Field>
-        <Field label="Tax ID (NPWP)" error={errors.tax_id}>{(p) => <Input {...p} value={values.tax_id} onChange={set("tax_id")} />}</Field>
         <Field label="Company Address" required className="sm:col-span-2" error={errors.company_address}>
           {(p) => <Textarea {...p} value={values.company_address} onChange={set("company_address")} autoComplete="street-address" />}
         </Field>
+        <fieldset className="flex flex-col gap-2 sm:col-span-2" aria-invalid={Boolean(errors.tax_id_type)}>
+          <legend className="mb-1.5 text-[14px] font-semibold text-ink">Tax ID<span className="ml-0.5 text-required" aria-hidden> *</span><span className="sr-only"> (required)</span></legend>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {([["NPWP", "Company NPWP"], ["KTP", "KTP of the signer (the company has no NPWP)"]] as const).map(([value, text]) => (
+              <label key={value} className="flex items-center gap-2 text-[14px]">
+                <input type="radio" name="tax_id_type" className="size-4 accent-[var(--primary)]" checked={values.tax_id_type === value} onChange={() => setValues((v) => ({ ...v, tax_id_type: value }))} />
+                {text}
+              </label>
+            ))}
+          </div>
+          {errors.tax_id_type ? <p className="text-[13px] font-medium text-required">{errors.tax_id_type}</p> : null}
+        </fieldset>
+        {kind ? (
+          <Field label={kind === "KTP" ? "KTP Number (NIK)" : "NPWP Number"} required error={errors.tax_id} help={kind === "KTP" ? "16 digits." : "15 or 16 digits; dots and dashes are fine."}>
+            {(p) => <Input {...p} value={values.tax_id} onChange={set("tax_id")} inputMode="numeric" />}
+          </Field>
+        ) : null}
       </div>
       <Button type="submit" variant="primary" className="self-start" disabled={!dirty} loading={busy}>Save Details</Button>
+      {c.tax_id_type ? <TaxIdCard leadId={leadId} contract={c} blocked={dirty} onSaved={onSaved} /> : null}
     </form>
+  );
+}
+
+/** Photo or scan of the NPWP or KTP card. Private: only you and the organizer can open it. */
+function TaxIdCard({ leadId, contract: c, blocked, onSaved }: { leadId: string; contract: Contract; blocked: boolean; onSaved: (message: string) => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const url = `/api/v1/portal/exhibitors/${leadId}/contract/tax-id-file`;
+  const card = c.tax_id_type === "KTP" ? "KTP" : "NPWP";
+  const send = async () => {
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
+    form.append("version", String(c.version));
+    setBusy(true);
+    setError(null);
+    try {
+      await upload(url, form);
+      onSaved(`${card} card received.`);
+    } catch (err) {
+      setError(err instanceof ApiError ? (Object.values(err.fields)[0] ?? err.message) : messageOf(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-2 rounded-[12px] border border-line bg-page/60 p-4">
+      <p className="text-[14px] font-semibold text-ink">Photo of the {card} card<span className="ml-0.5 text-required" aria-hidden> *</span></p>
+      {c.has_tax_id_file ? (
+        <p className="flex flex-wrap items-center gap-2 text-[14px]">
+          <CircleCheck className="size-4 text-[var(--green-fg)]" aria-hidden />
+          <button type="button" className="text-link hover:underline" onClick={() => void downloadFile(url).catch((e: unknown) => setError(messageOf(e)))}>{c.tax_id_file_name}</button>
+        </p>
+      ) : null}
+      {blocked ? <p className="text-[13px] text-muted">Save the details first, then attach the card.</p> : (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <Field label={c.has_tax_id_file ? "Replace the card (JPG, PNG or PDF, up to 10 MB)" : "Card photo or scan (JPG, PNG or PDF, up to 10 MB)"} error={error ?? undefined} className="min-w-0 flex-1">
+            {(p) => <Input {...p} type="file" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" className="py-2" onChange={(e) => { setError(null); setFile(e.target.files?.[0] ?? null); }} />}
+          </Field>
+          <Button type="button" disabled={!file} loading={busy} onClick={() => void send()}><FileUp aria-hidden />Upload Card</Button>
+        </div>
+      )}
+      <p className="text-[12px] text-label">Only you and the PERAGA Expo team can open this file.</p>
+    </div>
   );
 }
 
@@ -307,7 +373,7 @@ function SignUpload({ leadId, contract: c, onSigned }: { leadId: string; contrac
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const ready = Boolean(c.pic_name && c.company_address);
+  const ready = Boolean(c.pic_name && c.company_address && c.tax_id_type && c.tax_id && c.has_tax_id_file);
 
   const send = async () => {
     if (!file) return;
@@ -334,7 +400,7 @@ function SignUpload({ leadId, contract: c, onSigned }: { leadId: string; contrac
           Sign the contract your sales contact sent you and upload it as a PDF. After the upload the contract is final and can no longer be edited here.
         </p>
       </div>
-      {!ready ? <Notice tone="amber">Save the PIC name and company address first.</Notice> : null}
+      {!ready ? <Notice tone="amber">Save the contract details and attach the NPWP or KTP card first.</Notice> : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <Field label="Signed PDF (up to 10 MB)" error={error ?? undefined} className="min-w-0 flex-1">
           {(p) => <Input {...p} type="file" accept="application/pdf,.pdf" disabled={!ready} className="py-2" onChange={(e) => { setError(null); setFile(e.target.files?.[0] ?? null); }} />}

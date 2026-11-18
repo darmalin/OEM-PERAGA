@@ -5,6 +5,25 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+Customer feedback, group C (2026-11-18).
+
+- **WhatsApp button** on every portal page (bottom left): one number for every show, set on the
+  server as `EMS_PORTAL_WHATSAPP` (international form, e.g. 6281234567890; empty hides it). The
+  first message names the company, booth, edition, and the open form.
+- **Badges & Visa**: an Indonesian company gives only the number of badges; an overseas company
+  lists each holder (company, full name, job title). A visa letter lists each person (name,
+  nationality, passport number and expiry, position) and needs a passport copy per person
+  (attachment purpose `PASSPORT`, taken by every Badges & Visa form) before the order submits.
+- **Tax ID: NPWP or KTP** on the contract, with a photo or scan of the card (private: the exhibitor
+  and staff only). Signing in the portal needs the number and the card; staff uploading a signed
+  copy do not. Desk: Tax ID Type and the card download on the Contract tab.
+- **Order emails**: submitting an order emails the exhibitor ("Order received" with the items,
+  total, and remarks) and the lead's owner (an alert with the desk link). No owner, no alert.
+  Sent through the shared email queue with the edition's email account.
+- Migration 0040: tax ID type and card columns, the `PASSPORT` purpose, and the two email kinds.
+  Existing contracts with a tax ID are marked NPWP.
+- Both guides updated.
+
 Exhibitions and editions can be deleted (2026-11-18), to clean up demo or mistaken records.
 
 - **Delete Exhibition / Delete Edition** at the bottom of the desk detail pages, with a confirm.

@@ -154,11 +154,11 @@ try {
   await portal.getByText("Some answers are missing.", { exact: false }).waitFor();
   check(true, "questions: sending with missing answers is refused with the reasons");
   await portal.goto(`${PORTAL}/e/${lead.id}/forms/09`);
-  await portal.getByLabel("Indonesian company").check();
+  await portal.getByLabel("Overseas company").check();
   await portal.getByRole("button", { name: "Add Badge" }).click();
-  await portal.getByLabel("Full name 1").fill("Budi Santoso");
-  await portal.getByLabel("Gender 1").selectOption("MALE");
-  await portal.getByLabel("Designation 1").fill("Sales Manager");
+  await portal.getByLabel("Company 1").fill("Lee Textiles Ltd");
+  await portal.getByLabel("Full name 1").fill("John Lee");
+  await portal.getByLabel("Job title 1").fill("Sales Manager");
   await portal.getByRole("button", { name: "Review and Submit" }).click();
   await portal.getByText("Your Answers", { exact: true }).waitFor();
   await shot("05-questions-review");
@@ -200,7 +200,12 @@ try {
   const portalCsrf = (await (await portal.request.get(`${portalApi}/auth/me`)).json()).csrf_token;
   const contractUrl = `${portalApi}/exhibitors/${lead.id}/contract`;
   const contract = await (await portal.request.get(contractUrl)).json();
-  await portal.request.patch(contractUrl, { headers: { "X-CSRF-Token": portalCsrf }, data: { pic_name: "E2E PIC", company_address: "Jl. E2E 1, Jakarta", version: contract.version } });
+  await portal.request.patch(contractUrl, { headers: { "X-CSRF-Token": portalCsrf }, data: { pic_name: "E2E PIC", company_address: "Jl. E2E 1, Jakarta", tax_id_type: "NPWP", tax_id: "01.234.567.8-901.000", version: contract.version } });
+  const saved = await (await portal.request.get(contractUrl)).json();
+  await portal.request.post(`${contractUrl}/tax-id-file`, {
+    headers: { "X-CSRF-Token": portalCsrf },
+    multipart: { version: String(saved.version), file: { name: "npwp.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") } },
+  });
   const filled = await (await portal.request.get(contractUrl)).json();
   const signed = await portal.request.post(`${contractUrl}/signed-copy`, {
     headers: { "X-CSRF-Token": portalCsrf },

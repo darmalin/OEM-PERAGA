@@ -62,6 +62,17 @@ export function exhibitorRouteOf(route: string): ExhibitorRoute | null {
 /** The portal is PERAGA Expo's for every show: its logo in the header and on the sign-in pages. */
 export const PERAGA_LOGO = { src: `${import.meta.env.BASE_URL}peraga-expo-logo.png`, alt: "PERAGA Expo", width: 165, height: 29 };
 
+/**
+ * wa.me link to the organizer's WhatsApp with a first message that says who is asking and from
+ * which form, so the organizer does not have to ask back.
+ */
+export function whatsappLink(number: string, record: ExhibitorRecord | null, formCode?: string): string {
+  const who = record ? `${record.company_name}${record.booth_code ? `, booth ${record.booth_code}` : ""} (${record.edition_name})` : null;
+  const about = formCode ? ` I have a question about order form no. ${formCode.replace(/^0/, "")}.` : " I have a question.";
+  const text = `Hello PERAGA Expo${who ? `, this is ${who}` : ""}.${about}`;
+  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
+}
+
 /** Counts of the order forms by where the exhibitor stands, for the home card and the list. */
 export function formCounts(forms: { progress: string }[]): { notFilled: number; inProgress: number; sent: number; done: number } {
   const count = (...values: string[]) => forms.filter((f) => values.includes(f.progress)).length;

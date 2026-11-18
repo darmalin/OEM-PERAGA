@@ -98,12 +98,12 @@ const FIELD_ORDER: Record<string, string[]> = {
   stand_service: ["service", "contractor", "official_contractor", "own_contractor"],
   exhibit_details: ["items", "sale_and_operation", "purchased"],
   freight: ["uses_official", "official_forwarder", "non_official", "shipments"],
-  badges_visa: ["company_type", "badges", "vip_needed", "vip_badges", "needs_visa_letter"],
+  badges_visa: ["company_type", "badge_count", "badges", "vip_needed", "vip_badges", "needs_visa_letter", "visa_applicants"],
   seminar: ["topic", "date", "time", "speakers"],
   parking: ["plates"],
 };
 /** Column order inside rows (badges, exhibits, shipments, speakers). */
-const COLUMN_ORDER = ["quantity", "full_name", "name", "company", "description", "designation", "gender", "country", "title_of_speech", "dimension", "length_m", "width_m", "height_m", "weight_kg"];
+const COLUMN_ORDER = ["quantity", "company", "full_name", "name", "description", "designation", "gender", "nationality", "passport_number", "passport_expiry", "country", "title_of_speech", "dimension", "length_m", "width_m", "height_m", "weight_kg"];
 
 export function orderedKeys(keys: string[], order: string[]): string[] {
   return [...order.filter((k) => keys.includes(k)), ...keys.filter((k) => !order.includes(k))];
@@ -122,6 +122,7 @@ const KEYS: Record<string, string> = {
   x: "X (Twitter)", pic: "PIC", weight_kg: "Weight (kg)", length_m: "Length (m)", width_m: "Width (m)",
   height_m: "Height (m)", vip_needed: "VIP badges", vip_badges: "VIP guests", needs_visa_letter: "Visa invitation letter",
   uses_official: "Official forwarder", non_official: "Own forwarder", own_contractor: "Own contractor",
+  badge_count: "Number of badges", visa_applicants: "Visa letter for", designation: "Job title",
 };
 
 function keyLabel(key: string): string {

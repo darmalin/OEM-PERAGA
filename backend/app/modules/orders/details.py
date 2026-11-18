@@ -33,6 +33,7 @@ Email = Annotated[
     StringConstraints(strip_whitespace=True, max_length=320, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$"),
 ]
 Phone = Text50
+IsoDate = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^\d{4}-\d{2}-\d{2}$")]
 
 
 class _Answers(BaseModel):
@@ -160,9 +161,12 @@ class Freight(_Answers):
 
 
 class Badge(_Answers):
+    """A named badge; overseas companies list each holder (owner request 2026-11-18)."""
+
     full_name: Short
     gender: Literal["MALE", "FEMALE"] | None = None
-    designation: Short | None = None
+    designation: Short | None = None  # job title
+    company: Short | None = None
 
 
 class VipBadge(_Answers):
@@ -171,12 +175,25 @@ class VipBadge(_Answers):
     company: Short | None = None
 
 
+class VisaApplicant(_Answers):
+    """One person the visa invitation letter is for; a passport copy per person goes with it."""
+
+    full_name: Short
+    nationality: Short | None = None
+    passport_number: Text50 | None = None
+    passport_expiry: IsoDate | None = None
+    designation: Short | None = None  # job title
+
+
 class BadgesVisa(_Answers):
     company_type: Literal["LOCAL", "OVERSEAS"] | None = None
+    # Indonesian companies give only how many badges; overseas companies list the holders.
+    badge_count: int | None = Field(default=None, ge=1, le=500)
     badges: list[Badge] = Field(default_factory=list, max_length=50)
     vip_needed: bool | None = None
     vip_badges: list[VipBadge] = Field(default_factory=list, max_length=20)
     needs_visa_letter: bool | None = None
+    visa_applicants: list[VisaApplicant] = Field(default_factory=list, max_length=50)
 
 
 # --- 10 Seminar --------------------------------------------------------------------------
@@ -272,6 +289,14 @@ def parse(details_type: str | None, raw: dict[str, Any], options: Options) -> di
         )
     elif isinstance(answers, Seminar):
         _choice(errors, options, OptionKind.SEMINAR_DATE, "date", answers.date)
+    elif isinstance(answers, BadgesVisa):
+        # Keep only what the chosen answers ask for, so a switch never sends stale rows.
+        if answers.company_type == "LOCAL":
+            answers.badges = []
+        elif answers.company_type == "OVERSEAS":
+            answers.badge_count = None
+        if not answers.needs_visa_letter:
+            answers.visa_applicants = []
     if errors:
         raise ValidationFailed(fields=errors)
     return answers.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
@@ -283,6 +308,15 @@ def _need(
     value = answers.get(field)
     if value is None or value == [] or value == {}:
         errors[f"details.{field}"] = message
+
+
+def _rows(
+    errors: dict[str, str], answers: dict[str, Any], field: str, required: tuple[str, ...]
+) -> None:
+    for n, row in enumerate(answers.get(field) or []):
+        for key in required:
+            if not row.get(key):
+                errors[f"details.{field}.{n}.{key}"] = "Required."
 
 
 def missing(details_type: str | None, answers: dict[str, Any]) -> dict[str, str]:
@@ -323,9 +357,21 @@ def missing(details_type: str | None, answers: dict[str, Any]) -> dict[str, str]
                     errors[f"details.non_official.{field}"] = "Required."
     elif kind == DetailsType.BADGES_VISA:
         _need(errors, answers, "company_type")
-        _need(errors, answers, "badges", "Add at least one badge holder.")
+        if answers.get("company_type") == "LOCAL":
+            _need(errors, answers, "badge_count", "How many badges do you need?")
+        elif answers.get("company_type") == "OVERSEAS":
+            _need(errors, answers, "badges", "Add at least one badge holder.")
+            _rows(errors, answers, "badges", ("company", "full_name", "designation"))
         if answers.get("vip_needed"):
             _need(errors, answers, "vip_badges", "Add the VIP guests or untick VIP badges.")
+        if answers.get("needs_visa_letter"):
+            _need(errors, answers, "visa_applicants", "Add the people who need the letter.")
+            _rows(
+                errors,
+                answers,
+                "visa_applicants",
+                ("full_name", "nationality", "passport_number", "passport_expiry", "designation"),
+            )
     elif kind == DetailsType.SEMINAR:
         _need(errors, answers, "topic")
         _need(errors, answers, "date")
