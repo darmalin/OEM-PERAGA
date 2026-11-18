@@ -3,9 +3,10 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import Row, func, or_, select, update
+from sqlalchemy import FromClause, Row, Table, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db import Base
 from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition, Venue
 from app.modules.exhibitions.rules import EditionStatus
 
@@ -103,3 +104,33 @@ async def increment_counter(session: AsyncSession, edition_id: uuid.UUID) -> int
     if value is None:
         raise LookupError(f"no counter for edition {edition_id}")
     return int(value)
+
+
+def referrers(table: FromClause) -> list[tuple[Table, str]]:
+    """Every (table, column) whose foreign key points at `table`, read from the metadata.
+
+    ON DELETE CASCADE rows (counters, team links) belong to the parent and go with it.
+    """
+    return sorted(
+        (
+            (fk.parent.table, fk.parent.name)
+            for t in Base.metadata.tables.values()
+            for fk in t.foreign_keys
+            if fk.column.table is table and fk.ondelete != "CASCADE"
+        ),
+        key=lambda ref: (ref[0].name, ref[1]),
+    )
+
+
+async def count_referrers(
+    session: AsyncSession, table: FromClause, row_id: uuid.UUID
+) -> list[tuple[str, int]]:
+    """(table name, row count) for each referring table that still has rows for `row_id`."""
+    counts: dict[str, int] = {}
+    for ref_table, column in referrers(table):
+        n = await session.scalar(
+            select(func.count()).select_from(ref_table).where(ref_table.c[column] == row_id)
+        )
+        if n:
+            counts[ref_table.name] = counts.get(ref_table.name, 0) + n
+    return list(counts.items())

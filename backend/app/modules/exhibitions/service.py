@@ -76,6 +76,19 @@ def _apply(obj: Any, changes: dict[str, Any]) -> None:
         setattr(obj, key, value)
 
 
+# Wording only; which tables are checked comes from the foreign keys (repo.referrers).
+_TABLE_LABELS = {"exhibition_editions": "editions"}
+
+
+def _linked_summary(counts: list[tuple[str, int]]) -> str:
+    """("booths", 3), ("exhibitor_leads", 1) -> "3 booths, 1 exhibitor lead"."""
+    parts = []
+    for table, n in counts:
+        label = _TABLE_LABELS.get(table, table).replace("_", " ")
+        parts.append(f"{n} {label if n != 1 else label.removesuffix('s')}")
+    return ", ".join(parts)
+
+
 # --- venues --------------------------------------------------------------------------------
 
 
@@ -201,6 +214,32 @@ async def update_exhibition(
     )
     await session.refresh(ex)
     return ExhibitionOut.model_validate(ex)
+
+
+async def delete_exhibition(
+    session: AsyncSession, ctx: AuthContext, exhibition_id: uuid.UUID, version: int
+) -> None:
+    """Delete an exhibition that no edition (or anything else) points to."""
+    ex = await repo.get_exhibition(session, exhibition_id, ctx.edition_ids())
+    if ex is None:
+        raise NotFound("Exhibition not found.")
+    _require_global(ctx, "exhibition.manage")
+    check_version(ex.version, version)
+    if linked := await repo.count_referrers(session, Exhibition.__table__, ex.id):
+        raise Conflict(
+            f"This exhibition still has {_linked_summary(linked)}. "
+            "Delete those first, or set the exhibition inactive instead.",
+            code="EXHIBITION_IN_USE",
+        )
+    await audit.record(
+        session,
+        entity_type="exhibition",
+        entity_id=ex.id,
+        action="delete",
+        before=audit.snapshot(ex, _EXHIBITION_FIELDS),
+    )
+    await session.delete(ex)
+    await session.flush()
 
 
 # --- editions ------------------------------------------------------------------------------
@@ -353,6 +392,35 @@ async def update_edition(
     )
     await session.refresh(edition)
     return _edition_out(edition, await repo.exhibition_code(session, edition.exhibition_id))
+
+
+async def delete_edition(
+    session: AsyncSession, ctx: AuthContext, edition_id: uuid.UUID, version: int
+) -> None:
+    """Delete an edition that no row anywhere points to (its own counters go with it)."""
+    scope = ctx.scope_for(edition_id)
+    if not scope.full_access:
+        raise PermissionDenied()
+    edition = await repo.get_edition(session, edition_id)
+    if edition is None:
+        raise NotFound("Edition not found.", code="EDITION_NOT_FOUND")
+    check_version(edition.version, version)
+    if linked := await repo.count_referrers(session, Edition.__table__, edition.id):
+        raise Conflict(
+            f"This edition still has {_linked_summary(linked)}. "
+            "Delete those first, or archive the edition instead.",
+            code="EDITION_IN_USE",
+        )
+    await audit.record(
+        session,
+        entity_type="edition",
+        entity_id=edition.id,
+        action="delete",
+        before=audit.snapshot(edition, _EDITION_FIELDS),
+        edition_id=edition.id,
+    )
+    await session.delete(edition)
+    await session.flush()
 
 
 async def ensure_writable(session: AsyncSession, edition_id: uuid.UUID) -> Edition:

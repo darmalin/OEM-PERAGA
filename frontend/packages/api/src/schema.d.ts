@@ -466,7 +466,8 @@ export interface paths {
         get: operations["get_exhibition_api_v1_exhibitions__exhibition_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Exhibition */
+        delete: operations["delete_exhibition_api_v1_exhibitions__exhibition_id__delete"];
         options?: never;
         head?: never;
         /** Update Exhibition */
@@ -502,7 +503,8 @@ export interface paths {
         get: operations["get_edition_api_v1_editions__edition_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Edition */
+        delete: operations["delete_edition_api_v1_editions__edition_id__delete"];
         options?: never;
         head?: never;
         /** Update Edition */
@@ -10058,6 +10060,37 @@ export interface operations {
             };
         };
     };
+    delete_exhibition_api_v1_exhibitions__exhibition_id__delete: {
+        parameters: {
+            query: {
+                version: number;
+            };
+            header?: never;
+            path: {
+                exhibition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_exhibition_api_v1_exhibitions__exhibition_id__patch: {
         parameters: {
             query?: never;
@@ -10180,6 +10213,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["EditionOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_edition_api_v1_editions__edition_id__delete: {
+        parameters: {
+            query: {
+                version: number;
+            };
+            header?: never;
+            path: {
+                edition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

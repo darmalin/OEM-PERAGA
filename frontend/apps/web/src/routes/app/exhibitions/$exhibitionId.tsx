@@ -1,8 +1,9 @@
 import { api, call } from "@ems/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 
+import { DeletePanel } from "@/features/delete-panel";
 import { can, useMe } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { handleFormError } from "@/lib/forms";
@@ -21,6 +22,7 @@ function Exhibition() {
   const { exhibitionId } = Route.useParams();
   const me = useMe();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const ex = useQuery({
     queryKey: ["exhibition", exhibitionId],
     queryFn: () => call(api.GET("/api/v1/exhibitions/{exhibition_id}", { params: { path: { exhibition_id: exhibitionId } } })),
@@ -43,6 +45,14 @@ function Exhibition() {
       handleFormError(e, form.setError, ["name"]);
     }
   });
+  const deleteExhibition = async () => {
+    if (!ex.data) return;
+    await call(api.DELETE("/api/v1/exhibitions/{exhibition_id}", { params: { path: { exhibition_id: exhibitionId }, query: { version: ex.data.version } } }));
+    queryClient.removeQueries({ queryKey: ["exhibition", exhibitionId] });
+    await queryClient.invalidateQueries({ queryKey: ["exhibitions"] });
+    notifySuccess("Exhibition deleted", ex.data.code);
+    await navigate({ to: "/app/exhibitions" });
+  };
   return (
     <Page className="max-w-[1100px]">
       <PageHead
@@ -89,6 +99,7 @@ function Exhibition() {
               <EmptyState title="No editions yet." />
             )}
           </Panel>
+          {manage ? <DeletePanel title="Delete Exhibition" description="Only an exhibition without editions can be deleted. Delete its editions first, or clear Active to hide it instead." confirmText={`Permanently delete ${ex.data.code}?`} onDelete={deleteExhibition} onStale={() => void ex.refetch()} /> : null}
         </div>
       )}
     </Page>

@@ -22,6 +22,15 @@ function stored(): string | null {
   }
 }
 
+/** Drop the saved choice when that edition is deleted; the provider falls back on its own. */
+export function forgetEdition(id: string): void {
+  try {
+    if (localStorage.getItem(KEY) === id) localStorage.removeItem(KEY);
+  } catch {
+    /* storage unavailable: nothing was saved */
+  }
+}
+
 export function EditionProvider({ children }: { children: ReactNode }) {
   const me = useMe();
   const [selected, setSelected] = useState<string | null>(stored);

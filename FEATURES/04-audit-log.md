@@ -5,6 +5,8 @@ Spec §10. Rules in `BACKEND_RULES/security-permissions.md`.
 ## Data
 `audit_logs`: `id`, `occurred_at`, `actor_user_id` (nullable for system), `source` (`UI`, `API`, `IMPORT`, `WORKER`, `SCANNER`), `edition_id`, `entity_type`, `entity_id`, `action`, `before` (JSONB), `after` (JSONB), `request_id`.
 
+`edition_id` has no foreign key (migration `0039`): rows keep the id of an edition that was deleted later (FEATURES/02).
+
 Append-only: no update or delete from the application. The DB role used by the app has no `UPDATE`/`DELETE` grant on this table.
 
 ## Covered actions

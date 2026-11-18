@@ -1,5 +1,6 @@
 import asyncio
 import uuid
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -7,10 +8,12 @@ from httpx import AsyncClient
 from sqlalchemy import func, select
 
 from app.core.audit import AuditLog
-from app.core.db import get_sessionmaker
+from app.core.db import Base, get_sessionmaker, new_id
+from app.modules.exhibitions import repository as exhibitions_repo
 from app.modules.exhibitions import service as exhibitions_service
-from app.modules.exhibitions.models import EditionCounter
+from app.modules.exhibitions.models import Edition, EditionCounter, Exhibition
 from app.modules.exhibitions.rules import EditionStatus, can_transition
+from app.modules.exhibitors.models import Booth, ExhibitorLead
 from tests.factories import RoleGrant, actor, make_edition, make_gate
 
 
@@ -230,3 +233,133 @@ async def test_edition_remarks_and_exhibitor_dates_are_stored() -> None:
         url, json={"version": edition["version"], "order_expired_on": "2027-04-01"}
     )
     assert r.status_code == 200 and r.json()["order_expired_on"] == "2027-04-01"
+
+
+# --- delete --------------------------------------------------------------------------------
+
+
+async def _add(*rows: Any) -> None:
+    async with get_sessionmaker()() as session, session.begin():
+        for row in rows:
+            session.add(row)
+            await session.flush()
+
+
+async def test_delete_empty_edition_then_exhibition() -> None:
+    _, admin = await actor(RoleGrant("SUPER_ADMIN"))
+    ex = await _create_exhibition(admin)
+    edition = (await admin.post("/api/v1/editions", json=edition_body(ex["id"]))).json()
+    ex_url, ed_url = f"/api/v1/exhibitions/{ex['id']}", f"/api/v1/editions/{edition['id']}"
+
+    r = await admin.delete(ex_url, params={"version": ex["version"]})
+    assert r.status_code == 409
+    assert r.json()["error"]["code"] == "EXHIBITION_IN_USE"
+    assert "1 edition." in r.json()["error"]["message"]
+
+    r = await admin.delete(ed_url, params={"version": edition["version"] + 1})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "VERSION_CONFLICT"
+    assert (await admin.delete(ed_url, params={"version": edition["version"]})).status_code == 204
+    assert (await admin.get(ed_url)).status_code == 404
+
+    r = await admin.delete(ex_url, params={"version": ex["version"] + 1})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "VERSION_CONFLICT"
+    assert (await admin.delete(ex_url, params={"version": ex["version"]})).status_code == 204
+    assert (await admin.get(ex_url)).status_code == 404
+
+    async with get_sessionmaker()() as session:
+        assert await session.get(EditionCounter, uuid.UUID(edition["id"])) is None
+        actions = (
+            await session.scalars(
+                select(AuditLog.entity_type + ":" + AuditLog.action).where(
+                    AuditLog.entity_id.in_([uuid.UUID(ex["id"]), uuid.UUID(edition["id"])])
+                )
+            )
+        ).all()
+        assert sorted(actions) == [
+            "edition:create",
+            "edition:delete",
+            "exhibition:create",
+            "exhibition:delete",
+        ]
+        # The edition's audit trail stays, still tagged with its id.
+        kept = await session.scalar(
+            select(func.count())
+            .select_from(AuditLog)
+            .where(AuditLog.edition_id == uuid.UUID(edition["id"]))
+        )
+        assert kept == 2
+
+
+async def test_linked_rows_block_edition_delete() -> None:
+    _, admin = await actor(RoleGrant("SUPER_ADMIN"))
+    edition = await make_edition()
+    await make_gate(edition)
+    booths = [
+        Booth(
+            id=new_id(),
+            edition_id=edition.id,
+            code=f"A0{i}",
+            area_sqm=Decimal("9.00"),
+            price=Decimal("15000000.00"),
+            currency="IDR",
+        )
+        for i in range(3)
+    ]
+    lead = ExhibitorLead(
+        id=new_id(),
+        edition_id=edition.id,
+        company_name="Example Corp",
+        contact_name="Test Contact",
+        email="sales-001@example.test",
+        email_normalized="sales-001@example.test",
+    )
+    await _add(*booths, lead)
+    r = await admin.delete(f"/api/v1/editions/{edition.id}", params={"version": 1})
+    assert r.status_code == 409
+    error = r.json()["error"]
+    assert error["code"] == "EDITION_IN_USE"
+    assert error["message"].startswith("This edition still has 3 booths, 1 exhibitor lead, 1 gate.")
+    assert (await admin.get(f"/api/v1/editions/{edition.id}")).status_code == 200
+
+
+async def test_role_assignment_blocks_edition_delete() -> None:
+    edition = await make_edition()
+    _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", edition.id))
+    r = await admin.delete(f"/api/v1/editions/{edition.id}", params={"version": 1})
+    assert r.status_code == 409
+    assert "1 user role assignment" in r.json()["error"]["message"]
+
+
+def test_referrers_match_metadata() -> None:
+    edition_refs = {
+        (fk.parent.table.name, fk.parent.name)
+        for t in Base.metadata.tables.values()
+        for fk in t.foreign_keys
+        if fk.column.table.name == "exhibition_editions" and fk.ondelete != "CASCADE"
+    }
+    found = {(t.name, c) for t, c in exhibitions_repo.referrers(Edition.__table__)}
+    assert found == edition_refs
+    assert {"booths", "exhibitor_leads", "gates", "visitor_leads", "order_forms"} <= {
+        t for t, _ in found
+    }
+    assert "audit_logs" not in {t for t, _ in found}
+    assert {(t.name, c) for t, c in exhibitions_repo.referrers(Exhibition.__table__)} >= {
+        ("exhibition_editions", "exhibition_id")
+    }
+
+
+async def test_delete_needs_manage_permission() -> None:
+    edition = await make_edition()
+    _, agent = await actor(RoleGrant("TELEMARKETING_AGENT", "OWNED", edition.id))
+    r = await agent.delete(f"/api/v1/editions/{edition.id}", params={"version": 1})
+    assert r.status_code == 403
+    r = await agent.delete(f"/api/v1/exhibitions/{edition.exhibition_id}", params={"version": 1})
+    assert r.status_code == 403
+
+    # An edition admin manages the edition, not the exhibition master record.
+    _, admin = await actor(RoleGrant("EXHIBITION_ADMIN", "EDITION", edition.id))
+    r = await admin.delete(f"/api/v1/exhibitions/{edition.exhibition_id}", params={"version": 1})
+    assert r.status_code == 403
+    other = await make_edition()
+    r = await admin.delete(f"/api/v1/editions/{other.id}", params={"version": 1})
+    assert r.status_code == 404

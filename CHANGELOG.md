@@ -5,6 +5,19 @@ Add an entry here in the same commit as the change, so a tag never ships somethi
 
 ## Unreleased
 
+Exhibitions and editions can be deleted (2026-11-18), to clean up demo or mistaken records.
+
+- **Delete Exhibition / Delete Edition** at the bottom of the desk detail pages, with a confirm.
+  Allowed only while nothing links to the record: any booth, lead, quotation, contract, payment,
+  order form, order, registration, gate, import, export, campaign link, role assignment and so on
+  blocks it, and the message counts what is linked ("This edition still has 3 booths, 1 exhibitor
+  lead."). An exhibition with editions cannot be deleted. Deleting the edition you have selected
+  clears that choice.
+- API: `DELETE /exhibitions/{id}?version=` and `DELETE /editions/{id}?version=`, 204, or 409
+  `EXHIBITION_IN_USE` / `EDITION_IN_USE` / `VERSION_CONFLICT`. Audited.
+- Migration 0039 drops the foreign key from `audit_logs.edition_id`, so a deleted edition's audit
+  rows stay with its id.
+
 Customer feedback on the guides (2026-11-16).
 
 - **Submit, not Send**: the portal says Review and Submit, Submit Order, and status Submitted

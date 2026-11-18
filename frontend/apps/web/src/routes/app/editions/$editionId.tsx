@@ -1,12 +1,14 @@
 import { api, call, type Schemas } from "@ems/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 
 import { CampaignLinksPanel } from "@/features/campaigns/campaign-links-panel";
+import { DeletePanel } from "@/features/delete-panel";
 import { EditionTeamPanel } from "@/features/edition-team";
 import { EditionFields, editionPayload, type EditionValues, EXHIBITOR_FIELDS, exhibitorValues } from "@/features/edition-form";
 import { can, meQuery, useMe } from "@/lib/auth";
+import { forgetEdition } from "@/lib/edition";
 import { handleFormError } from "@/lib/forms";
 import { notifySuccess } from "@/lib/notify";
 import { EditionBand } from "@/ui/band";
@@ -31,6 +33,7 @@ function Edition() {
   const { editionId } = Route.useParams();
   const me = useMe();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const ed = useQuery({
     queryKey: ["edition", editionId],
     queryFn: () => call(api.GET("/api/v1/editions/{edition_id}", { params: { path: { edition_id: editionId } } })),
@@ -49,6 +52,15 @@ function Edition() {
       handleFormError(e, form.setError, ["name", "start_date", "end_date", "timezone", "default_currency", "email_reply_to", "email_account_id", "scanner_cache_ttl_minutes", "status", ...EXHIBITOR_FIELDS]);
     }
   });
+  const deleteEdition = async () => {
+    if (!ed.data) return;
+    await call(api.DELETE("/api/v1/editions/{edition_id}", { params: { path: { edition_id: editionId }, query: { version: ed.data.version } } }));
+    forgetEdition(editionId);
+    queryClient.removeQueries({ queryKey: ["edition", editionId] });
+    await Promise.all([queryClient.invalidateQueries({ queryKey: meQuery.queryKey }), queryClient.invalidateQueries({ queryKey: ["editions"] })]);
+    notifySuccess("Edition deleted", ed.data.code);
+    await navigate({ to: "/app/editions" });
+  };
   return (
     <Page>
       <PageHead back={{ to: "/app/editions", label: "Editions" }} title={ed.data ? ed.data.code : "Edition"} meta={ed.data ? `${ed.data.exhibition_code ?? ""} · registration IDs start with ${ed.data.registration_id_prefix}` : null} />
@@ -63,6 +75,7 @@ function Edition() {
           </form>
           <EditionTeamPanel editionId={editionId} manage={manage} />
           <CampaignLinksPanel editionId={editionId} timezone={ed.data.timezone} manage={manage} />
+          {manage ? <DeletePanel title="Delete Edition" description="Only an edition with nothing linked to it can be deleted: no booths, leads, registrations, order forms, gates, campaign links, imports or role assignments. To keep its data, archive it instead." confirmText={`Permanently delete ${ed.data.code}?`} onDelete={deleteEdition} onStale={() => void ed.refetch()} /> : null}
         </div>
       )}
     </Page>

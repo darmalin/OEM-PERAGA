@@ -53,7 +53,8 @@ class AuditLog(UUIDPk, Base):
     )
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     source: Mapped[str] = mapped_column(String(20), nullable=False)
-    edition_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("exhibition_editions.id"))
+    # No foreign key (migration 0039): the row outlives a deleted edition.
+    edition_id: Mapped[uuid.UUID | None] = mapped_column()
     entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
     entity_id: Mapped[uuid.UUID | None] = mapped_column()
     action: Mapped[str] = mapped_column(String(64), nullable=False)

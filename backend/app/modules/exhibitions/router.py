@@ -85,6 +85,16 @@ async def update_exhibition(
     return await service.update_exhibition(session, ctx, exhibition_id, data)
 
 
+@router.delete("/exhibitions/{exhibition_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_exhibition(
+    exhibition_id: uuid.UUID,
+    session: Session,
+    version: Annotated[int, Query(ge=1)],
+    ctx: AuthContext = Depends(require("exhibition.manage")),
+) -> None:
+    await service.delete_exhibition(session, ctx, exhibition_id, version)
+
+
 @router.get("/editions", response_model=Page[EditionOut])
 async def list_editions(
     session: Session,
@@ -116,3 +126,13 @@ async def update_edition(
     ctx: AuthContext = Depends(require("edition.manage")),
 ) -> EditionOut:
     return await service.update_edition(session, ctx, edition_id, data)
+
+
+@router.delete("/editions/{edition_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_edition(
+    edition_id: uuid.UUID,
+    session: Session,
+    version: Annotated[int, Query(ge=1)],
+    ctx: AuthContext = Depends(require("edition.manage")),
+) -> None:
+    await service.delete_edition(session, ctx, edition_id, version)
